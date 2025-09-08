@@ -8,6 +8,7 @@ store/LOCK
 store/MANIFEST-*
 store/OPTIONS-*
 store/*.log
+archive-data/
 
 go-archiver
 *.swagger.json

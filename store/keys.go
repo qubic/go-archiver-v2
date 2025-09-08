@@ -121,12 +121,6 @@ func processedTickIntervalsPerEpochKey(epoch uint32) []byte {
 	return key
 }
 
-func processedTickIntervalsKey() []byte {
-	key := []byte{ProcessedTickIntervals}
-
-	return key
-}
-
 func txStatusKey(txID string) []byte {
 	key := []byte{TransactionStatus}
 	key = append(key, []byte(txID)...)

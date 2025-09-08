@@ -1,18 +1,17 @@
 package main
 
 import (
+	"errors"
 	"fmt"
-	"github.com/ardanlabs/conf"
+	"github.com/ardanlabs/conf/v3"
 	"github.com/cockroachdb/pebble"
 	grpcProm "github.com/grpc-ecosystem/go-grpc-middleware/providers/prometheus"
-	"github.com/pkg/errors"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/collectors"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
+	"github.com/qubic/go-archiver/api"
 	"github.com/qubic/go-archiver/processor"
-	"github.com/qubic/go-archiver/rpc"
 	"github.com/qubic/go-archiver/store"
-	"github.com/qubic/go-archiver/validator/tick"
 	qubic "github.com/qubic/go-node-connector"
 	"github.com/qubic/go-node-connector/types"
 	"log"
@@ -55,9 +54,9 @@ func run() error {
 		}
 		Qubic struct {
 			NodePort                      string        `conf:"default:21841"`
-			StorageFolder                 string        `conf:"default:store"`
+			StorageFolder                 string        `conf:"default:archive-data"`
 			ProcessTickTimeout            time.Duration `conf:"default:5s"`
-			DisableTransactionStatusAddon bool          `conf:"default:false"`
+			DisableTransactionStatusAddon bool          `conf:"default:true"`
 			ArbitratorIdentity            string        `conf:"default:AFZPUAIYVPNUYGJRQVLUKOPPVLHAZQTGLYAAUUNBXFTVTAMSBKQBLEIEPCVJ"`
 		}
 		Store struct {
@@ -65,29 +64,18 @@ func run() error {
 		}
 	}
 
-	if err := conf.Parse(os.Args[1:], prefix, &cfg); err != nil {
-		switch err {
-		case conf.ErrHelpWanted:
-			usage, err := conf.Usage(prefix, &cfg)
-			if err != nil {
-				return errors.Wrap(err, "generating config usage")
-			}
-			fmt.Println(usage)
-			return nil
-		case conf.ErrVersionWanted:
-			version, err := conf.VersionString(prefix, &cfg)
-			if err != nil {
-				return errors.Wrap(err, "generating config version")
-			}
-			fmt.Println(version)
+	help, err := conf.Parse(prefix, &cfg)
+	if err != nil {
+		if errors.Is(err, conf.ErrHelpWanted) {
+			fmt.Println(help)
 			return nil
 		}
-		return errors.Wrap(err, "parsing config")
+		return fmt.Errorf("parsing config: %w", err)
 	}
 
 	out, err := conf.String(&cfg)
 	if err != nil {
-		return errors.Wrap(err, "generating config for output")
+		return fmt.Errorf("generating config for output: %w", err)
 	}
 	log.Printf("main: Config :\n%v\n", out)
 
@@ -141,24 +129,29 @@ func run() error {
 
 	db, err := pebble.Open(cfg.Qubic.StorageFolder, &pebbleOptions)
 	if err != nil {
-		return errors.Wrap(err, "opening db with zstd compression")
+		return fmt.Errorf("opening db: %w", err)
 	}
-	defer db.Close()
+	defer func(db *pebble.DB) {
+		err := db.Close()
+		if err != nil {
+			log.Printf("closing db: %v", err)
+		}
+	}(db)
 
 	ps := store.NewPebbleStore(db, nil)
 
-	if cfg.Store.ResetEmptyTickKeys {
-		fmt.Printf("Resetting empty ticks for all epochs...\n")
-		err = tick.ResetEmptyTicksForAllEpochs(ps)
-		if err != nil {
-			return errors.Wrap(err, "resetting empty ticks keys")
-		}
-	}
-
-	err = tick.CalculateEmptyTicksForAllEpochs(ps)
-	if err != nil {
-		return errors.Wrap(err, "calculating empty ticks for all epochs")
-	}
+	//if cfg.Store.ResetEmptyTickKeys {
+	//	fmt.Printf("Resetting empty ticks for all epochs...\n")
+	//	err = tick.ResetEmptyTicksForAllEpochs(ps)
+	//	if err != nil {
+	//		return errors.Wrap(err, "resetting empty ticks keys")
+	//	}
+	//}
+	//
+	//err = tick.CalculateEmptyTicksForAllEpochs(ps)
+	//if err != nil {
+	//	return errors.Wrap(err, "calculating empty ticks for all epochs")
+	//}
 
 	p, err := qubic.NewPoolConnection(qubic.PoolConfig{
 		InitialCap:         cfg.Pool.InitialCap,
@@ -170,7 +163,7 @@ func run() error {
 		NodePort:           cfg.Qubic.NodePort,
 	})
 	if err != nil {
-		return errors.Wrap(err, "creating qubic pool")
+		return fmt.Errorf("creating node pool: %w", err)
 	}
 
 	srvMetrics := grpcProm.NewServerMetrics(
@@ -180,10 +173,12 @@ func run() error {
 	reg.MustRegister(srvMetrics)
 	reg.MustRegister(collectors.NewGoCollector())
 
-	rpcServer := rpc.NewServer(cfg.Server.GrpcHost, cfg.Server.HttpHost, cfg.Server.NodeSyncThreshold, cfg.Server.ChainTickFetchUrl, ps, p)
-	err = rpcServer.Start(srvMetrics.UnaryServerInterceptor())
+	rpcServer := api.NewArchiveServer(cfg.Server.GrpcHost, cfg.Server.HttpHost)
+	serverError := make(chan error, 1)
+
+	err = rpcServer.Start(serverError, srvMetrics.UnaryServerInterceptor())
 	if err != nil {
-		return errors.Wrap(err, "starting rpc server")
+		return fmt.Errorf("starting server: %w", err)
 	}
 
 	shutdown := make(chan os.Signal, 1)
@@ -192,7 +187,7 @@ func run() error {
 	arbitratorID := types.Identity(cfg.Qubic.ArbitratorIdentity)
 	arbitratorPubKey, err := arbitratorID.ToPubKey(false)
 	if err != nil {
-		return errors.Wrapf(err, "getting arbitrator public key from [%s]", cfg.Qubic.ArbitratorIdentity)
+		return fmt.Errorf("calculating arbitrator public key from [%s]: %w", cfg.Qubic.ArbitratorIdentity, err)
 	}
 
 	proc := processor.NewProcessor(p, ps, cfg.Qubic.ProcessTickTimeout, arbitratorPubKey, cfg.Qubic.DisableTransactionStatusAddon)
@@ -203,19 +198,27 @@ func run() error {
 		procErrors <- proc.Start()
 	}()
 
-	pprofErrors := make(chan error, 1)
+	metricsError := make(chan error, 1)
 
-	http.Handle("/metrics", promhttp.HandlerFor(reg, promhttp.HandlerOpts{EnableOpenMetrics: true}))
 	go func() {
-		pprofErrors <- http.ListenAndServe(cfg.Server.ProfilingHost, nil)
+		log.Printf("main: Starting metrics server listening at [%s].", cfg.Server.ProfilingHost)
+		http.Handle("/metrics", promhttp.HandlerFor(reg, promhttp.HandlerOpts{EnableOpenMetrics: true}))
+		metricsError <- http.ListenAndServe(cfg.Server.ProfilingHost, nil)
 	}()
 
 	for {
 		select {
 		case <-shutdown:
-			return errors.New("shutting down")
+			log.Println("main: Received shutdown signal, shutting down...")
+			return nil
+		case err := <-metricsError:
+			return fmt.Errorf("[ERROR] starting metrics endpoint: %w", err)
+		case err := <-serverError:
+			return fmt.Errorf("[ERROR] starting server endpoint(s): %w", err)
 		case err := <-procErrors:
-			return errors.Wrap(err, "archiver error")
+			return fmt.Errorf("[ERROR] processing: %w", err)
+		case err := <-metricsError:
+			log.Printf("[ERROR] serving metrics: %s/n", err.Error())
 		}
 	}
 }
