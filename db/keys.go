@@ -1,4 +1,4 @@
-package store
+package db
 
 import (
 	"encoding/binary"

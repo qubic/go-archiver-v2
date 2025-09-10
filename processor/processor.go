@@ -1,24 +1,24 @@
 package processor
 
 import (
-	"github.com/qubic/go-archiver/store"
+	"github.com/qubic/go-archiver/db"
 	qubic "github.com/qubic/go-node-connector"
 	"log"
 	"time"
 )
 
 type Processor struct {
-	pool               *qubic.Pool
-	ps                 *store.PebbleStore
+	nodePool           *qubic.Pool
+	dbPool             *db.DatabasePool
 	arbitratorPubKey   [32]byte
 	processTickTimeout time.Duration
 	disableStatusAddon bool
 }
 
-func NewProcessor(p *qubic.Pool, ps *store.PebbleStore, processTickTimeout time.Duration, arbitratorPubKey [32]byte, disableStatusAddon bool) *Processor {
+func NewProcessor(nodePool *qubic.Pool, dbPool *db.DatabasePool, processTickTimeout time.Duration, arbitratorPubKey [32]byte, disableStatusAddon bool) *Processor {
 	return &Processor{
-		pool:               p,
-		ps:                 ps,
+		nodePool:           nodePool,
+		dbPool:             dbPool,
 		processTickTimeout: processTickTimeout,
 		arbitratorPubKey:   arbitratorPubKey,
 		disableStatusAddon: disableStatusAddon,

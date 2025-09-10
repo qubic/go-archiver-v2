@@ -1,4 +1,4 @@
-package store
+package db
 
 import (
 	"context"
@@ -6,7 +6,6 @@ import (
 	"github.com/cockroachdb/pebble"
 	"github.com/pkg/errors"
 	"github.com/qubic/go-archiver/protobuf"
-	"go.uber.org/zap"
 	"google.golang.org/protobuf/proto"
 	"strconv"
 )
@@ -16,12 +15,11 @@ const maxTickNumber = ^uint64(0)
 var ErrNotFound = errors.New("store resource not found")
 
 type PebbleStore struct {
-	db     *pebble.DB
-	logger *zap.Logger
+	db *pebble.DB
 }
 
-func NewPebbleStore(db *pebble.DB, logger *zap.Logger) *PebbleStore {
-	return &PebbleStore{db: db, logger: logger}
+func NewPebbleStore(db *pebble.DB) *PebbleStore {
+	return &PebbleStore{db: db}
 }
 
 func (s *PebbleStore) GetTickData(_ context.Context, tickNumber uint32) (*protobuf.TickData, error) {

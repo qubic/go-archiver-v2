@@ -4,14 +4,13 @@ import (
 	"errors"
 	"fmt"
 	"github.com/ardanlabs/conf/v3"
-	"github.com/cockroachdb/pebble"
 	grpcProm "github.com/grpc-ecosystem/go-grpc-middleware/providers/prometheus"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/collectors"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/qubic/go-archiver/api"
+	"github.com/qubic/go-archiver/db"
 	"github.com/qubic/go-archiver/processor"
-	"github.com/qubic/go-archiver/store"
 	qubic "github.com/qubic/go-node-connector"
 	"github.com/qubic/go-node-connector/types"
 	"log"
@@ -19,7 +18,6 @@ import (
 	_ "net/http/pprof"
 	"os"
 	"os/signal"
-	"runtime"
 	"syscall"
 	"time"
 )
@@ -54,13 +52,13 @@ func run() error {
 		}
 		Qubic struct {
 			NodePort                      string        `conf:"default:21841"`
-			StorageFolder                 string        `conf:"default:archive-data"`
 			ProcessTickTimeout            time.Duration `conf:"default:5s"`
 			DisableTransactionStatusAddon bool          `conf:"default:true"`
 			ArbitratorIdentity            string        `conf:"default:AFZPUAIYVPNUYGJRQVLUKOPPVLHAZQTGLYAAUUNBXFTVTAMSBKQBLEIEPCVJ"`
 		}
 		Store struct {
-			ResetEmptyTickKeys bool `conf:"default:false"`
+			ResetEmptyTickKeys bool   `conf:"default:false"`
+			StorageFolder      string `conf:"default:archive-data"`
 		}
 	}
 
@@ -79,67 +77,13 @@ func run() error {
 	}
 	log.Printf("main: Config :\n%v\n", out)
 
-	l1Options := pebble.LevelOptions{
-		BlockRestartInterval: 16,
-		BlockSize:            4096,
-		BlockSizeThreshold:   90,
-		Compression:          pebble.NoCompression,
-		FilterPolicy:         nil,
-		FilterType:           pebble.TableFilter,
-		IndexBlockSize:       4096,
-		TargetFileSize:       268435456, // 256 MB
-	}
-	l2Options := pebble.LevelOptions{
-		BlockRestartInterval: 16,
-		BlockSize:            4096,
-		BlockSizeThreshold:   90,
-		Compression:          pebble.ZstdCompression,
-		FilterPolicy:         nil,
-		FilterType:           pebble.TableFilter,
-		IndexBlockSize:       4096,
-		TargetFileSize:       l1Options.TargetFileSize * 10, // 2.5 GB
-	}
-	l3Options := pebble.LevelOptions{
-		BlockRestartInterval: 16,
-		BlockSize:            4096,
-		BlockSizeThreshold:   90,
-		Compression:          pebble.ZstdCompression,
-		FilterPolicy:         nil,
-		FilterType:           pebble.TableFilter,
-		IndexBlockSize:       4096,
-		TargetFileSize:       l2Options.TargetFileSize * 10, // 25 GB
-	}
-	l4Options := pebble.LevelOptions{
-		BlockRestartInterval: 16,
-		BlockSize:            4096,
-		BlockSizeThreshold:   90,
-		Compression:          pebble.ZstdCompression,
-		FilterPolicy:         nil,
-		FilterType:           pebble.TableFilter,
-		IndexBlockSize:       4096,
-		TargetFileSize:       l3Options.TargetFileSize * 10, // 250 GB
-	}
-
-	pebbleOptions := pebble.Options{
-		Levels:                   []pebble.LevelOptions{l1Options, l2Options, l3Options, l4Options},
-		MaxConcurrentCompactions: func() int { return runtime.NumCPU() },
-		MemTableSize:             268435456, // 256 MB
-		EventListener:            store.NewPebbleEventListener(),
-	}
-
-	db, err := pebble.Open(cfg.Qubic.StorageFolder, &pebbleOptions)
+	dbPool, err := db.NewDatabasePool(cfg.Store.StorageFolder)
 	if err != nil {
-		return fmt.Errorf("opening db: %w", err)
+		return fmt.Errorf("creating db pool: %w", err)
 	}
-	defer func(db *pebble.DB) {
-		err := db.Close()
-		if err != nil {
-			log.Printf("closing db: %v", err)
-		}
-	}(db)
+	defer dbPool.Close()
 
-	ps := store.NewPebbleStore(db, nil)
-
+	// TODO check if we need the following
 	//if cfg.Store.ResetEmptyTickKeys {
 	//	fmt.Printf("Resetting empty ticks for all epochs...\n")
 	//	err = tick.ResetEmptyTicksForAllEpochs(ps)
@@ -153,15 +97,18 @@ func run() error {
 	//	return errors.Wrap(err, "calculating empty ticks for all epochs")
 	//}
 
-	p, err := qubic.NewPoolConnection(qubic.PoolConfig{
-		InitialCap:         cfg.Pool.InitialCap,
-		MaxCap:             cfg.Pool.MaxCap,
-		MaxIdle:            cfg.Pool.MaxIdle,
-		IdleTimeout:        cfg.Pool.IdleTimeout,
-		NodeFetcherUrl:     cfg.Pool.NodeFetcherUrl,
-		NodeFetcherTimeout: cfg.Pool.NodeFetcherTimeout,
-		NodePort:           cfg.Qubic.NodePort,
-	})
+	// FIXME
+	//nodePool, err := qubic.NewPoolConnection(qubic.PoolConfig{
+	//	InitialCap:         cfg.Pool.InitialCap,
+	//	MaxCap:             cfg.Pool.MaxCap,
+	//	MaxIdle:            cfg.Pool.MaxIdle,
+	//	IdleTimeout:        cfg.Pool.IdleTimeout,
+	//	NodeFetcherUrl:     cfg.Pool.NodeFetcherUrl,
+	//	NodeFetcherTimeout: cfg.Pool.NodeFetcherTimeout,
+	//	NodePort:           cfg.Qubic.NodePort,
+	//})
+	nodePool := &qubic.Pool{}
+
 	if err != nil {
 		return fmt.Errorf("creating node pool: %w", err)
 	}
@@ -190,7 +137,7 @@ func run() error {
 		return fmt.Errorf("calculating arbitrator public key from [%s]: %w", cfg.Qubic.ArbitratorIdentity, err)
 	}
 
-	proc := processor.NewProcessor(p, ps, cfg.Qubic.ProcessTickTimeout, arbitratorPubKey, cfg.Qubic.DisableTransactionStatusAddon)
+	proc := processor.NewProcessor(nodePool, dbPool, cfg.Qubic.ProcessTickTimeout, arbitratorPubKey, cfg.Qubic.DisableTransactionStatusAddon)
 	procErrors := make(chan error, 1)
 
 	// Start the service listening for requests.
@@ -221,4 +168,5 @@ func run() error {
 			log.Printf("[ERROR] serving metrics: %s/n", err.Error())
 		}
 	}
+
 }
