@@ -13,13 +13,13 @@ import (
 
 type DatabasePool struct {
 	storeDir string
-	stores   map[uint32]*pebble.DB // FIXME replace with pebble store
+	stores   map[uint16]*PebbleStore // FIXME replace with pebble store
 }
 
 func NewDatabasePool(storageFolder string) (*DatabasePool, error) {
 	stores, err := loadFromDisk(storageFolder)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("loading from disk: %w", err)
 	}
 	return &DatabasePool{
 		storeDir: storageFolder,
@@ -27,21 +27,21 @@ func NewDatabasePool(storageFolder string) (*DatabasePool, error) {
 	}, nil
 }
 
-func (dp *DatabasePool) GetDbForEpoch(epoch uint32) (*pebble.DB, error) {
+func (dp *DatabasePool) GetDbForEpoch(epoch uint16) (*PebbleStore, error) {
 	store := dp.stores[epoch]
 	if store == nil {
-		return nil, fmt.Errorf("there is no database for epoch [%d]", epoch)
+		return nil, fmt.Errorf("getting data store for epoch [%d]", epoch)
 	}
 	return store, nil
 }
 
-func (dp *DatabasePool) GetOrCreateDbForEpoch(epoch uint32) (*pebble.DB, error) {
+func (dp *DatabasePool) GetOrCreateDbForEpoch(epoch uint16) (*PebbleStore, error) {
 	store := dp.stores[epoch]
 	if store == nil {
-		log.Printf("creating database for epoch [%d]", epoch)
-		newStore, err := openDatabase(dp.storeDir, epoch)
+		log.Printf("Creating database for epoch [%d].", epoch)
+		newStore, err := createStore(dp.storeDir, epoch)
 		if err != nil {
-			return nil, fmt.Errorf("failed to create database for epoch [%d]: %w", epoch, err)
+			return nil, fmt.Errorf("creating data store for epoch [%d]: %w", epoch, err)
 		}
 		dp.stores[epoch] = newStore
 		return newStore, nil
@@ -50,57 +50,50 @@ func (dp *DatabasePool) GetOrCreateDbForEpoch(epoch uint32) (*pebble.DB, error) 
 }
 
 func (dp *DatabasePool) Close() {
-	for epoch, db := range dp.stores {
-		if db != nil {
-			err := db.Close()
+	for epoch, store := range dp.stores {
+		if store != nil {
+			err := store.Close()
 			if err != nil {
-				log.Printf("[ERROR] failed to close database [%d]: %v", epoch, err)
+				log.Printf("[ERROR] closing data store for epoch [%d]: %v", epoch, err)
 			}
 		}
 	}
 }
 
-func openDatabase(directory string, name uint32) (*pebble.DB, error) {
-	dbDir := fmt.Sprintf("%s/%d", directory, name)
-	log.Printf("opening database [%s]", dbDir)
-	db, err := pebble.Open(dbDir, getDefaultPebbleOptions())
-	if err != nil {
-		return nil, fmt.Errorf("failed to open database [%s]: %w", dbDir, err)
-	}
-	return db, nil
-}
-
-func loadFromDisk(directory string) (map[uint32]*pebble.DB, error) {
+func loadFromDisk(directory string) (map[uint16]*PebbleStore, error) {
 	// open database from folder (epoch name numbers only)
 	libRegEx, err := regexp.Compile("^\\d{1,5}$")
 	if err != nil {
-		return nil, fmt.Errorf("failed to compile regexp: %w", err)
+		return nil, fmt.Errorf("compiling regexp: %w", err)
 	}
 
 	err = createDirIfNotExists(directory)
 	if err != nil {
-		return nil, fmt.Errorf("failed to check directory: %w", err)
+		return nil, fmt.Errorf("checking directory: %w", err)
 	}
 
 	files, err := os.ReadDir(directory)
 	if err != nil {
-		return nil, fmt.Errorf("failed to read directory: %w", err)
+		return nil, fmt.Errorf("reading directory: %w", err)
 	}
 
-	databases := make(map[uint32]*pebble.DB, len(files))
+	databases := make(map[uint16]*PebbleStore, len(files))
 
 	for _, f := range files {
 
 		if f.IsDir() && libRegEx.MatchString(f.Name()) && !strings.HasPrefix(f.Name(), "0") {
 
-			log.Printf("loading database for epoch [%s]", f.Name())
-			epoch, err := strconv.ParseUint(f.Name(), 10, 32)
+			log.Printf("Loading database for epoch [%s]", f.Name())
+			epoch, err := strconv.ParseUint(f.Name(), 10, 16)
 			if err != nil {
-				return nil, fmt.Errorf("failed to parse epoch: %w", err)
+				return nil, fmt.Errorf("parsing epoch: %w", err)
 			}
 
-			db, err := openDatabase(directory, uint32(epoch))
-			databases[uint32(epoch)] = db
+			store, err := createStore(directory, uint16(epoch))
+			if err != nil {
+				return nil, fmt.Errorf("creating data store for epoch [%d]: %w", epoch, err)
+			}
+			databases[uint16(epoch)] = store
 		}
 
 	}
@@ -108,8 +101,26 @@ func loadFromDisk(directory string) (map[uint32]*pebble.DB, error) {
 	return databases, nil
 }
 
-//func (dp *DatabasePool) getDbKeys() []uint32 {
-//	keys := make([]uint32, len(dp.stores))
+func createStore(directory string, epoch uint16) (*PebbleStore, error) {
+	db, err := openDatabase(directory, epoch)
+	if err != nil {
+		return nil, err
+	}
+	return NewPebbleStore(db), nil
+}
+
+func openDatabase(directory string, name uint16) (*pebble.DB, error) {
+	dbDir := fmt.Sprintf("%s/%d", directory, name)
+	log.Printf("Opening database [%s].", dbDir)
+	db, err := pebble.Open(dbDir, getDefaultPebbleOptions())
+	if err != nil {
+		return nil, fmt.Errorf("opening database [%s]: %w", dbDir, err)
+	}
+	return db, nil
+}
+
+//func (dp *DatabasePool) getDbKeys() []uint16 {
+//	keys := make([]uint16, len(dp.stores))
 //	i := 0
 //	for k, v := range dp.stores {
 //		if v == nil {

@@ -3,6 +3,7 @@ package db
 import (
 	"context"
 	"encoding/binary"
+	"fmt"
 	"github.com/cockroachdb/pebble"
 	"github.com/pkg/errors"
 	"github.com/qubic/go-archiver/protobuf"
@@ -946,4 +947,12 @@ func (s *PebbleStore) GetTargetTickVoteSignature(epoch uint32) (uint32, error) {
 	defer closer.Close()
 
 	return binary.LittleEndian.Uint32(value), nil
+}
+
+func (s *PebbleStore) Close() error {
+	err := s.db.Close()
+	if err != nil {
+		return fmt.Errorf("closing database: %w", err)
+	}
+	return nil
 }

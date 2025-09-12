@@ -24,18 +24,21 @@ const (
 	TargetTickVoteSignature            = 0x16
 )
 
+// TODO remove epoch from interface (not needed anymore)
 func emptyTickListPerEpochKey(epoch uint32) []byte {
 	key := []byte{EmptyTickListPerEpoch}
 	key = binary.BigEndian.AppendUint64(key, uint64(epoch))
 	return key
 }
 
+// TODO remove epoch from interface (not needed anymore)
 func lastTickQuorumDataPerEpochIntervalKey(epoch uint32) []byte {
 	key := []byte{LastTickQuorumDataPerEpochInterval}
 	key = binary.BigEndian.AppendUint64(key, uint64(epoch))
 	return key
 }
 
+// TODO remove epoch from interface (not needed anymore)
 func emptyTicksPerEpochKey(epoch uint32) []byte {
 	key := []byte{EmptyTicksPerEpoch}
 	key = binary.BigEndian.AppendUint64(key, uint64(epoch))
@@ -56,6 +59,7 @@ func quorumTickDataKey(tickNumber uint32) []byte {
 	return key
 }
 
+// TODO remove epoch from interface (not needed anymore)
 func computorsKey(epochNumber uint32) []byte {
 	key := []byte{ComputorList}
 	key = binary.BigEndian.AppendUint32(key, epochNumber)
@@ -74,6 +78,7 @@ func lastProcessedTickKey() []byte {
 	return []byte{LastProcessedTick}
 }
 
+// TODO remove epoch from interface (not needed anymore)
 func lastProcessedTickKeyPerEpoch(epochNumber uint32) []byte {
 	key := []byte{LastProcessedTickPerEpoch}
 	key = binary.BigEndian.AppendUint32(key, epochNumber)
@@ -114,6 +119,7 @@ func storeDigestKey(tickNumber uint32) []byte {
 	return key
 }
 
+// TODO remove epoch from interface (not needed anymore)
 func processedTickIntervalsPerEpochKey(epoch uint32) []byte {
 	key := []byte{ProcessedTickIntervals}
 	key = binary.BigEndian.AppendUint32(key, epoch)
@@ -135,6 +141,7 @@ func tickTxStatusKey(tickNumber uint64) []byte {
 	return key
 }
 
+// TODO remove epoch from interface (not needed anymore)
 func targetTickVoteSignatureKey(epoch uint32) []byte {
 	key := []byte{TargetTickVoteSignature}
 	key = binary.BigEndian.AppendUint32(key, epoch)

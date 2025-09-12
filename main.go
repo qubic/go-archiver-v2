@@ -10,6 +10,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/qubic/go-archiver/api"
 	"github.com/qubic/go-archiver/db"
+	"github.com/qubic/go-archiver/network"
 	"github.com/qubic/go-archiver/processor"
 	qubic "github.com/qubic/go-node-connector"
 	"github.com/qubic/go-node-connector/types"
@@ -51,10 +52,10 @@ func run() error {
 			IdleTimeout        time.Duration `conf:"default:15s"`
 		}
 		Qubic struct {
-			NodePort                      string        `conf:"default:21841"`
-			ProcessTickTimeout            time.Duration `conf:"default:5s"`
-			DisableTransactionStatusAddon bool          `conf:"default:true"`
-			ArbitratorIdentity            string        `conf:"default:AFZPUAIYVPNUYGJRQVLUKOPPVLHAZQTGLYAAUUNBXFTVTAMSBKQBLEIEPCVJ"`
+			NodePort            string        `conf:"default:21841"`
+			ProcessTickTimeout  time.Duration `conf:"default:5s"`
+			EnableTxStatusAddon bool          `conf:"default:false"`
+			ArbitratorIdentity  string        `conf:"default:AFZPUAIYVPNUYGJRQVLUKOPPVLHAZQTGLYAAUUNBXFTVTAMSBKQBLEIEPCVJ"`
 		}
 		Store struct {
 			ResetEmptyTickKeys bool   `conf:"default:false"`
@@ -98,17 +99,16 @@ func run() error {
 	//}
 
 	// FIXME
-	//nodePool, err := qubic.NewPoolConnection(qubic.PoolConfig{
-	//	InitialCap:         cfg.Pool.InitialCap,
-	//	MaxCap:             cfg.Pool.MaxCap,
-	//	MaxIdle:            cfg.Pool.MaxIdle,
-	//	IdleTimeout:        cfg.Pool.IdleTimeout,
-	//	NodeFetcherUrl:     cfg.Pool.NodeFetcherUrl,
-	//	NodeFetcherTimeout: cfg.Pool.NodeFetcherTimeout,
-	//	NodePort:           cfg.Qubic.NodePort,
-	//})
-	nodePool := &qubic.Pool{}
-
+	clientPool, err := network.NewNodeConnectorPool(qubic.PoolConfig{
+		InitialCap:         cfg.Pool.InitialCap,
+		MaxCap:             cfg.Pool.MaxCap,
+		MaxIdle:            cfg.Pool.MaxIdle,
+		IdleTimeout:        cfg.Pool.IdleTimeout,
+		NodeFetcherUrl:     cfg.Pool.NodeFetcherUrl,
+		NodeFetcherTimeout: cfg.Pool.NodeFetcherTimeout,
+		NodePort:           cfg.Qubic.NodePort,
+	})
+	//clientPool := &qubic.Pool{}
 	if err != nil {
 		return fmt.Errorf("creating node pool: %w", err)
 	}
@@ -137,7 +137,7 @@ func run() error {
 		return fmt.Errorf("calculating arbitrator public key from [%s]: %w", cfg.Qubic.ArbitratorIdentity, err)
 	}
 
-	proc := processor.NewProcessor(nodePool, dbPool, cfg.Qubic.ProcessTickTimeout, arbitratorPubKey, cfg.Qubic.DisableTransactionStatusAddon)
+	proc := processor.NewProcessor(clientPool, dbPool, cfg.Qubic.ProcessTickTimeout, arbitratorPubKey, cfg.Qubic.EnableTxStatusAddon)
 	procErrors := make(chan error, 1)
 
 	// Start the service listening for requests.
