@@ -13,7 +13,7 @@ import (
 
 type DatabasePool struct {
 	storeDir string
-	stores   map[uint16]*PebbleStore // FIXME replace with pebble store
+	stores   map[uint16]*PebbleStore
 }
 
 func NewDatabasePool(storageFolder string) (*DatabasePool, error) {
