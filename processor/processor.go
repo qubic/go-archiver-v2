@@ -63,14 +63,15 @@ func (p *Processor) processOneByOne() error {
 
 	nextTick, err := p.getNextProcessingTick(ctx, lastProcessedTick, tickInfo)
 	if err != nil {
-		return fmt.Errorf("getting next processed tick: %w", err)
+		return fmt.Errorf("getting next tick to process: %w", err)
 	}
 
 	if nextTick.TickNumber > tickInfo.Tick {
-		return fmt.Errorf("next tick is in the future. processed: [%d], next [%d], available [%d]", lastProcessedTick.TickNumber, nextTick.TickNumber, tickInfo.Tick)
+		return fmt.Errorf("next tick is in the future. processed: [%d], next [%d], available [%d]",
+			lastProcessedTick.TickNumber, nextTick.TickNumber, tickInfo.Tick)
 	}
 
-	log.Println("Processing tick", nextTick.TickNumber)
+	log.Printf("Processing tick [%d].", nextTick.TickNumber)
 
 	// FIXME
 	//val := validator.New(client, p.ps, p.arbitratorPubKey)
@@ -79,14 +80,14 @@ func (p *Processor) processOneByOne() error {
 	//	return fmt.Errorf(err, "validating tick %d", nextTick.TickNumber)
 	//}
 
-	err = p.processSkippedTicks(ctx, lastProcessedTick, nextTick)
+	err = p.handleSkippedTicks(ctx, lastProcessedTick, nextTick)
 	if err != nil {
-		return fmt.Errorf("processing skipped ticks: %w", err)
+		return fmt.Errorf("handling skipped ticks: %w", err)
 	}
 
-	err = p.SetLastProcessedTick(ctx, nextTick)
+	err = p.storeProcessedTick(ctx, nextTick)
 	if err != nil {
-		return err
+		return fmt.Errorf("storing processed tick: %w", err)
 	}
 
 	return nil
@@ -137,7 +138,7 @@ func (p *Processor) getNextProcessingTick(_ context.Context, lastTick *protobuf.
 	return &protobuf.ProcessedTick{TickNumber: lastTick.TickNumber + 1, Epoch: lastTick.Epoch}, nil
 }
 
-func (p *Processor) processSkippedTicks(ctx context.Context, lastTick *protobuf.ProcessedTick, nextTick *protobuf.ProcessedTick) error {
+func (p *Processor) handleSkippedTicks(ctx context.Context, lastTick *protobuf.ProcessedTick, nextTick *protobuf.ProcessedTick) error {
 
 	if nextTick.TickNumber-lastTick.TickNumber == 1 {
 		// no skipped ticks. default case.
@@ -185,10 +186,10 @@ func (p *Processor) processSkippedTicks(ctx context.Context, lastTick *protobuf.
 	return nil
 }
 
-func (p *Processor) SetLastProcessedTick(ctx context.Context, tick *protobuf.ProcessedTick) error {
+func (p *Processor) storeProcessedTick(ctx context.Context, tick *protobuf.ProcessedTick) error {
 	dataStore, err := p.databasePool.GetOrCreateDbForEpoch(uint16(tick.Epoch))
 	if err != nil {
-		return fmt.Errorf("setting last processed tick [%d]: %w", tick.TickNumber, err)
+		return fmt.Errorf("getting data store: %w", err)
 	}
 
 	err = dataStore.SetLastProcessedTick(ctx, tick)
