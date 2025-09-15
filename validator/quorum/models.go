@@ -96,25 +96,25 @@ func qubicDiffToProtoStored(tickVote types.QuorumTickVote) *protobuf.QuorumDiffS
 //
 //	spectrumDigest, err := hex.DecodeString(nextTickQuorumData.QuorumTickStructure.PrevSpectrumDigestHex)
 //	if err != nil {
-//		return nil, fmt.Errorf("error decoding prev_spectrum_digest_hex: %v", err)
+//		return nil, fmt.Errorf("decoding prev_spectrum_digest_hex: %v", err)
 //	}
 //	universeDigest, err := hex.DecodeString(nextTickQuorumData.QuorumTickStructure.PrevUniverseDigestHex)
 //	if err != nil {
-//		return nil, fmt.Errorf("error decoding prev_universe_digest_hex: %v", err)
+//		return nil, fmt.Errorf("decoding prev_universe_digest_hex: %v", err)
 //	}
 //	computerDigest, err := hex.DecodeString(nextTickQuorumData.QuorumTickStructure.PrevComputerDigestHex)
 //	if err != nil {
-//		return nil, fmt.Errorf("error decoding prev_computer_digest_hex: %v", err)
+//		return nil, fmt.Errorf("decoding prev_computer_digest_hex: %v", err)
 //	}
 //
 //	resourceDigest, err := hex.DecodeString(nextTickQuorumData.QuorumTickStructure.PrevResourceTestingDigestHex)
 //	if err != nil {
-//		return nil, fmt.Errorf("error decoding prev_resource_testing_digest_hex: %v", err)
+//		return nil, fmt.Errorf("decoding prev_resource_testing_digest_hex: %v", err)
 //	}
 //
 //	transactionBodyDigest, err := hex.DecodeString(nextTickQuorumData.QuorumTickStructure.PrevTransactionBodyHex)
 //	if err != nil {
-//		return nil, fmt.Errorf("error decoding prev_transaction_body_hex: %v", err)
+//		return nil, fmt.Errorf("decoding prev_transaction_body_hex: %v", err)
 //	}
 //
 //	for id, voteDiff := range currentTickQuorumData.QuorumDiffPerComputor {

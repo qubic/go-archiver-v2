@@ -89,13 +89,14 @@ func run() error {
 	//	fmt.Printf("Resetting empty ticks for all epochs...\n")
 	//	err = tick.ResetEmptyTicksForAllEpochs(ps)
 	//	if err != nil {
-	//		return errors.Wrap(err, "resetting empty ticks keys")
+
+	//		return fmt.Errorf("resetting empty ticks keys: %w", err)
 	//	}
 	//}
 	//
 	//err = tick.CalculateEmptyTicksForAllEpochs(ps)
 	//if err != nil {
-	//	return errors.Wrap(err, "calculating empty ticks for all epochs")
+	//	return fmt.Errorf("calculating empty ticks for all epochs: %w", err)
 	//}
 
 	// FIXME

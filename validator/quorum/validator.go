@@ -43,17 +43,17 @@ func validateVotes(ctx context.Context, sigVerifierFunc utils.SigVerifierFunc, q
 	log.Printf("Number of total votes: %d", len(quorumVotes))
 	alignedVotes, err := getAlignedVotes(quorumVotes)
 	if err != nil {
-		return nil, errors.Wrap(err, "getting aligned votes")
+		return nil, fmt.Errorf("getting aligned votes: %w", err)
 	}
 
 	if len(alignedVotes) < types.MinimumQuorumVotes {
-		return nil, errors.Errorf("too few aligned votes: [%d]", alignedVotes)
+		return nil, fmt.Errorf("not enough aligned votes [%d]", len(alignedVotes))
 	}
 
-	log.Printf("Proceed to validate total quorum sigs: %d", len(alignedVotes))
+	log.Printf("Validating [%d] aligned quorum votes.", len(alignedVotes))
 	err = quorumTickSigVerify(ctx, sigVerifierFunc, alignedVotes, computors, targetTickVoteSignature)
 	if err != nil {
-		return nil, errors.Wrap(err, "quorum tick signature verification failed")
+		return nil, fmt.Errorf("verifying tick signature: %w", err)
 	}
 
 	return alignedVotes, nil
@@ -78,7 +78,7 @@ type vote struct {
 
 func getAlignedVotes(quorumVotes types.QuorumVotes) (types.QuorumVotes, error) {
 	votesHeatMap := make(map[[32]byte]types.QuorumVotes)
-	for _, qv := range quorumVotes {
+	for i, qv := range quorumVotes {
 		v := vote{
 			Epoch:                         qv.Epoch,
 			Tick:                          qv.Tick,
@@ -97,7 +97,7 @@ func getAlignedVotes(quorumVotes types.QuorumVotes) (types.QuorumVotes, error) {
 		}
 		digest, err := v.digest()
 		if err != nil {
-			return nil, errors.Wrap(err, "getting digest")
+			return nil, fmt.Errorf("creating vote digest [%d]: %w", i, err)
 		}
 		if votes, ok := votesHeatMap[digest]; !ok {
 			votesHeatMap[digest] = types.QuorumVotes{qv}
@@ -119,12 +119,12 @@ func getAlignedVotes(quorumVotes types.QuorumVotes) (types.QuorumVotes, error) {
 func (v *vote) digest() ([32]byte, error) {
 	b, err := utils.BinarySerialize(v)
 	if err != nil {
-		return [32]byte{}, errors.Wrap(err, "serializing vote")
+		return [32]byte{}, fmt.Errorf("serializing vote: %w", err)
 	}
 
 	digest, err := utils.K12Hash(b)
 	if err != nil {
-		return [32]byte{}, errors.Wrap(err, "hashing vote")
+		return [32]byte{}, fmt.Errorf("hashing vote: %w", err)
 	}
 
 	return digest, nil
@@ -138,17 +138,17 @@ func quorumTickSigVerify(ctx context.Context, sigVerifierFunc utils.SigVerifierF
 	for _, quorumTickData := range quorumVotes {
 		digest, err := getDigestFromQuorumTickData(quorumTickData)
 		if err != nil {
-			return errors.Wrap(err, "getting digest from tick data")
+			return fmt.Errorf("getting digest from quorum tick data: %w", err)
 		}
 		computorPubKey := computors.PubKeys[quorumTickData.ComputorIndex]
 		if err := verifyTickVoteSignature(ctx, sigVerifierFunc, computorPubKey, digest, quorumTickData.Signature, targetTickVoteSignature); err != nil {
-			//return errors.Wrapf(err, "quorum tick signature verification failed for computor index: %d", quorumTickData.ComputorIndex)
+			//return fmt.Errorf("quorum tick signature verification failed for computor index %d: %w", quorumTickData.ComputorIndex, err)
 			//log.Printf("Quorum tick signature verification failed for computor index: %d. Err: %s\n", quorumTickData.ComputorIndex, err.Error())
 			failedIndexes = append(failedIndexes, quorumTickData.ComputorIndex)
 			var badComputor types.Identity
 			badComputor, err = badComputor.FromPubKey(computorPubKey, false)
 			if err != nil {
-				return errors.Wrap(err, "getting bad computor")
+				return fmt.Errorf("getting bad computor identity: %w", err)
 			}
 			failedIdentites = append(failedIdentites, string(badComputor))
 			continue
@@ -192,13 +192,13 @@ func getDigestFromQuorumTickData(data types.QuorumTickVote) ([32]byte, error) {
 
 	sData, err := utils.BinarySerialize(data)
 	if err != nil {
-		return [32]byte{}, errors.Wrap(err, "serializing data")
+		return [32]byte{}, fmt.Errorf("serializing quorum tick vote: %w", err)
 	}
 
 	tickData := sData[:len(sData)-64]
 	digest, err := utils.K12Hash(tickData)
 	if err != nil {
-		return [32]byte{}, errors.Wrap(err, "hashing tick data")
+		return [32]byte{}, fmt.Errorf("hashing quorum tick vote: %w", err)
 	}
 
 	return digest, nil
@@ -209,14 +209,14 @@ func Store(ctx context.Context, store *db.PebbleStore, tickNumber uint32, quorum
 
 	err := store.SetQuorumTickData(ctx, tickNumber, protoModel)
 	if err != nil {
-		return errors.Wrap(err, "set quorum votes")
+		return fmt.Errorf("saving quorum tick votes data: %w", err)
 	}
 
 	fullProtoModel := qubicToProto(quorumVotes)
 
 	err = store.SetQuorumDataForCurrentEpochInterval(fullProtoModel.QuorumTickStructure.Epoch, fullProtoModel)
 	if err != nil {
-		return errors.Wrap(err, "setting last quorum tick data")
+		return fmt.Errorf("setting last quorum tick votes data: %w", err)
 	}
 
 	return nil

@@ -45,20 +45,18 @@ func (v *Validator) ValidateTick(ctx context.Context, store *db.PebbleStore, cli
 	log.Printf("Quorum validated. Aligned %d. Misaligned %d.\n", len(alignedVotes), len(quorumVotes)-len(alignedVotes))
 
 	/*
-
 		// TODO move this out
-		var tickData types.TickData
+		var tickData types.TickData // TODO What if tickData is never initialized and stored further down?
 		var validTxs = make([]types.Transaction, 0)
 		approvedTxs := &protobuf.TickTransactionsStatus{}
 
-		// FIXME
 		if quorumVotes[0].TxDigest != [32]byte{} {
 			td, err := client.GetTickData(ctx, tickNumber)
 			if err != nil {
 				return fmt.Errorf("getting tick data: %w", err)
 			}
 
-			tickData = td
+			tickData = td // TODO why?
 			log.Println("Got tick data")
 
 			// FIXME
@@ -108,13 +106,13 @@ func (v *Validator) ValidateTick(ctx context.Context, store *db.PebbleStore, cli
 			//}
 		}
 
-	*/
+		// proceed to storing tick information
+		err = quorum.Store(ctx, store, tickNumber, alignedVotes)
+		if err != nil {
+			return fmt.Errorf("storing aligned votes: %w", err)
+		}
 
-	// proceed to storing tick information
-	err = quorum.Store(ctx, store, tickNumber, alignedVotes)
-	if err != nil {
-		return fmt.Errorf("storing aligned votes: %w", err)
-	}
+	*/
 
 	return nil
 }

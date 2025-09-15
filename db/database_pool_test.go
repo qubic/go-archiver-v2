@@ -36,7 +36,7 @@ func Test_loadFromDisk_GivenDatabases_LoadDatabases(t *testing.T) {
 	require.NoError(t, err)
 	err = os.Mkdir(fmt.Sprintf("%s/%s", testDir, "42"), 0755)
 	require.NoError(t, err)
-	err = os.Mkdir(fmt.Sprintf("%s/%s", testDir, "99999"), 0755)
+	err = os.Mkdir(fmt.Sprintf("%s/%s", testDir, "65535"), 0755)
 	require.NoError(t, err)
 	err = os.Mkdir(fmt.Sprintf("%s/%s", testDir, "0815"), 0755) // will be ignored (starting with zero)
 	require.NoError(t, err)
@@ -48,7 +48,7 @@ func Test_loadFromDisk_GivenDatabases_LoadDatabases(t *testing.T) {
 	assert.Len(t, databases, 3)
 	require.DirExists(t, fmt.Sprintf("%s/%s", testDir, "4711"))
 	require.DirExists(t, fmt.Sprintf("%s/%s", testDir, "42"))
-	require.DirExists(t, fmt.Sprintf("%s/%s", testDir, "99999"))
+	require.DirExists(t, fmt.Sprintf("%s/%s", testDir, "65535"))
 }
 
 func Test_GetDbForEpoch_ReturnsDbForEpoch(t *testing.T) {
