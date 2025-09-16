@@ -6,16 +6,15 @@ import (
 	"fmt"
 	"github.com/pkg/errors"
 	"github.com/qubic/go-archiver/db"
+	"github.com/qubic/go-archiver/network"
 	"github.com/qubic/go-archiver/utils"
-	qubic "github.com/qubic/go-node-connector"
 	"github.com/qubic/go-node-connector/types"
-	"github.com/qubic/go-schnorrq"
 	"log"
 	"slices"
 )
 
 // Validate validates the quorum votes and if success returns the aligned votes back
-func Validate(ctx context.Context, store *db.PebbleStore, client *qubic.Client, quorumVotes types.QuorumVotes, computors types.Computors, epoch uint16) (types.QuorumVotes, error) {
+func Validate(ctx context.Context, store *db.PebbleStore, client network.QubicClient, quorumVotes types.QuorumVotes, computors types.Computors, epoch uint16) (types.QuorumVotes, error) {
 	targetTickVoteSignature, err := store.GetTargetTickVoteSignature(uint32(epoch))
 	if err != nil {
 		if !errors.Is(err, db.ErrNotFound) {
@@ -31,11 +30,11 @@ func Validate(ctx context.Context, store *db.PebbleStore, client *qubic.Client, 
 		}
 		targetTickVoteSignature = systemInfo.TargetTickVoteSignature
 	}
-	return validateVotes(ctx, schnorrqVerify, quorumVotes, computors, targetTickVoteSignature)
+	return validateVotes(ctx, quorumVotes, computors, targetTickVoteSignature)
 
 }
 
-func validateVotes(ctx context.Context, sigVerifierFunc utils.SigVerifierFunc, quorumVotes types.QuorumVotes, computors types.Computors, targetTickVoteSignature uint32) (types.QuorumVotes, error) {
+func validateVotes(ctx context.Context, quorumVotes types.QuorumVotes, computors types.Computors, targetTickVoteSignature uint32) (types.QuorumVotes, error) {
 	if len(quorumVotes) < types.MinimumQuorumVotes {
 		return nil, errors.New("not enough quorum votes")
 	}
@@ -51,7 +50,7 @@ func validateVotes(ctx context.Context, sigVerifierFunc utils.SigVerifierFunc, q
 	}
 
 	log.Printf("Validating [%d] aligned quorum votes.", len(alignedVotes))
-	err = quorumTickSigVerify(ctx, sigVerifierFunc, alignedVotes, computors, targetTickVoteSignature)
+	err = quorumTickSigVerify(ctx, utils.SchnorrqVerify, alignedVotes, computors, targetTickVoteSignature)
 	if err != nil {
 		return nil, fmt.Errorf("verifying tick signature: %w", err)
 	}
@@ -220,8 +219,4 @@ func Store(ctx context.Context, store *db.PebbleStore, tickNumber uint32, quorum
 	}
 
 	return nil
-}
-
-func schnorrqVerify(_ context.Context, pubkey [32]byte, digest [32]byte, sig [64]byte) error {
-	return schnorrq.Verify(pubkey, digest, sig)
 }

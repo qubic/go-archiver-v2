@@ -9,7 +9,7 @@ import (
 	"github.com/qubic/go-node-connector/types"
 )
 
-func Validate(ctx context.Context, sigVerifierFunc utils.SigVerifierFunc, data types.TickData, quorumTickVote types.QuorumTickVote, comps types.Computors) error {
+func Validate(ctx context.Context, data types.TickData, quorumTickVote types.QuorumTickVote, comps types.Computors) error {
 	if data.Epoch == 0xffff {
 		data.Epoch = 0
 	}
@@ -31,7 +31,7 @@ func Validate(ctx context.Context, sigVerifierFunc utils.SigVerifierFunc, data t
 	}
 
 	// verify tick signature
-	err = sigVerifierFunc(ctx, computorPubKey, digest, data.Signature)
+	err = utils.SchnorrqVerify(ctx, computorPubKey, digest, data.Signature)
 	if err != nil {
 		return fmt.Errorf("verifying tick signature: %w", err)
 	}

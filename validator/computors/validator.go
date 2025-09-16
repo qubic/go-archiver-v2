@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"github.com/qubic/go-archiver/utils"
 	"github.com/qubic/go-node-connector/types"
-	"github.com/qubic/go-schnorrq"
 )
 
 func Validate(ctx context.Context, computors types.Computors, arbitratorPubKey [32]byte) error {
@@ -14,7 +13,7 @@ func Validate(ctx context.Context, computors types.Computors, arbitratorPubKey [
 		return fmt.Errorf("getting computors digest: %w", err)
 	}
 
-	err = schnorrqVerify(ctx, arbitratorPubKey, digest, computors.Signature)
+	err = utils.SchnorrqVerify(ctx, arbitratorPubKey, digest, computors.Signature)
 	if err != nil {
 		return fmt.Errorf("validating computor signatures: %w", err)
 	}
@@ -36,8 +35,4 @@ func getDigestFromComputors(data types.Computors) ([32]byte, error) {
 	}
 
 	return digest, nil
-}
-
-func schnorrqVerify(ctx context.Context, pubkey [32]byte, digest [32]byte, sig [64]byte) error {
-	return schnorrq.Verify(pubkey, digest, sig)
 }

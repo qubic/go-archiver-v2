@@ -5,25 +5,33 @@ import (
 	"errors"
 	"fmt"
 	"github.com/qubic/go-archiver/db"
+	"github.com/qubic/go-archiver/network"
+	"github.com/qubic/go-archiver/protobuf"
 	"github.com/qubic/go-archiver/validator/computors"
 	"github.com/qubic/go-archiver/validator/quorum"
-	qubic "github.com/qubic/go-node-connector"
+	"github.com/qubic/go-archiver/validator/tick"
+	"github.com/qubic/go-archiver/validator/tx"
+	"github.com/qubic/go-archiver/validator/txstatus"
 	"github.com/qubic/go-node-connector/types"
 	"log"
 )
 
 type Validator struct {
-	arbitratorPubKey  [32]byte
-	enableStatusAddon bool
+	arbitratorPubKey   [32]byte
+	statusAddonEnabled bool
 }
 
 func NewValidator(arbitratorPubKey [32]byte, enableStatusAddon bool) *Validator {
 	return &Validator{
-		arbitratorPubKey: arbitratorPubKey,
+		arbitratorPubKey:   arbitratorPubKey,
+		statusAddonEnabled: enableStatusAddon,
 	}
 }
 
-func (v *Validator) ValidateTick(ctx context.Context, store *db.PebbleStore, client *qubic.Client, tickNumber uint32) error {
+func (v *Validator) Validate(ctx context.Context, store *db.PebbleStore, client network.QubicClient, tickNumber uint32) error {
+
+	// verify quorum is reached
+
 	quorumVotes, err := client.GetQuorumVotes(ctx, tickNumber)
 	if err != nil {
 		return fmt.Errorf("getting quorum votes: %w", err)
@@ -42,82 +50,50 @@ func (v *Validator) ValidateTick(ctx context.Context, store *db.PebbleStore, cli
 	if err != nil {
 		return fmt.Errorf("validating quorum votes: %w", err)
 	}
-	log.Printf("Quorum validated. Aligned %d. Misaligned %d.\n", len(alignedVotes), len(quorumVotes)-len(alignedVotes))
+	log.Printf("Quorum valid. Aligned %d. Misaligned %d.", len(alignedVotes), len(quorumVotes)-len(alignedVotes))
 
-	/*
-		// TODO move this out
-		var tickData types.TickData // TODO What if tickData is never initialized and stored further down?
-		var validTxs = make([]types.Transaction, 0)
-		approvedTxs := &protobuf.TickTransactionsStatus{}
+	// validate tick data and transactions
 
-		if quorumVotes[0].TxDigest != [32]byte{} {
-			td, err := client.GetTickData(ctx, tickNumber)
-			if err != nil {
-				return fmt.Errorf("getting tick data: %w", err)
-			}
+	isEmpty := isEmptyTick(alignedVotes)
 
-			tickData = td // TODO why?
-			log.Println("Got tick data")
+	tickData, err := v.validateTickData(ctx, client, comps, alignedVotes, tickNumber, isEmpty)
+	if err != nil {
+		return err
+	}
 
-			// FIXME
-			//err = tick.Validate(ctx, GoSchnorrqVerify, tickData, alignedVotes[0], comps)
-			//if err != nil {
-			//	return fmt.Errorf("validating tick data: %w", err)
-			//}
+	validTxs, txStatus, err := v.validateTransactions(ctx, client, tickData, tickNumber, isEmpty)
+	if err != nil {
+		return err
+	}
 
-			log.Println("Tick data validated")
+	// store data
 
-			transactions, err := client.GetTickTransactions(ctx, tickNumber)
-			if err != nil {
-				return fmt.Errorf("getting tick transactions: %w", err)
-			}
+	err = quorum.Store(ctx, store, tickNumber, alignedVotes)
+	if err != nil {
+		return fmt.Errorf("storing aligned quorum votes: %w", err)
+	}
 
-			log.Printf("Validating %d transactions\n", len(transactions))
+	err = tick.Store(ctx, store, tickNumber, tickData)
+	if err != nil {
+		return fmt.Errorf("storing tick data: %w", err)
+	}
 
-			// FIXME
-			//validTxs, err = tx.Validate(ctx, GoSchnorrqVerify, transactions, tickData)
-			//if err != nil {
-			//	return fmt.Errorf("validating transactions: %w", err)
-			//}
+	err = tx.Store(ctx, store, tickNumber, validTxs)
+	if err != nil {
+		return fmt.Errorf("storing transactions: %w", err)
+	}
 
-			log.Printf("Validated %d transactions\n", len(validTxs))
+	err = txstatus.Store(ctx, store, tickNumber, txStatus)
+	if err != nil {
+		return fmt.Errorf("storing transactions status: %w", err)
+	}
 
-			var tickTxStatus types.TransactionStatus
-			if v.enableStatusAddon {
-				tickTxStatus, err = client.GetTxStatus(ctx, tickNumber)
-				if err != nil {
-					return fmt.Errorf("getting tx status: %w", err)
-				}
-			} else {
-				tickTxStatus = types.TransactionStatus{
-					CurrentTickOfNode:  tickNumber,
-					Tick:               tickNumber,
-					TxCount:            uint32(len(validTxs)),
-					MoneyFlew:          [128]byte{},
-					TransactionDigests: nil,
-				}
-			}
-
-			// FIXME
-			log.Printf("tx status: %v\n", tickTxStatus) // TODO remove me
-			//approvedTxs, err = txstatus.Validate(ctx, tickTxStatus, validTxs)
-			//if err != nil {
-			//	return fmt.Errorf("validating tx status: %w", err)
-			//}
-		}
-
-		// proceed to storing tick information
-		err = quorum.Store(ctx, store, tickNumber, alignedVotes)
-		if err != nil {
-			return fmt.Errorf("storing aligned votes: %w", err)
-		}
-
-	*/
+	log.Println("Stored tick data and transactions.")
 
 	return nil
 }
 
-func (v *Validator) validateComputors(ctx context.Context, store *db.PebbleStore, client *qubic.Client, epoch uint16) (types.Computors, error) {
+func (v *Validator) validateComputors(ctx context.Context, store *db.PebbleStore, client network.QubicClient, epoch uint16) (types.Computors, error) {
 
 	comps, err := computors.Get(ctx, store, client, epoch)
 	if err != nil {
@@ -135,4 +111,91 @@ func (v *Validator) validateComputors(ctx context.Context, store *db.PebbleStore
 	}
 
 	return comps, nil
+}
+
+func (v *Validator) validateTickData(ctx context.Context, client network.QubicClient, comps types.Computors, quorumVotest types.QuorumVotes, tickNumber uint32, isEmptyTick bool) (types.TickData, error) {
+
+	if isEmptyTick {
+
+		log.Println("Empty quorum digest. Empty tick.")
+		return types.TickData{}, nil
+
+	} else {
+
+		tickData, err := client.GetTickData(ctx, tickNumber)
+		if err != nil {
+			return types.TickData{}, fmt.Errorf("getting tick data: %w", err)
+		}
+
+		err = tick.Validate(ctx, tickData, quorumVotest[0], comps)
+		if err != nil {
+			return types.TickData{}, fmt.Errorf("validating tick data: %w", err)
+		}
+
+		return tickData, nil
+	}
+}
+
+func (v *Validator) validateTransactions(ctx context.Context, client network.QubicClient, tickData types.TickData, tickNumber uint32, isEmptyTick bool) ([]types.Transaction, *protobuf.TickTransactionsStatus, error) {
+
+	if isEmptyTick {
+
+		return make([]types.Transaction, 0), // no valid transactions
+			&protobuf.TickTransactionsStatus{}, // no approved transactions
+			nil // no error
+
+	} else {
+
+		// get's all non-zero transactions
+		transactions, err := client.GetTickTransactions(ctx, tickNumber)
+		if err != nil {
+			return nil, nil, fmt.Errorf("getting tick transactions: %w", err)
+		}
+
+		// keeps all transactions that are in the tick data digests
+		validTxs, err := tx.Validate(ctx, transactions, tickData)
+		if err != nil {
+			return nil, nil, fmt.Errorf("validating transactions: %w", err)
+		}
+
+		if len(validTxs) == len(transactions) {
+			log.Printf("All [%d] transactions are valid.", len(validTxs))
+		} else {
+			log.Printf("[%d] out of [%d] transactions are valid.", len(validTxs), len(transactions))
+		}
+
+		// get tx status information, if tx status addon is enabled
+		tickTxStatus, err := getTxStatus(ctx, client, len(validTxs), tickNumber, v.statusAddonEnabled)
+		if err != nil {
+			return nil, nil, fmt.Errorf("getting tx status: %w", err)
+		}
+
+		// combine valid transactions with money flew status
+		transactionsWithTxStatus, err := txstatus.Validate(ctx, tickTxStatus, validTxs)
+		if err != nil {
+			return nil, nil, fmt.Errorf("validating tx status: %w", err)
+		}
+
+		return validTxs, transactionsWithTxStatus, nil
+	}
+
+}
+
+func getTxStatus(ctx context.Context, client network.QubicClient, transactionsCount int, tickNumber uint32, enabled bool) (types.TransactionStatus, error) {
+	if enabled {
+		return client.GetTxStatus(ctx, tickNumber)
+	} else {
+		// empty transaction status
+		return types.TransactionStatus{
+			CurrentTickOfNode:  tickNumber,
+			Tick:               tickNumber,
+			TxCount:            uint32(transactionsCount),
+			MoneyFlew:          [128]byte{},
+			TransactionDigests: nil,
+		}, nil
+	}
+}
+
+func isEmptyTick(quorumVotes types.QuorumVotes) bool {
+	return quorumVotes[0].TxDigest == [32]byte{}
 }

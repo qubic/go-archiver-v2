@@ -6,6 +6,7 @@ import (
 	"encoding/binary"
 	"fmt"
 	"github.com/cloudflare/circl/xof/k12"
+	"github.com/qubic/go-schnorrq"
 )
 
 type SigVerifierFunc = func(ctx context.Context, pubkey [32]byte, digest [32]byte, sig [64]byte) error
@@ -38,4 +39,8 @@ func BinarySerialize(data interface{}) ([]byte, error) {
 	}
 
 	return buff.Bytes(), nil
+}
+
+func SchnorrqVerify(_ context.Context, pubkey [32]byte, digest [32]byte, sig [64]byte) error {
+	return schnorrq.Verify(pubkey, digest, sig)
 }

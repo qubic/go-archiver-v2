@@ -30,6 +30,13 @@ func (t *TestPool) Close(_ network.QubicClient) error {
 	return nil
 }
 
+type TestValidator struct{}
+
+func (t TestValidator) Validate(_ context.Context, _ *db.PebbleStore, _ network.QubicClient, tickNumber uint32) error {
+	log.Printf("Mock validated tick [%d].", tickNumber)
+	return nil
+}
+
 type TestClient struct {
 	epoch       uint16
 	tick        uint32
@@ -134,7 +141,7 @@ func TestProcessor_processOneByOne(t *testing.T) {
 	dataPool, err := db.NewDatabasePool(testDir)
 	require.NoError(t, err)
 
-	processor := NewProcessor(clientPool, dataPool, time.Millisecond, [32]byte{}, false)
+	processor := NewProcessor(clientPool, dataPool, &TestValidator{}, time.Millisecond)
 	err = processor.processOneByOne()
 	require.NoError(t, err)
 	err = processor.processOneByOne()
@@ -156,7 +163,7 @@ func TestProcessor_processOneByOne_epochChange(t *testing.T) {
 	dataPool, err := db.NewDatabasePool(testDir)
 	require.NoError(t, err)
 
-	processor := NewProcessor(clientPool, dataPool, time.Millisecond, [32]byte{}, false)
+	processor := NewProcessor(clientPool, dataPool, &TestValidator{}, time.Millisecond)
 	err = processor.processOneByOne()
 	require.NoError(t, err)
 	err = processor.processOneByOne()

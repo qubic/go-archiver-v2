@@ -5,12 +5,12 @@ import (
 	"errors"
 	"fmt"
 	"github.com/qubic/go-archiver/db"
-	qubic "github.com/qubic/go-node-connector"
+	"github.com/qubic/go-archiver/network"
 	"github.com/qubic/go-node-connector/types"
 )
 
 // Get computors from store, otherwise get it from a node
-func Get(ctx context.Context, store *db.PebbleStore, client *qubic.Client, epoch uint16) (types.Computors, error) {
+func Get(ctx context.Context, store *db.PebbleStore, client network.QubicClient, epoch uint16) (types.Computors, error) {
 	comps, err := load(ctx, store, uint32(epoch))
 	if err != nil {
 		if !errors.Is(err, db.ErrNotFound) {

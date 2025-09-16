@@ -13,14 +13,14 @@ import (
 
 var emptyTxDigest [32]byte
 
-func Validate(ctx context.Context, sigVerifierFunc utils.SigVerifierFunc, transactions []types.Transaction, tickData types.TickData) ([]types.Transaction, error) {
+func Validate(ctx context.Context, transactions []types.Transaction, tickData types.TickData) ([]types.Transaction, error) {
 	digestsMap := createTxDigestsMap(tickData)
 	// handles empty tick but with transactions
 	if len(digestsMap) == 0 {
 		return []types.Transaction{}, nil
 	}
 
-	validTxs, err := validateTransactions(ctx, sigVerifierFunc, transactions, digestsMap)
+	validTxs, err := validateTransactions(ctx, transactions, digestsMap)
 	if err != nil {
 		return nil, fmt.Errorf("validating transactions: %w", err)
 	}
@@ -32,7 +32,7 @@ func Validate(ctx context.Context, sigVerifierFunc utils.SigVerifierFunc, transa
 // digests map, it is considered invalid. if we have more transactions than digests, then we don't care.
 // Implementation relies on the fact that for each valid transaction, the associated digest is removed
 // from the digest map and at the end of the function, the map should be empty.
-func validateTransactions(ctx context.Context, sigVerifierFunc utils.SigVerifierFunc, transactions []types.Transaction, digestsMap map[string]struct{}) ([]types.Transaction, error) {
+func validateTransactions(ctx context.Context, transactions []types.Transaction, digestsMap map[string]struct{}) ([]types.Transaction, error) {
 	validTransactions := make([]types.Transaction, 0, len(transactions))
 	for _, tx := range transactions {
 		txDigest, err := getDigestFromTransaction(tx)
@@ -60,7 +60,7 @@ func validateTransactions(ctx context.Context, sigVerifierFunc utils.SigVerifier
 			return nil, fmt.Errorf("calculating digest from transaction: %w", err)
 		}
 
-		err = sigVerifierFunc(ctx, tx.SourcePublicKey, constructedDigest, tx.Signature)
+		err = utils.SchnorrqVerify(ctx, tx.SourcePublicKey, constructedDigest, tx.Signature)
 		if err != nil {
 			return nil, fmt.Errorf("verifying transaction signature: %w", err)
 		}

@@ -12,21 +12,25 @@ import (
 	"time"
 )
 
+type Validator interface {
+	Validate(ctx context.Context, store *db.PebbleStore, client network.QubicClient, tickNumber uint32) error
+}
+
 type Processor struct {
 	clientPool         network.QubicClientPool
 	databasePool       *db.DatabasePool
+	tickValidator      Validator
 	arbitratorPubKey   [32]byte
 	processTickTimeout time.Duration
 	enableStatusAddon  bool
 }
 
-func NewProcessor(clientPool network.QubicClientPool, dbPool *db.DatabasePool, processTickTimeout time.Duration, arbitratorPubKey [32]byte, enableStatusAddon bool) *Processor {
+func NewProcessor(clientPool network.QubicClientPool, dbPool *db.DatabasePool, tickValidator Validator, processTickTimeout time.Duration) *Processor {
 	return &Processor{
 		clientPool:         clientPool,
 		databasePool:       dbPool,
 		processTickTimeout: processTickTimeout,
-		arbitratorPubKey:   arbitratorPubKey,
-		enableStatusAddon:  enableStatusAddon,
+		tickValidator:      tickValidator,
 	}
 }
 
@@ -56,6 +60,11 @@ func (p *Processor) processOneByOne() error {
 		return fmt.Errorf("getting tick info: %w", err)
 	}
 
+	dataStore, err := p.databasePool.GetOrCreateDbForEpoch(tickInfo.Epoch)
+	if err != nil {
+		return fmt.Errorf("getting database: %w", err)
+	}
+
 	lastProcessedTick, err := p.getLastProcessedTick(ctx, tickInfo.Epoch)
 	if err != nil {
 		return fmt.Errorf("getting last processed tick: %w", err)
@@ -65,20 +74,17 @@ func (p *Processor) processOneByOne() error {
 	if err != nil {
 		return fmt.Errorf("getting next tick to process: %w", err)
 	}
+	log.Printf("Next tick to process: %d", nextTick.TickNumber)
 
 	if nextTick.TickNumber > tickInfo.Tick {
-		return fmt.Errorf("next tick is in the future. processed: [%d], next [%d], available [%d]",
+		return fmt.Errorf("next tick is in the future. processed: %d, next %d, available %d",
 			lastProcessedTick.TickNumber, nextTick.TickNumber, tickInfo.Tick)
 	}
 
-	log.Printf("Processing tick [%d].", nextTick.TickNumber)
-
-	// FIXME
-	//val := validator.New(client, p.ps, p.arbitratorPubKey)
-	//err = val.ValidateTick(ctx, tickInfo.InitialTick, nextTick.TickNumber, !p.enableStatusAddon)
-	//if err != nil {
-	//	return fmt.Errorf(err, "validating tick %d", nextTick.TickNumber)
-	//}
+	err = p.tickValidator.Validate(ctx, dataStore, client, nextTick.TickNumber)
+	if err != nil {
+		return fmt.Errorf("validating tick %d: %w", nextTick.TickNumber, err)
+	}
 
 	err = p.handleSkippedTicks(ctx, lastProcessedTick, nextTick)
 	if err != nil {
@@ -89,6 +95,8 @@ func (p *Processor) processOneByOne() error {
 	if err != nil {
 		return fmt.Errorf("storing processed tick: %w", err)
 	}
+
+	log.Printf("Successfully processed tick %d.", nextTick.TickNumber)
 
 	return nil
 
@@ -156,7 +164,7 @@ func (p *Processor) handleSkippedTicks(ctx context.Context, lastTick *protobuf.P
 	// use next tick epoch in case of epoch change
 	dataStore, err := p.databasePool.GetOrCreateDbForEpoch(uint16(nextTick.Epoch))
 	if err != nil {
-		return fmt.Errorf("appending tick interval: %w", err)
+		return fmt.Errorf("getting database: %w", err)
 	}
 
 	// start new tick interval (will be modified in next tick)
@@ -169,12 +177,12 @@ func (p *Processor) handleSkippedTicks(ctx context.Context, lastTick *protobuf.P
 	}
 
 	// TODO we could remove writing to the old data store and not store the last tick interval
-	if nextTick.Epoch > lastTick.Epoch {
-		dataStore, err = p.databasePool.GetOrCreateDbForEpoch(uint16(lastTick.Epoch))
-		if err != nil {
-			return fmt.Errorf("appending skipped ticks: %w", err)
-		}
-	}
+	//if nextTick.Epoch > lastTick.Epoch {
+	//	dataStore, err = p.databasePool.GetOrCreateDbForEpoch(uint16(lastTick.Epoch))
+	//	if err != nil {
+	//		return fmt.Errorf("getting database: %w", err)
+	//	}
+	//}
 	err = dataStore.SetSkippedTicksInterval(ctx, &protobuf.SkippedTicksInterval{
 		StartTick: lastTick.TickNumber + 1,
 		EndTick:   nextTick.TickNumber - 1,

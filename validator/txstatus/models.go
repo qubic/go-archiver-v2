@@ -6,14 +6,14 @@ import (
 	"github.com/qubic/go-node-connector/types"
 )
 
-func qubicToProto(txs types.Transactions, model types.TransactionStatus) (*protobuf.TickTransactionsStatus, error) {
-	tickTransactions := make([]*protobuf.TransactionStatus, 0, model.TxCount)
+func qubicToProto(txs types.Transactions, txStatus types.TransactionStatus) (*protobuf.TickTransactionsStatus, error) {
+	tickTransactions := make([]*protobuf.TransactionStatus, 0, txStatus.TxCount)
 	txsIdMap, err := createTxsIdMap(txs)
 	if err != nil {
 		return nil, fmt.Errorf("creating txs id map: %w", err)
 	}
 
-	for index, txDigest := range model.TransactionDigests {
+	for index, txDigest := range txStatus.TransactionDigests {
 		var id types.Identity
 		id, err := id.FromPubKey(txDigest, true)
 		if err != nil {
@@ -23,7 +23,7 @@ func qubicToProto(txs types.Transactions, model types.TransactionStatus) (*proto
 			continue
 		}
 
-		moneyFlew := getMoneyFlewFromBits(model.MoneyFlew, index)
+		moneyFlew := getMoneyFlewFromBits(txStatus.MoneyFlew, index)
 
 		tx := &protobuf.TransactionStatus{
 			TxId:      id.String(),

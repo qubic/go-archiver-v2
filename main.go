@@ -12,6 +12,7 @@ import (
 	"github.com/qubic/go-archiver/db"
 	"github.com/qubic/go-archiver/network"
 	"github.com/qubic/go-archiver/processor"
+	"github.com/qubic/go-archiver/validator"
 	qubic "github.com/qubic/go-node-connector"
 	"github.com/qubic/go-node-connector/types"
 	"log"
@@ -138,7 +139,8 @@ func run() error {
 		return fmt.Errorf("calculating arbitrator public key from [%s]: %w", cfg.Qubic.ArbitratorIdentity, err)
 	}
 
-	proc := processor.NewProcessor(clientPool, dbPool, cfg.Qubic.ProcessTickTimeout, arbitratorPubKey, cfg.Qubic.EnableTxStatusAddon)
+	tickValidator := validator.NewValidator(arbitratorPubKey, cfg.Qubic.EnableTxStatusAddon)
+	proc := processor.NewProcessor(clientPool, dbPool, tickValidator, cfg.Qubic.ProcessTickTimeout)
 	procErrors := make(chan error, 1)
 
 	// Start the service listening for requests.
