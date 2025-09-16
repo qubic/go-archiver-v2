@@ -184,34 +184,34 @@ func (s *PebbleStore) GetTickTransactions(ctx context.Context, tickNumber uint32
 	return txs, nil
 }
 
-func (s *PebbleStore) GetTickTransferTransactions(ctx context.Context, tickNumber uint32) ([]*protobuf.Transaction, error) {
-	td, err := s.GetTickData(ctx, tickNumber)
-	if err != nil {
-		if errors.Is(err, ErrNotFound) {
-			return nil, ErrNotFound
-		}
-
-		return nil, fmt.Errorf("getting tick data: %w", err)
-	}
-
-	txs := make([]*protobuf.Transaction, 0, len(td.TransactionIds))
-	for _, txID := range td.TransactionIds {
-		tx, err := s.GetTransaction(ctx, txID)
-		if err != nil {
-			if errors.Is(err, ErrNotFound) {
-				return nil, ErrNotFound
-			}
-			return nil, fmt.Errorf("getting transaction for hash [%s]: %w", txID, err)
-		}
-		if tx.Amount <= 0 {
-			continue
-		}
-
-		txs = append(txs, tx)
-	}
-
-	return txs, nil
-}
+//func (s *PebbleStore) GetTickTransferTransactions(ctx context.Context, tickNumber uint32) ([]*protobuf.Transaction, error) {
+//	td, err := s.GetTickData(ctx, tickNumber)
+//	if err != nil {
+//		if errors.Is(err, ErrNotFound) {
+//			return nil, ErrNotFound
+//		}
+//
+//		return nil, fmt.Errorf("getting tick data: %w", err)
+//	}
+//
+//	txs := make([]*protobuf.Transaction, 0, len(td.TransactionIds))
+//	for _, txID := range td.TransactionIds {
+//		tx, err := s.GetTransaction(ctx, txID)
+//		if err != nil {
+//			if errors.Is(err, ErrNotFound) {
+//				return nil, ErrNotFound
+//			}
+//			return nil, fmt.Errorf("getting transaction for hash [%s]: %w", txID, err)
+//		}
+//		if tx.Amount <= 0 {
+//			continue
+//		}
+//
+//		txs = append(txs, tx)
+//	}
+//
+//	return txs, nil
+//}
 
 func (s *PebbleStore) GetTransaction(_ context.Context, txID string) (*protobuf.Transaction, error) {
 	key, err := tickTxKey(txID)
@@ -380,21 +380,21 @@ func (s *PebbleStore) GetSkippedTicksInterval(_ context.Context) (*protobuf.Skip
 	return &skipped, nil
 }
 
-func (s *PebbleStore) PutTransferTransactionsPerTick(_ context.Context, identity string, tickNumber uint32, txs *protobuf.TransferTransactionsPerTick) error {
-	key := identityTransferTransactionsPerTickKey(identity, tickNumber)
-
-	serialized, err := proto.Marshal(txs)
-	if err != nil {
-		return fmt.Errorf("serializing tx proto: %w", err)
-	}
-
-	err = s.db.Set(key, serialized, pebble.Sync)
-	if err != nil {
-		return fmt.Errorf("setting transfer tx: %w", err)
-	}
-
-	return nil
-}
+//func (s *PebbleStore) PutTransferTransactionsPerTick(_ context.Context, identity string, tickNumber uint32, txs *protobuf.TransferTransactionsPerTick) error {
+//	key := identityTransferTransactionsPerTickKey(identity, tickNumber)
+//
+//	serialized, err := proto.Marshal(txs)
+//	if err != nil {
+//		return fmt.Errorf("serializing tx proto: %w", err)
+//	}
+//
+//	err = s.db.Set(key, serialized, pebble.Sync)
+//	if err != nil {
+//		return fmt.Errorf("setting transfer tx: %w", err)
+//	}
+//
+//	return nil
+//}
 
 type Pageable struct {
 	Page, Size uint32
@@ -408,100 +408,100 @@ type Filterable struct {
 	ScOnly bool
 }
 
-func (s *PebbleStore) GetTransactionsForEntity(ctx context.Context, identity string, startTick, endTick uint64) ([]*protobuf.TransferTransactionsPerTick, error) {
-	const limitForRequestWithoutPaging = 1000 // old implementation was unlimited.
-	transfers, _, err := s.GetTransactionsForEntityPaged(ctx, identity, startTick, endTick,
-		Pageable{Size: limitForRequestWithoutPaging},
-		Sortable{},
-		Filterable{},
-	)
-	return transfers, err
-}
+//func (s *PebbleStore) GetTransactionsForEntity(ctx context.Context, identity string, startTick, endTick uint64) ([]*protobuf.TransferTransactionsPerTick, error) {
+//	const limitForRequestWithoutPaging = 1000 // old implementation was unlimited.
+//	transfers, _, err := s.GetTransactionsForEntityPaged(ctx, identity, startTick, endTick,
+//		Pageable{Size: limitForRequestWithoutPaging},
+//		Sortable{},
+//		Filterable{},
+//	)
+//	return transfers, err
+//}
 
-func (s *PebbleStore) GetTransactionsForEntityPaged(_ context.Context, identity string, startTick, endTick uint64, page Pageable, sort Sortable, filter Filterable) ([]*protobuf.TransferTransactionsPerTick, int, error) {
+//func (s *PebbleStore) GetTransactionsForEntityPaged(_ context.Context, identity string, startTick, endTick uint64, page Pageable, sort Sortable, filter Filterable) ([]*protobuf.TransferTransactionsPerTick, int, error) {
+//
+//	var index, start, end int
+//	start = int(page.Page) * int(page.Size)
+//	end = start + int(page.Size)
+//
+//	var transferTxs []*protobuf.TransferTransactionsPerTick
+//	transferTxs = make([]*protobuf.TransferTransactionsPerTick, 0, min(page.Size, 1000))
+//
+//	partialKey := identityTransferTransactions(identity)
+//	iter, err := s.db.NewIter(&pebble.IterOptions{
+//		LowerBound: binary.BigEndian.AppendUint64(partialKey, startTick),
+//		UpperBound: binary.BigEndian.AppendUint64(partialKey, endTick+1),
+//	})
+//	if err != nil {
+//		return nil, -1, fmt.Errorf("creating iterator: %w", err)
+//	}
+//	defer iter.Close()
+//
+//	if sort.Descending {
+//		for iter.Last(); iter.Valid(); iter.Prev() {
+//			index, transferTxs, err = getTransfersPage(iter, index, transferTxs, start, end, filter)
+//		}
+//	} else {
+//		for iter.First(); iter.Valid(); iter.Next() { // per tick
+//			index, transferTxs, err = getTransfersPage(iter, index, transferTxs, start, end, filter)
+//		}
+//	}
+//	if err != nil {
+//		return nil, -1, fmt.Errorf("getting transfers page: %w", err)
+//	}
+//
+//	return transferTxs, index, nil
+//}
 
-	var index, start, end int
-	start = int(page.Page) * int(page.Size)
-	end = start + int(page.Size)
+//func getTransfersPage(iter *pebble.Iterator, index int, transferTxs []*protobuf.TransferTransactionsPerTick, pageStart int, pageEnd int, filter Filterable) (int, []*protobuf.TransferTransactionsPerTick, error) {
+//	value, err := iter.ValueAndErr()
+//	if err != nil {
+//		return -1, nil, fmt.Errorf("getting value from iter: %w", err)
+//	}
+//
+//	var perTick protobuf.TransferTransactionsPerTick
+//	var toBeAdded *protobuf.TransferTransactionsPerTick
+//
+//	err = proto.Unmarshal(value, &perTick)
+//	if err != nil {
+//		return -1, nil, fmt.Errorf("unmarshalling transfer tx per tick to protobuf type: %w", err)
+//	}
+//
+//	transactions := filterTransactions(filter, &perTick)
+//
+//	count := len(transactions)
+//	if count > 0 && index+count >= pageStart && index < pageEnd {
+//
+//		startIndex := max(pageStart-index, 0) // if index < pageStart we need to skip first items
+//		endIndex := min(pageEnd-index, count)
+//
+//		if index+count >= pageStart && endIndex > startIndex { // covers case index >= pageStart and index+count >= pageStart
+//			toBeAdded = &protobuf.TransferTransactionsPerTick{
+//				TickNumber:   perTick.GetTickNumber(),
+//				Identity:     perTick.GetIdentity(),
+//				Transactions: transactions[startIndex:endIndex],
+//			}
+//			transferTxs = append(transferTxs, toBeAdded)
+//		}
+//	}
+//	index += count
+//	return index, transferTxs, nil
+//}
 
-	var transferTxs []*protobuf.TransferTransactionsPerTick
-	transferTxs = make([]*protobuf.TransferTransactionsPerTick, 0, min(page.Size, 1000))
-
-	partialKey := identityTransferTransactions(identity)
-	iter, err := s.db.NewIter(&pebble.IterOptions{
-		LowerBound: binary.BigEndian.AppendUint64(partialKey, startTick),
-		UpperBound: binary.BigEndian.AppendUint64(partialKey, endTick+1),
-	})
-	if err != nil {
-		return nil, -1, fmt.Errorf("creating iterator: %w", err)
-	}
-	defer iter.Close()
-
-	if sort.Descending {
-		for iter.Last(); iter.Valid(); iter.Prev() {
-			index, transferTxs, err = getTransfersPage(iter, index, transferTxs, start, end, filter)
-		}
-	} else {
-		for iter.First(); iter.Valid(); iter.Next() { // per tick
-			index, transferTxs, err = getTransfersPage(iter, index, transferTxs, start, end, filter)
-		}
-	}
-	if err != nil {
-		return nil, -1, fmt.Errorf("getting transfers page: %w", err)
-	}
-
-	return transferTxs, index, nil
-}
-
-func getTransfersPage(iter *pebble.Iterator, index int, transferTxs []*protobuf.TransferTransactionsPerTick, pageStart int, pageEnd int, filter Filterable) (int, []*protobuf.TransferTransactionsPerTick, error) {
-	value, err := iter.ValueAndErr()
-	if err != nil {
-		return -1, nil, fmt.Errorf("getting value from iter: %w", err)
-	}
-
-	var perTick protobuf.TransferTransactionsPerTick
-	var toBeAdded *protobuf.TransferTransactionsPerTick
-
-	err = proto.Unmarshal(value, &perTick)
-	if err != nil {
-		return -1, nil, fmt.Errorf("unmarshalling transfer tx per tick to protobuf type: %w", err)
-	}
-
-	transactions := filterTransactions(filter, &perTick)
-
-	count := len(transactions)
-	if count > 0 && index+count >= pageStart && index < pageEnd {
-
-		startIndex := max(pageStart-index, 0) // if index < pageStart we need to skip first items
-		endIndex := min(pageEnd-index, count)
-
-		if index+count >= pageStart && endIndex > startIndex { // covers case index >= pageStart and index+count >= pageStart
-			toBeAdded = &protobuf.TransferTransactionsPerTick{
-				TickNumber:   perTick.GetTickNumber(),
-				Identity:     perTick.GetIdentity(),
-				Transactions: transactions[startIndex:endIndex],
-			}
-			transferTxs = append(transferTxs, toBeAdded)
-		}
-	}
-	index += count
-	return index, transferTxs, nil
-}
-
-func filterTransactions(filter Filterable, perTick *protobuf.TransferTransactionsPerTick) []*protobuf.Transaction {
-	var transactions []*protobuf.Transaction
-	if filter.ScOnly { // filter if necessary
-		transactions = make([]*protobuf.Transaction, 0)
-		for _, tx := range perTick.GetTransactions() {
-			if tx.InputType != 0 {
-				transactions = append(transactions, tx)
-			}
-		}
-	} else {
-		transactions = perTick.GetTransactions()
-	}
-	return transactions
-}
+//func filterTransactions(filter Filterable, perTick *protobuf.TransferTransactionsPerTick) []*protobuf.Transaction {
+//	var transactions []*protobuf.Transaction
+//	if filter.ScOnly { // filter if necessary
+//		transactions = make([]*protobuf.Transaction, 0)
+//		for _, tx := range perTick.GetTransactions() {
+//			if tx.InputType != 0 {
+//				transactions = append(transactions, tx)
+//			}
+//		}
+//	} else {
+//		transactions = perTick.GetTransactions()
+//	}
+//	return transactions
+//}
 
 func (s *PebbleStore) PutChainDigest(_ context.Context, tickNumber uint32, digest []byte) error {
 	key := chainDigestKey(tickNumber)
@@ -891,32 +891,32 @@ func (s *PebbleStore) GetEmptyTickListPerEpoch(epoch uint32) ([]uint32, error) {
 
 }
 
-func (s *PebbleStore) AppendEmptyTickToEmptyTickListPerEpoch(epoch uint32, tickNumber uint32) error {
+//func (s *PebbleStore) AppendEmptyTickToEmptyTickListPerEpoch(epoch uint32, tickNumber uint32) error {
+//
+//	emptyTicks, err := s.GetEmptyTickListPerEpoch(epoch)
+//	if err != nil {
+//		return fmt.Errorf("getting empty tick list for epoch %d: %w", epoch, err)
+//	}
+//
+//	emptyTicks = append(emptyTicks, tickNumber)
+//
+//	err = s.SetEmptyTickListPerEpoch(epoch, emptyTicks)
+//	if err != nil {
+//		return fmt.Errorf("saving appended empty tick list for epoch %d: %w", epoch, err)
+//	}
+//
+//	return nil
+//}
 
-	emptyTicks, err := s.GetEmptyTickListPerEpoch(epoch)
-	if err != nil {
-		return fmt.Errorf("getting empty tick list for epoch %d: %w", epoch, err)
-	}
-
-	emptyTicks = append(emptyTicks, tickNumber)
-
-	err = s.SetEmptyTickListPerEpoch(epoch, emptyTicks)
-	if err != nil {
-		return fmt.Errorf("saving appended empty tick list for epoch %d: %w", epoch, err)
-	}
-
-	return nil
-}
-
-func (s *PebbleStore) DeleteEmptyTickListKeyForEpoch(epoch uint32) error {
-	key := emptyTickListPerEpochKey(epoch)
-
-	err := s.db.Delete(key, pebble.Sync)
-	if err != nil {
-		return fmt.Errorf("deleting empty tick list key for epoch %d: %w", epoch, err)
-	}
-	return nil
-}
+//func (s *PebbleStore) DeleteEmptyTickListKeyForEpoch(epoch uint32) error {
+//	key := emptyTickListPerEpochKey(epoch)
+//
+//	err := s.db.Delete(key, pebble.Sync)
+//	if err != nil {
+//		return fmt.Errorf("deleting empty tick list key for epoch %d: %w", epoch, err)
+//	}
+//	return nil
+//}
 
 func (s *PebbleStore) SetTargetTickVoteSignature(epoch, value uint32) error {
 	key := targetTickVoteSignatureKey(epoch)

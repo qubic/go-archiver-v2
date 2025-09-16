@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"github.com/pkg/errors"
 	"github.com/qubic/go-archiver/db"
-	"github.com/qubic/go-archiver/protobuf"
 	"github.com/qubic/go-archiver/utils"
 	"github.com/qubic/go-node-connector/types"
 )
@@ -104,22 +103,21 @@ func createTxDigestsMap(tickData types.TickData) map[string]struct{} {
 	return digestsMap
 }
 
-func Store(ctx context.Context, store *db.PebbleStore, tickNumber uint32, transactions types.Transactions) error {
+func Store(ctx context.Context, store *db.PebbleStore, _ uint32, transactions types.Transactions) error {
 	err := storeTickTransactions(ctx, store, transactions)
 	if err != nil {
 		return fmt.Errorf("storing transactions: %w", err)
 	}
 
 	// TODO verify that we can remove this (we don't need extra transfer/identity data)
-	err = storeTransferTransactions(ctx, store, tickNumber, transactions)
-	if err != nil {
-		return fmt.Errorf("storing transfer transactions: %w", err)
-	}
+	//err = storeTransferTransactions(ctx, store, tickNumber, transactions)
+	//if err != nil {
+	//	return fmt.Errorf("storing transfer transactions: %w", err)
+	//}
 
 	return nil
 }
 
-// TODO remove me
 func storeTickTransactions(ctx context.Context, store *db.PebbleStore, transactions types.Transactions) error {
 	protoModel, err := qubicToProto(transactions)
 	if err != nil {
@@ -135,62 +133,62 @@ func storeTickTransactions(ctx context.Context, store *db.PebbleStore, transacti
 }
 
 // TODO remove me
-func storeTransferTransactions(ctx context.Context, store *db.PebbleStore, tickNumber uint32, transactions types.Transactions) error {
-	transferTransactions, err := removeNonTransferTransactionsAndConvert(transactions)
-	if err != nil {
-		return fmt.Errorf("removing non transfer transactions: %w", err)
-	}
-	txsPerIdentity, err := createTransferTransactionsIdentityMap(ctx, transferTransactions)
-	if err != nil {
-		return fmt.Errorf("filtering transfer transactions: %w", err)
-	}
-
-	for id, txs := range txsPerIdentity {
-		err = store.PutTransferTransactionsPerTick(ctx, id, tickNumber, &protobuf.TransferTransactionsPerTick{TickNumber: uint32(tickNumber), Identity: id, Transactions: txs})
-		if err != nil {
-			return fmt.Errorf("saving transfer transactions: %w", err)
-		}
-	}
-
-	return nil
-}
-
-// TODO remove me
-func removeNonTransferTransactionsAndConvert(transactions []types.Transaction) ([]*protobuf.Transaction, error) {
-	transferTransactions := make([]*protobuf.Transaction, 0)
-	for _, tx := range transactions {
-		if tx.Amount == 0 {
-			continue
-		}
-
-		protoTx, err := txToProto(tx)
-		if err != nil {
-			return nil, fmt.Errorf("converting transaction to proto: %w", err)
-		}
-
-		transferTransactions = append(transferTransactions, protoTx)
-	}
-
-	return transferTransactions, nil
-}
+//func storeTransferTransactions(ctx context.Context, store *db.PebbleStore, tickNumber uint32, transactions types.Transactions) error {
+//	transferTransactions, err := removeNonTransferTransactionsAndConvert(transactions)
+//	if err != nil {
+//		return fmt.Errorf("removing non transfer transactions: %w", err)
+//	}
+//	txsPerIdentity, err := createTransferTransactionsIdentityMap(ctx, transferTransactions)
+//	if err != nil {
+//		return fmt.Errorf("filtering transfer transactions: %w", err)
+//	}
+//
+//	for id, txs := range txsPerIdentity {
+//		err = store.PutTransferTransactionsPerTick(ctx, id, tickNumber, &protobuf.TransferTransactionsPerTick{TickNumber: uint32(tickNumber), Identity: id, Transactions: txs})
+//		if err != nil {
+//			return fmt.Errorf("saving transfer transactions: %w", err)
+//		}
+//	}
+//
+//	return nil
+//}
 
 // TODO remove me
-func createTransferTransactionsIdentityMap(_ context.Context, txs []*protobuf.Transaction) (map[string][]*protobuf.Transaction, error) {
-	txsPerIdentity := make(map[string][]*protobuf.Transaction)
-	for _, tx := range txs {
-		_, ok := txsPerIdentity[tx.DestId]
-		if !ok {
-			txsPerIdentity[tx.DestId] = make([]*protobuf.Transaction, 0)
-		}
+//func removeNonTransferTransactionsAndConvert(transactions []types.Transaction) ([]*protobuf.Transaction, error) {
+//	transferTransactions := make([]*protobuf.Transaction, 0)
+//	for _, tx := range transactions {
+//		if tx.Amount == 0 {
+//			continue
+//		}
+//
+//		protoTx, err := txToProto(tx)
+//		if err != nil {
+//			return nil, fmt.Errorf("converting transaction to proto: %w", err)
+//		}
+//
+//		transferTransactions = append(transferTransactions, protoTx)
+//	}
+//
+//	return transferTransactions, nil
+//}
 
-		_, ok = txsPerIdentity[tx.SourceId]
-		if !ok {
-			txsPerIdentity[tx.SourceId] = make([]*protobuf.Transaction, 0)
-		}
-
-		txsPerIdentity[tx.DestId] = append(txsPerIdentity[tx.DestId], tx)
-		txsPerIdentity[tx.SourceId] = append(txsPerIdentity[tx.SourceId], tx)
-	}
-
-	return txsPerIdentity, nil
-}
+// TODO remove me
+//func createTransferTransactionsIdentityMap(_ context.Context, txs []*protobuf.Transaction) (map[string][]*protobuf.Transaction, error) {
+//	txsPerIdentity := make(map[string][]*protobuf.Transaction)
+//	for _, tx := range txs {
+//		_, ok := txsPerIdentity[tx.DestId]
+//		if !ok {
+//			txsPerIdentity[tx.DestId] = make([]*protobuf.Transaction, 0)
+//		}
+//
+//		_, ok = txsPerIdentity[tx.SourceId]
+//		if !ok {
+//			txsPerIdentity[tx.SourceId] = make([]*protobuf.Transaction, 0)
+//		}
+//
+//		txsPerIdentity[tx.DestId] = append(txsPerIdentity[tx.DestId], tx)
+//		txsPerIdentity[tx.SourceId] = append(txsPerIdentity[tx.SourceId], tx)
+//	}
+//
+//	return txsPerIdentity, nil
+//}
