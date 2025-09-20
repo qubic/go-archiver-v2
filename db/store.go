@@ -293,7 +293,7 @@ func (s *PebbleStore) GetLastProcessedTick(_ context.Context) (*protobuf.Process
 			return nil, ErrNotFound
 		}
 
-		return nil, fmt.Errorf("getting last processed tick: %w", err)
+		return nil, fmt.Errorf("db.get for last processed tick: %w", err)
 	}
 	defer closer.Close()
 

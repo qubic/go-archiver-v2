@@ -42,8 +42,8 @@ func Validate(ctx context.Context, data types.TickData, quorumTickVote types.Quo
 	}
 
 	if fullDigest != quorumTickVote.TxDigest {
-		return fmt.Errorf("quorum tx digest mismatch. full digest: %s. quorum tx digest: %s, error: %w",
-			hex.EncodeToString(fullDigest[:]), hex.EncodeToString(quorumTickVote.TxDigest[:]), err)
+		return fmt.Errorf("quorum tx digest mismatch, full digest [%s], quorum tx digest [%s]",
+			hex.EncodeToString(fullDigest[:]), hex.EncodeToString(quorumTickVote.TxDigest[:]))
 	}
 
 	return nil

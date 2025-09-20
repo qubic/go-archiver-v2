@@ -55,6 +55,8 @@ func (dp *DatabasePool) Close() {
 			err := store.Close()
 			if err != nil {
 				log.Printf("[ERROR] closing data store for epoch [%d]: %v", epoch, err)
+			} else {
+				log.Printf("[INFO] closed data store for epoch [%d]", epoch)
 			}
 		}
 	}
