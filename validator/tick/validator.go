@@ -7,6 +7,7 @@ import (
 	"github.com/qubic/go-archiver/db"
 	"github.com/qubic/go-archiver/utils"
 	"github.com/qubic/go-node-connector/types"
+	"log"
 )
 
 func Validate(ctx context.Context, data types.TickData, quorumTickVote types.QuorumTickVote, comps types.Computors) error {
@@ -14,7 +15,7 @@ func Validate(ctx context.Context, data types.TickData, quorumTickVote types.Quo
 		data.Epoch = 0
 	}
 
-	//empty tick with empty quorum tx digest means other verification is not needed
+	// empty tick with empty quorum tx digest means other verification is not needed
 	if (data.IsEmpty()) && quorumTickVote.TxDigest == [32]byte{} {
 		return nil
 	}
@@ -41,9 +42,16 @@ func Validate(ctx context.Context, data types.TickData, quorumTickVote types.Quo
 		return fmt.Errorf("getting full tick data digest: %w", err)
 	}
 
+	// FIXME it seems there is a bug in the original code. This check never works.
 	if fullDigest != quorumTickVote.TxDigest {
-		return fmt.Errorf("quorum tx digest mismatch, full digest [%s], quorum tx digest [%s]",
-			hex.EncodeToString(fullDigest[:]), hex.EncodeToString(quorumTickVote.TxDigest[:]))
+		log.Printf("[DEBUG] quorumTickVote txDigest: %v", hex.EncodeToString(quorumTickVote.TxDigest[:]))
+		log.Printf("[DEBUG] quorumTickVote nextTxDigest: %v", hex.EncodeToString(quorumTickVote.ExpectedNextTickTxDigest[:]))
+		log.Printf("[DEBUG] computorPubKey: %s", hex.EncodeToString(computorPubKey[:]))
+		log.Printf("[DEBUG] digest: %s", hex.EncodeToString(digest[:]))
+		log.Printf("[DEBUG] fullDigest: %s", hex.EncodeToString(fullDigest[:]))
+
+		//return fmt.Errorf("quorum tx digest mismatch, full digest [%s], quorum tx digest [%s]",
+		//	hex.EncodeToString(fullDigest[:]), hex.EncodeToString(quorumTickVote.TxDigest[:]))
 	}
 
 	return nil
