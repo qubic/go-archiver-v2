@@ -65,7 +65,7 @@ func (p *Processor) processOneByOne() error {
 		return fmt.Errorf("getting database: %w", err)
 	}
 
-	lastProcessedTick, err := p.getLastProcessedTick(ctx, tickInfo.Epoch)
+	lastProcessedTick, err := p.getLastProcessedTick(ctx, dataStore, tickInfo.Epoch)
 	if err != nil {
 		return fmt.Errorf("getting last processed tick: %w", err)
 	}
@@ -86,12 +86,14 @@ func (p *Processor) processOneByOne() error {
 		return fmt.Errorf("validating tick %d: %w", nextTick.TickNumber, err)
 	}
 
-	err = p.handleSkippedTicks(ctx, lastProcessedTick, nextTick)
-	if err != nil {
-		return fmt.Errorf("handling skipped ticks: %w", err)
+	if lastProcessedTick.TickNumber >= tickInfo.InitialTick { // no skipped ticks before initial tick
+		err = p.handleSkippedTicks(ctx, dataStore, lastProcessedTick, nextTick)
+		if err != nil {
+			return fmt.Errorf("handling skipped ticks: %w", err)
+		}
 	}
 
-	err = p.storeProcessedTick(ctx, nextTick)
+	err = p.storeProcessedTick(ctx, dataStore, nextTick)
 	if err != nil {
 		return fmt.Errorf("storing processed tick: %w", err)
 	}
@@ -116,11 +118,7 @@ func (p *Processor) releaseClient(err error, client network.QubicClient) {
 	}
 }
 
-func (p *Processor) getLastProcessedTick(ctx context.Context, epoch uint16) (*protobuf.ProcessedTick, error) {
-	dataStore, err := p.databasePool.GetOrCreateDbForEpoch(epoch)
-	if err != nil {
-		return nil, fmt.Errorf("getting data store for epoch %d: %w", epoch, err)
-	}
+func (p *Processor) getLastProcessedTick(ctx context.Context, dataStore *db.PebbleStore, epoch uint16) (*protobuf.ProcessedTick, error) {
 
 	lastTick, err := dataStore.GetLastProcessedTick(ctx)
 	if err != nil {
@@ -129,7 +127,7 @@ func (p *Processor) getLastProcessedTick(ctx context.Context, epoch uint16) (*pr
 		if errors.Is(err, db.ErrNotFound) {
 			return &protobuf.ProcessedTick{TickNumber: 0, Epoch: uint32(epoch)}, nil
 		}
-		return nil, fmt.Errorf("getting last processed tick: %w", err)
+		return nil, fmt.Errorf("getting last processed tick for epoch %d: %w", epoch, err)
 	}
 
 	return lastTick, nil
@@ -146,7 +144,16 @@ func (p *Processor) getNextProcessingTick(_ context.Context, lastTick *protobuf.
 	return &protobuf.ProcessedTick{TickNumber: lastTick.TickNumber + 1, Epoch: lastTick.Epoch}, nil
 }
 
-func (p *Processor) handleSkippedTicks(ctx context.Context, lastTick *protobuf.ProcessedTick, nextTick *protobuf.ProcessedTick) error {
+func (p *Processor) storeProcessedTick(ctx context.Context, dataStore *db.PebbleStore, tick *protobuf.ProcessedTick) error {
+	err := dataStore.SetLastProcessedTick(ctx, tick)
+	if err != nil {
+		return fmt.Errorf("setting last processed tick [%d]: %w", tick.TickNumber, err)
+	}
+
+	return nil
+}
+
+func (p *Processor) handleSkippedTicks(ctx context.Context, dataStore *db.PebbleStore, lastTick *protobuf.ProcessedTick, nextTick *protobuf.ProcessedTick) error {
 
 	if nextTick.TickNumber-lastTick.TickNumber == 1 {
 		// no skipped ticks. default case.
@@ -161,14 +168,8 @@ func (p *Processor) handleSkippedTicks(ctx context.Context, lastTick *protobuf.P
 	// in case of skipped ticks we have a new processed tick interval. Typically on epoch change but can also happen
 	// in epoch on restart within epoch.
 
-	// use next tick epoch in case of epoch change
-	dataStore, err := p.databasePool.GetOrCreateDbForEpoch(uint16(nextTick.Epoch))
-	if err != nil {
-		return fmt.Errorf("getting database: %w", err)
-	}
-
 	// start new tick interval (will be modified in next tick)
-	err = dataStore.AppendProcessedTickInterval(ctx, nextTick.Epoch, &protobuf.ProcessedTickInterval{
+	err := dataStore.AppendProcessedTickInterval(ctx, nextTick.Epoch, &protobuf.ProcessedTickInterval{
 		InitialProcessedTick: nextTick.TickNumber,
 		LastProcessedTick:    nextTick.TickNumber,
 	})
@@ -189,20 +190,6 @@ func (p *Processor) handleSkippedTicks(ctx context.Context, lastTick *protobuf.P
 	})
 	if err != nil {
 		return fmt.Errorf("appending skipped ticks data: %w", err)
-	}
-
-	return nil
-}
-
-func (p *Processor) storeProcessedTick(ctx context.Context, tick *protobuf.ProcessedTick) error {
-	dataStore, err := p.databasePool.GetOrCreateDbForEpoch(uint16(tick.Epoch))
-	if err != nil {
-		return fmt.Errorf("getting data store: %w", err)
-	}
-
-	err = dataStore.SetLastProcessedTick(ctx, tick)
-	if err != nil {
-		return fmt.Errorf("setting last processed tick [%d]: %w", tick.TickNumber, err)
 	}
 
 	return nil
