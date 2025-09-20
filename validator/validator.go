@@ -113,7 +113,7 @@ func (v *Validator) validateComputors(ctx context.Context, store *db.PebbleStore
 	return comps, nil
 }
 
-func (v *Validator) validateTickData(ctx context.Context, client network.QubicClient, comps types.Computors, quorumVotest types.QuorumVotes, tickNumber uint32, isEmptyTick bool) (types.TickData, error) {
+func (v *Validator) validateTickData(ctx context.Context, client network.QubicClient, comps types.Computors, quorumVotes types.QuorumVotes, tickNumber uint32, isEmptyTick bool) (types.TickData, error) {
 
 	if isEmptyTick {
 
@@ -127,7 +127,7 @@ func (v *Validator) validateTickData(ctx context.Context, client network.QubicCl
 			return types.TickData{}, fmt.Errorf("getting tick data: %w", err)
 		}
 
-		err = tick.Validate(ctx, tickData, quorumVotest[0], comps)
+		err = tick.Validate(ctx, tickData, quorumVotes[0], comps)
 		if err != nil {
 			return types.TickData{}, fmt.Errorf("validating tick data: %w", err)
 		}
