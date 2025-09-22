@@ -11,6 +11,8 @@ import (
 	"github.com/qubic/go-node-connector/types"
 	"log"
 	"slices"
+	"sync"
+	"time"
 )
 
 // Validate validates the quorum votes and if success returns the aligned votes back
@@ -39,7 +41,6 @@ func validateVotes(ctx context.Context, quorumVotes types.QuorumVotes, computors
 		return nil, errors.New("not enough quorum votes")
 	}
 
-	log.Printf("Number of total votes: %d", len(quorumVotes))
 	alignedVotes, err := getAlignedVotes(quorumVotes)
 	if err != nil {
 		return nil, fmt.Errorf("getting aligned votes: %w", err)
@@ -49,12 +50,12 @@ func validateVotes(ctx context.Context, quorumVotes types.QuorumVotes, computors
 		return nil, fmt.Errorf("not enough aligned votes [%d]", len(alignedVotes))
 	}
 
-	log.Printf("Validating [%d] aligned quorum votes.", len(alignedVotes))
-	err = quorumTickSigVerify(ctx, utils.SchnorrqVerify, alignedVotes, computors, targetTickVoteSignature)
+	now := time.Now()
+	err = quorumTickSigVerify(ctx, alignedVotes, computors, targetTickVoteSignature)
 	if err != nil {
 		return nil, fmt.Errorf("verifying tick signature: %w", err)
 	}
-
+	log.Printf("quorum votes verified in %dms", time.Since(now).Milliseconds())
 	return alignedVotes, nil
 }
 
@@ -129,41 +130,52 @@ func (v *vote) digest() ([32]byte, error) {
 	return digest, nil
 }
 
-func quorumTickSigVerify(ctx context.Context, sigVerifierFunc utils.SigVerifierFunc, quorumVotes types.QuorumVotes, computors types.Computors, targetTickVoteSignature uint32) error {
-	var successVotes = 0
-	failedIndexes := make([]uint16, 0, 0)
-	failedIdentites := make([]string, 0, 0)
-	//log.Printf("Proceed to validate total quorum votes: %d\n", len(quorumVotes))
+func quorumTickSigVerify(ctx context.Context, quorumVotes types.QuorumVotes, computors types.Computors, targetTickVoteSignature uint32) error {
+
+	var waitGroup sync.WaitGroup
+	verifyChannel := make(chan int, len(quorumVotes))
+	//waitGroup.Add(len(quorumVotes))
+
 	for _, quorumTickData := range quorumVotes {
-		digest, err := getDigestFromQuorumTickData(quorumTickData)
-		if err != nil {
-			return fmt.Errorf("getting digest from quorum tick data: %w", err)
-		}
-		computorPubKey := computors.PubKeys[quorumTickData.ComputorIndex]
-		if err := verifyTickVoteSignature(ctx, sigVerifierFunc, computorPubKey, digest, quorumTickData.Signature, targetTickVoteSignature); err != nil {
-			//return fmt.Errorf("quorum tick signature verification failed for computor index %d: %w", quorumTickData.ComputorIndex, err)
-			//log.Printf("Quorum tick signature verification failed for computor index: %d. Err: %s\n", quorumTickData.ComputorIndex, err.Error())
-			failedIndexes = append(failedIndexes, quorumTickData.ComputorIndex)
-			var badComputor types.Identity
-			badComputor, err = badComputor.FromPubKey(computorPubKey, false)
-			if err != nil {
-				return fmt.Errorf("getting bad computor identity: %w", err)
-			}
-			failedIdentites = append(failedIdentites, string(badComputor))
-			continue
-		}
-		successVotes += 1
-		//log.Printf("Validated vote for computor index: %d. Vote number %d\n", quorumTickData.ComputorIndex, successVotes)
+		go func() {
+			waitGroup.Add(1)
+			verifyChannel <- checkSignature(ctx, quorumTickData, computors, targetTickVoteSignature)
+			waitGroup.Done()
+		}()
 	}
 
+	waitGroup.Wait()
+	close(verifyChannel) // otherwise, the range below blocks
+
+	var successVotes = 0
+	for result := range verifyChannel {
+		successVotes += result // use channel because of concurrency
+	}
 	if successVotes < types.MinimumQuorumVotes {
 		return errors.Errorf("not enough sucessful quorum votes: %d", successVotes)
 	}
-	log.Printf("Quorum votes: %d VALIDATED |  %d FAILED\n", successVotes, len(failedIndexes))
-
-	//log.Printf("Validated total quorum votes: %d\n", successVotes)
-	//log.Printf("Unvalidated total quorum votes: %d. List: %v, %v\n", len(failedIndexes), failedIndexes, failedIdentites)
 	return nil
+}
+
+func checkSignature(ctx context.Context, quorumTickData types.QuorumTickVote, computors types.Computors, targetTickVoteSignature uint32) int {
+	digest, err := getDigestFromQuorumTickData(quorumTickData)
+	if err != nil {
+		log.Printf("[ERROR] creating digest from quorum tick data: %v", err)
+		return 0
+	}
+	computorPubKey := computors.PubKeys[quorumTickData.ComputorIndex]
+	if err := verifyTickVoteSignature(ctx, utils.SchnorrqVerify, computorPubKey, digest, quorumTickData.Signature, targetTickVoteSignature); err != nil {
+		log.Printf("[ERROR] tick vote signature verification failed for computor index [%d]: %v", quorumTickData.ComputorIndex, err)
+		var badComputor types.Identity
+		badComputor, cerr := badComputor.FromPubKey(computorPubKey, false)
+		if cerr != nil {
+			log.Printf("[ERROR] trying to convert computor public key to identity: %v", cerr)
+		} else {
+			log.Printf("[ERROR] failing tick vote signature computor identity (#%d): %s", quorumTickData.ComputorIndex, string(badComputor))
+		}
+		return 0
+	}
+	return 1 // success
 }
 
 func verifyTickVoteSignature(ctx context.Context, sigVerifierFunc utils.SigVerifierFunc, computorPubKey, digest [32]byte, signature [64]byte, targetTickVoteSignature uint32) error {
