@@ -54,7 +54,7 @@ func (v *Validator) Validate(ctx context.Context, store *db.PebbleStore, client 
 
 	// validate tick data and transactions
 
-	isEmpty := isEmptyTick(alignedVotes)
+	isEmpty := isEmptyTick(alignedVotes) // TODO check if this is sufficient
 
 	tickData, err := v.validateTickData(ctx, client, comps, alignedVotes, tickNumber, isEmpty)
 	if err != nil {
@@ -87,8 +87,6 @@ func (v *Validator) Validate(ctx context.Context, store *db.PebbleStore, client 
 	if err != nil {
 		return fmt.Errorf("storing transactions status: %w", err)
 	}
-
-	log.Println("Stored tick data and transactions.")
 
 	return nil
 }
