@@ -74,7 +74,7 @@ func (p *Processor) processOneByOne() error {
 	if err != nil {
 		return fmt.Errorf("getting next tick to process: %w", err)
 	}
-	log.Printf("Next tick to process: %d", nextTick.TickNumber)
+	log.Printf("Next tick to process: [%d].", nextTick.TickNumber)
 
 	if nextTick.TickNumber > tickInfo.Tick {
 		return fmt.Errorf("next tick is in the future. processed: %d, next %d, available %d",
@@ -87,7 +87,7 @@ func (p *Processor) processOneByOne() error {
 	}
 
 	if lastProcessedTick.TickNumber >= tickInfo.InitialTick { // no skipped ticks before initial tick
-		err = p.handleSkippedTicks(ctx, dataStore, lastProcessedTick, nextTick)
+		err = p.handleTickIntervals(ctx, dataStore, lastProcessedTick, nextTick)
 		if err != nil {
 			return fmt.Errorf("handling skipped ticks: %w", err)
 		}
@@ -98,7 +98,7 @@ func (p *Processor) processOneByOne() error {
 		return fmt.Errorf("storing processed tick: %w", err)
 	}
 
-	log.Printf("Successfully processed tick %d.", nextTick.TickNumber)
+	log.Printf("Successfully processed tick [%d].", nextTick.TickNumber)
 
 	return nil
 
@@ -153,10 +153,10 @@ func (p *Processor) storeProcessedTick(ctx context.Context, dataStore *db.Pebble
 	return nil
 }
 
-func (p *Processor) handleSkippedTicks(ctx context.Context, dataStore *db.PebbleStore, lastTick *protobuf.ProcessedTick, nextTick *protobuf.ProcessedTick) error {
+func (p *Processor) handleTickIntervals(ctx context.Context, dataStore *db.PebbleStore, lastTick *protobuf.ProcessedTick, nextTick *protobuf.ProcessedTick) error {
 
 	if nextTick.TickNumber-lastTick.TickNumber == 1 {
-		// no skipped ticks. default case.
+		// no skipped ticks. default case. no new tick interval.
 		return nil
 	}
 
@@ -175,21 +175,6 @@ func (p *Processor) handleSkippedTicks(ctx context.Context, dataStore *db.Pebble
 	})
 	if err != nil {
 		return fmt.Errorf("appending tick interval data: %w", err)
-	}
-
-	// TODO we could remove writing to the old data store and not store the last tick interval
-	//if nextTick.Epoch > lastTick.Epoch {
-	//	dataStore, err = p.databasePool.GetOrCreateDbForEpoch(uint16(lastTick.Epoch))
-	//	if err != nil {
-	//		return fmt.Errorf("getting database: %w", err)
-	//	}
-	//}
-	err = dataStore.SetSkippedTicksInterval(ctx, &protobuf.SkippedTicksInterval{
-		StartTick: lastTick.TickNumber + 1,
-		EndTick:   nextTick.TickNumber - 1,
-	})
-	if err != nil {
-		return fmt.Errorf("appending skipped ticks data: %w", err)
 	}
 
 	return nil
