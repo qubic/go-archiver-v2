@@ -28,7 +28,7 @@ func NewValidator(arbitratorPubKey [32]byte, enableStatusAddon bool) *Validator 
 	}
 }
 
-func (v *Validator) Validate(ctx context.Context, store *db.PebbleStore, client network.QubicClient, tickNumber uint32) error {
+func (v *Validator) Validate(ctx context.Context, store *db.PebbleStore, client network.QubicClient, epoch uint16, tickNumber uint32) error {
 
 	// verify quorum is reached
 
@@ -36,10 +36,12 @@ func (v *Validator) Validate(ctx context.Context, store *db.PebbleStore, client 
 	if err != nil {
 		return fmt.Errorf("getting quorum votes: %w", err)
 	}
-	if len(quorumVotes) < 0 {
+	if len(quorumVotes) <= 0 {
 		return errors.New("no quorum votes fetched")
 	}
-	epoch := quorumVotes[0].Epoch
+	if len(quorumVotes) < 451 {
+		return fmt.Errorf("not enough quorum votes yet: [%d]", len(quorumVotes))
+	}
 
 	comps, err := v.validateComputors(ctx, store, client, epoch)
 	if err != nil {

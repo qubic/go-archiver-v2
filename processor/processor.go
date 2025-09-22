@@ -13,7 +13,7 @@ import (
 )
 
 type Validator interface {
-	Validate(ctx context.Context, store *db.PebbleStore, client network.QubicClient, tickNumber uint32) error
+	Validate(ctx context.Context, store *db.PebbleStore, client network.QubicClient, epoch uint16, tickNumber uint32) error
 }
 
 type Processor struct {
@@ -81,7 +81,7 @@ func (p *Processor) processOneByOne() error {
 			lastProcessedTick.TickNumber, nextTick.TickNumber, tickInfo.Tick)
 	}
 
-	err = p.tickValidator.Validate(ctx, dataStore, client, nextTick.TickNumber)
+	err = p.tickValidator.Validate(ctx, dataStore, client, tickInfo.Epoch, nextTick.TickNumber)
 	if err != nil {
 		return fmt.Errorf("validating tick %d: %w", nextTick.TickNumber, err)
 	}

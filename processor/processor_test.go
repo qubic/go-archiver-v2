@@ -32,8 +32,8 @@ func (t *TestPool) Close(_ network.QubicClient) error {
 
 type TestValidator struct{}
 
-func (t TestValidator) Validate(_ context.Context, _ *db.PebbleStore, _ network.QubicClient, tickNumber uint32) error {
-	log.Printf("Mock validated tick [%d].", tickNumber)
+func (t TestValidator) Validate(_ context.Context, _ *db.PebbleStore, _ network.QubicClient, epoch uint16, tickNumber uint32) error {
+	log.Printf("Mock validated tick [%d] in epoch [%d].", tickNumber, epoch)
 	return nil
 }
 
