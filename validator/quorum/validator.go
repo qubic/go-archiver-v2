@@ -9,10 +9,9 @@ import (
 	"github.com/qubic/go-archiver/network"
 	"github.com/qubic/go-archiver/utils"
 	"github.com/qubic/go-node-connector/types"
+	"golang.org/x/sync/errgroup"
 	"log"
 	"slices"
-	"sync"
-	"time"
 )
 
 // Validate validates the quorum votes and if success returns the aligned votes back
@@ -50,12 +49,10 @@ func validateVotes(ctx context.Context, quorumVotes types.QuorumVotes, computors
 		return nil, fmt.Errorf("not enough aligned votes [%d]", len(alignedVotes))
 	}
 
-	now := time.Now()
 	err = quorumTickSigVerify(ctx, alignedVotes, computors, targetTickVoteSignature)
 	if err != nil {
 		return nil, fmt.Errorf("verifying tick signature: %w", err)
 	}
-	log.Printf("quorum votes verified in %dms", time.Since(now).Milliseconds())
 	return alignedVotes, nil
 }
 
@@ -131,51 +128,54 @@ func (v *vote) digest() ([32]byte, error) {
 }
 
 func quorumTickSigVerify(ctx context.Context, quorumVotes types.QuorumVotes, computors types.Computors, targetTickVoteSignature uint32) error {
-
-	var waitGroup sync.WaitGroup
+	var errorGroup errgroup.Group
 	verifyChannel := make(chan int, len(quorumVotes))
-	//waitGroup.Add(len(quorumVotes))
 
 	for _, quorumTickData := range quorumVotes {
-		go func() {
-			waitGroup.Add(1)
-			verifyChannel <- checkSignature(ctx, quorumTickData, computors, targetTickVoteSignature)
-			waitGroup.Done()
-		}()
+		errorGroup.Go(func() error {
+			success, err := checkSignature(ctx, quorumTickData, computors, targetTickVoteSignature)
+			verifyChannel <- success // also return errors ('0')
+			if err != nil {
+				return err
+			}
+			return nil
+		})
 	}
 
-	waitGroup.Wait()
-	close(verifyChannel) // otherwise, the range below blocks
+	err := errorGroup.Wait()
+	close(verifyChannel)
+	if err != nil {
+		return fmt.Errorf("checking vote signatures: %w", err)
+	}
 
 	var successVotes = 0
 	for result := range verifyChannel {
 		successVotes += result // use channel because of concurrency
 	}
 	if successVotes < types.MinimumQuorumVotes {
-		return errors.Errorf("not enough sucessful quorum votes: %d", successVotes)
+		return fmt.Errorf("not enough verified quorum votes: %d", successVotes)
 	}
 	return nil
 }
 
-func checkSignature(ctx context.Context, quorumTickData types.QuorumTickVote, computors types.Computors, targetTickVoteSignature uint32) int {
+func checkSignature(ctx context.Context, quorumTickData types.QuorumTickVote, computors types.Computors, targetTickVoteSignature uint32) (int, error) {
 	digest, err := getDigestFromQuorumTickData(quorumTickData)
 	if err != nil {
-		log.Printf("[ERROR] creating digest from quorum tick data: %v", err)
-		return 0
+		return 0, fmt.Errorf("creating digest from quorum tick data: %w", err)
 	}
 	computorPubKey := computors.PubKeys[quorumTickData.ComputorIndex]
 	if err := verifyTickVoteSignature(ctx, utils.SchnorrqVerify, computorPubKey, digest, quorumTickData.Signature, targetTickVoteSignature); err != nil {
-		log.Printf("[ERROR] tick vote signature verification failed for computor index [%d]: %v", quorumTickData.ComputorIndex, err)
+		// the following is only additional debug information to identify the failing computor
 		var badComputor types.Identity
-		badComputor, cerr := badComputor.FromPubKey(computorPubKey, false)
-		if cerr != nil {
-			log.Printf("[ERROR] trying to convert computor public key to identity: %v", cerr)
+		badComputor, ce := badComputor.FromPubKey(computorPubKey, false)
+		if ce != nil { // we don't fail in this case, we simply don't have the identity
+			log.Printf("[ERROR] trying to convert computor public key to identity: %v", ce)
 		} else {
 			log.Printf("[ERROR] failing tick vote signature computor identity (#%d): %s", quorumTickData.ComputorIndex, string(badComputor))
 		}
-		return 0
+		return 0, fmt.Errorf("tick vote signature verification failed for computor index [%d]: %w", quorumTickData.ComputorIndex, err)
 	}
-	return 1 // success
+	return 1, nil // success
 }
 
 func verifyTickVoteSignature(ctx context.Context, sigVerifierFunc utils.SigVerifierFunc, computorPubKey, digest [32]byte, signature [64]byte, targetTickVoteSignature uint32) error {

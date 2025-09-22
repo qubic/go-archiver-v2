@@ -14,6 +14,7 @@ require (
 	github.com/qubic/go-node-connector v0.14.0
 	github.com/qubic/go-schnorrq v1.0.1
 	github.com/stretchr/testify v1.11.1
+	golang.org/x/sync v0.17.0
 	google.golang.org/genproto/googleapis/api v0.0.0-20250826171959-ef028d996bc1
 	google.golang.org/grpc v1.75.0
 	google.golang.org/protobuf v1.36.8
