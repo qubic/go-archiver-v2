@@ -7,7 +7,6 @@ import (
 	"github.com/qubic/go-archiver/db"
 	"github.com/qubic/go-archiver/utils"
 	"github.com/qubic/go-node-connector/types"
-	"log"
 )
 
 func Validate(ctx context.Context, data types.TickData, quorumTickVote types.QuorumTickVote, comps types.Computors) error {
@@ -42,23 +41,17 @@ func Validate(ctx context.Context, data types.TickData, quorumTickVote types.Quo
 		return fmt.Errorf("getting full tick data digest: %w", err)
 	}
 
-	// FIXME it seems there is a bug in the original code. This check never works.
 	if fullDigest != quorumTickVote.TxDigest {
-		log.Printf("[DEBUG] quorumTickVote txDigest: %v", hex.EncodeToString(quorumTickVote.TxDigest[:]))
-		log.Printf("[DEBUG] quorumTickVote nextTxDigest: %v", hex.EncodeToString(quorumTickVote.ExpectedNextTickTxDigest[:]))
-		log.Printf("[DEBUG] computorPubKey: %s", hex.EncodeToString(computorPubKey[:]))
-		log.Printf("[DEBUG] digest: %s", hex.EncodeToString(digest[:]))
-		log.Printf("[DEBUG] fullDigest: %s", hex.EncodeToString(fullDigest[:]))
-
-		//return fmt.Errorf("quorum tx digest mismatch, full digest [%s], quorum tx digest [%s]",
-		//	hex.EncodeToString(fullDigest[:]), hex.EncodeToString(quorumTickVote.TxDigest[:]))
+		return fmt.Errorf("quorum tx digest mismatch, full digest [%s], quorum tx digest [%s]",
+			hex.EncodeToString(fullDigest[:]), hex.EncodeToString(quorumTickVote.TxDigest[:]))
 	}
 
 	return nil
 }
 
 func getDigestFromTickData(data types.TickData) ([32]byte, error) {
-	// xor computor index with 8
+	// xor computorIndex with packet type
+	// this is a security feature to avoid reusing the signature for another message type
 	data.ComputorIndex ^= 8
 
 	sData, err := utils.BinarySerialize(data)
@@ -76,9 +69,6 @@ func getDigestFromTickData(data types.TickData) ([32]byte, error) {
 }
 
 func getFullDigestFromTickData(data types.TickData) ([32]byte, error) {
-	// xor computor index with 8
-	data.ComputorIndex ^= 8
-
 	sData, err := utils.BinarySerialize(data)
 	if err != nil {
 		return [32]byte{}, fmt.Errorf("serializing tick data: %w", err)
