@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"path/filepath"
 	"regexp"
 	"slices"
 	"strconv"
@@ -148,7 +149,7 @@ func CreateStore(directory string, epoch uint16) (*PebbleStore, error) {
 }
 
 func openDatabase(directory string, name uint16) (*pebble.DB, error) {
-	dbDir := fmt.Sprintf("%s/%d", directory, name)
+	dbDir := filepath.Join(directory, fmt.Sprintf("%d", name))
 	log.Printf("Opening database [%s].", dbDir)
 	db, err := pebble.Open(dbDir, getDefaultPebbleOptions())
 	if err != nil {
