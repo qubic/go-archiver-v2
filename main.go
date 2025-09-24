@@ -33,6 +33,7 @@ func main() {
 }
 
 func run() error {
+	log.SetOutput(os.Stdout)
 	var cfg struct {
 		Server struct {
 			ReadTimeout       time.Duration `conf:"default:5s"`
@@ -59,8 +60,8 @@ func run() error {
 			ArbitratorIdentity  string        `conf:"default:AFZPUAIYVPNUYGJRQVLUKOPPVLHAZQTGLYAAUUNBXFTVTAMSBKQBLEIEPCVJ"`
 		}
 		Store struct {
-			ResetEmptyTickKeys bool   `conf:"default:false"`
-			StorageFolder      string `conf:"default:archive-data"`
+			StorageFolder   string `conf:"default:archive-data"`
+			OpenEpochsCount int    `conf:"default:10"`
 		}
 	}
 
@@ -79,28 +80,17 @@ func run() error {
 	}
 	log.Printf("main: Config :\n%v\n", out)
 
-	dbPool, err := db.NewDatabasePool(cfg.Store.StorageFolder)
+	// handle shutdowns
+	shutdown := make(chan os.Signal, 1)
+	signal.Notify(shutdown, os.Interrupt, syscall.SIGTERM)
+
+	// create database
+	dbPool, err := db.NewDatabasePool(cfg.Store.StorageFolder, cfg.Store.OpenEpochsCount)
 	if err != nil {
 		return fmt.Errorf("creating db pool: %w", err)
 	}
 	defer dbPool.Close()
 
-	// TODO check if we need the following
-	//if cfg.Store.ResetEmptyTickKeys {
-	//	fmt.Printf("Resetting empty ticks for all epochs...\n")
-	//	err = tick.ResetEmptyTicksForAllEpochs(ps)
-	//	if err != nil {
-
-	//		return fmt.Errorf("resetting empty ticks keys: %w", err)
-	//	}
-	//}
-	//
-	//err = tick.CalculateEmptyTicksForAllEpochs(ps)
-	//if err != nil {
-	//	return fmt.Errorf("calculating empty ticks for all epochs: %w", err)
-	//}
-
-	// FIXME
 	clientPool, err := network.NewNodeConnectorPool(qubic.PoolConfig{
 		InitialCap:         cfg.Pool.InitialCap,
 		MaxCap:             cfg.Pool.MaxCap,
@@ -110,46 +100,39 @@ func run() error {
 		NodeFetcherTimeout: cfg.Pool.NodeFetcherTimeout,
 		NodePort:           cfg.Qubic.NodePort,
 	})
-	//clientPool := &qubic.Pool{}
 	if err != nil {
 		return fmt.Errorf("creating node pool: %w", err)
 	}
 
+	// start processor
+	arbitratorID := types.Identity(cfg.Qubic.ArbitratorIdentity)
+	arbitratorPubKey, err := arbitratorID.ToPubKey(false)
+	if err != nil {
+		return fmt.Errorf("calculating arbitrator public key from [%s]: %w", cfg.Qubic.ArbitratorIdentity, err)
+	}
+	tickValidator := validator.NewValidator(arbitratorPubKey, cfg.Qubic.EnableTxStatusAddon)
+	proc := processor.NewProcessor(clientPool, dbPool, tickValidator, cfg.Qubic.ProcessTickTimeout)
+	procErrors := make(chan error, 1)
+	go func() {
+		procErrors <- proc.Start()
+	}()
+
+	// start API endpoints
+	rpcServer := api.NewArchiveServer(dbPool, proc.GetTickStatus(), cfg.Server.GrpcHost, cfg.Server.HttpHost)
+	serverError := make(chan error, 1)
+
+	// start metrics
 	srvMetrics := grpcProm.NewServerMetrics(
 		grpcProm.WithServerCounterOptions(grpcProm.WithConstLabels(prometheus.Labels{"namespace": "archiver"})),
 	)
 	reg := prometheus.NewRegistry()
 	reg.MustRegister(srvMetrics)
 	reg.MustRegister(collectors.NewGoCollector())
-
-	rpcServer := api.NewArchiveServer(cfg.Server.GrpcHost, cfg.Server.HttpHost)
-	serverError := make(chan error, 1)
-
 	err = rpcServer.Start(serverError, srvMetrics.UnaryServerInterceptor())
 	if err != nil {
 		return fmt.Errorf("starting server: %w", err)
 	}
-
-	shutdown := make(chan os.Signal, 1)
-	signal.Notify(shutdown, os.Interrupt, syscall.SIGTERM)
-
-	arbitratorID := types.Identity(cfg.Qubic.ArbitratorIdentity)
-	arbitratorPubKey, err := arbitratorID.ToPubKey(false)
-	if err != nil {
-		return fmt.Errorf("calculating arbitrator public key from [%s]: %w", cfg.Qubic.ArbitratorIdentity, err)
-	}
-
-	tickValidator := validator.NewValidator(arbitratorPubKey, cfg.Qubic.EnableTxStatusAddon)
-	proc := processor.NewProcessor(clientPool, dbPool, tickValidator, cfg.Qubic.ProcessTickTimeout)
-	procErrors := make(chan error, 1)
-
-	// Start the service listening for requests.
-	go func() {
-		procErrors <- proc.Start()
-	}()
-
 	metricsError := make(chan error, 1)
-
 	go func() {
 		log.Printf("main: Starting metrics server listening at [%s].", cfg.Server.ProfilingHost)
 		http.Handle("/metrics", promhttp.HandlerFor(reg, promhttp.HandlerOpts{EnableOpenMetrics: true}))

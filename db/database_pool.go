@@ -6,6 +6,7 @@ import (
 	"log"
 	"os"
 	"regexp"
+	"slices"
 	"strconv"
 	"strings"
 
@@ -13,18 +14,21 @@ import (
 )
 
 type DatabasePool struct {
-	storeDir string
-	stores   map[uint16]*PebbleStore
+	storeDir  string
+	stores    map[uint16]*PebbleStore
+	maxEpochs int
 }
 
-func NewDatabasePool(storageFolder string) (*DatabasePool, error) {
-	stores, err := loadFromDisk(storageFolder)
+func NewDatabasePool(storageFolder string, epochCount int) (*DatabasePool, error) {
+	maxEpochs := max(1, epochCount)
+	stores, err := loadFromDisk(storageFolder, maxEpochs)
 	if err != nil {
 		return nil, fmt.Errorf("loading from disk: %w", err)
 	}
 	return &DatabasePool{
-		storeDir: storageFolder,
-		stores:   stores,
+		storeDir:  storageFolder,
+		stores:    stores,
+		maxEpochs: maxEpochs,
 	}, nil
 }
 
@@ -50,38 +54,63 @@ func (dp *DatabasePool) GetOrCreateDbForEpoch(epoch uint16) (*PebbleStore, error
 	return store, nil
 }
 
+func (dp *DatabasePool) CloseOldEpochStores() {
+
+	keys := make([]uint16, len(dp.stores))
+	pos := 0
+	for key := range dp.stores {
+		keys[pos] = key
+		pos++
+	}
+	slices.Sort(keys)
+	for i, epoch := range keys {
+		if i >= dp.maxEpochs {
+			closeEpochStore(dp.stores[epoch], epoch)
+			dp.stores[epoch] = nil
+		}
+	}
+
+}
+
 func (dp *DatabasePool) Close() {
 	for epoch, store := range dp.stores {
 		if store != nil {
-			err := store.Close()
-			if err != nil {
-				log.Printf("[ERROR] closing data store for epoch [%d]: %v", epoch, err)
-			} else {
-				log.Printf("[INFO] closed data store for epoch [%d]", epoch)
-			}
+			closeEpochStore(store, epoch)
 		}
 	}
 }
 
-func loadFromDisk(directory string) (map[uint16]*PebbleStore, error) {
+func closeEpochStore(store *PebbleStore, epoch uint16) {
+	if store != nil {
+		err := store.Close()
+		if err != nil {
+			log.Printf("[ERROR] closing data store for epoch [%d]: %v", epoch, err)
+		} else {
+			log.Printf("[INFO] closed data store for epoch [%d]", epoch)
+		}
+	}
+}
+
+func loadFromDisk(storageDirectory string, maxEpochs int) (map[uint16]*PebbleStore, error) {
 	// open database from folder (epoch name numbers only)
 	libRegEx, err := regexp.Compile("^\\d{1,5}$")
 	if err != nil {
 		return nil, fmt.Errorf("compiling regexp: %w", err)
 	}
 
-	err = createDirIfNotExists(directory)
+	err = createDirIfNotExists(storageDirectory)
 	if err != nil {
 		return nil, fmt.Errorf("checking directory: %w", err)
 	}
 
-	files, err := os.ReadDir(directory)
+	files, err := os.ReadDir(storageDirectory)
 	if err != nil {
 		return nil, fmt.Errorf("reading directory: %w", err)
 	}
 
 	databases := make(map[uint16]*PebbleStore, len(files))
 
+	var epochs []uint16
 	for _, f := range files {
 
 		if f.IsDir() && libRegEx.MatchString(f.Name()) && !strings.HasPrefix(f.Name(), "0") {
@@ -91,14 +120,20 @@ func loadFromDisk(directory string) (map[uint16]*PebbleStore, error) {
 			if err != nil {
 				return nil, fmt.Errorf("parsing epoch: %w", err)
 			}
+			epochs = append(epochs, uint16(epoch))
 
-			store, err := CreateStore(directory, uint16(epoch))
+		}
+	}
+
+	slices.Sort(epochs) // sort in ascending order
+	for i, epoch := range epochs {
+		if i < maxEpochs { // only open x newest epochs
+			store, err := CreateStore(storageDirectory, epoch)
 			if err != nil {
 				return nil, fmt.Errorf("creating data store for epoch [%d]: %w", epoch, err)
 			}
-			databases[uint16(epoch)] = store
+			databases[epoch] = store
 		}
-
 	}
 
 	return databases, nil

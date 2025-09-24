@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
+	"github.com/qubic/go-archiver/db"
+	"github.com/qubic/go-archiver/processor"
 	"github.com/qubic/go-archiver/protobuf"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
@@ -18,19 +20,57 @@ type ArchiveServiceServer struct {
 	protobuf.UnimplementedArchiveServiceServer
 	listenAddrGRPC string
 	listenAddrHTTP string
+	dbPool         *db.DatabasePool
+	tickStatus     *processor.TickStatus
 }
 
-func NewArchiveServer(listenAddrGRPC string, listenAddrHTTP string) *ArchiveServiceServer {
+func NewArchiveServer(dbPool *db.DatabasePool, tickStatus *processor.TickStatus, listenAddrGRPC string, listenAddrHTTP string) *ArchiveServiceServer {
 	return &ArchiveServiceServer{
 		UnimplementedArchiveServiceServer: protobuf.UnimplementedArchiveServiceServer{},
 		listenAddrGRPC:                    listenAddrGRPC,
 		listenAddrHTTP:                    listenAddrHTTP,
+		dbPool:                            dbPool,
+		tickStatus:                        tickStatus,
 	}
 }
 
 func (s *ArchiveServiceServer) GetHealth(context.Context, *emptypb.Empty) (*protobuf.GetHealthResponse, error) {
-	return &protobuf.GetHealthResponse{Status: "UP"}, nil
+	upToDate := s.tickStatus.ProcessedTick > 0 &&
+		s.tickStatus.LiveTick > 0 &&
+		s.tickStatus.ProcessedTick > s.tickStatus.LiveTick-10
+	return &protobuf.GetHealthResponse{
+		Status:        "UP",
+		UpToDate:      upToDate,
+		ProcessedTick: s.tickStatus.ProcessedTick,
+		LiveTick:      s.tickStatus.LiveTick,
+		LiveEpoch:     uint32(s.tickStatus.LiveEpoch),
+	}, nil
 }
+
+func (s *ArchiveServiceServer) GetStatus(_ context.Context, _ *emptypb.Empty) (*protobuf.GetStatusResponse, error) {
+
+	// FIXME
+	return &protobuf.GetStatusResponse{
+		LastProcessedTick: &protobuf.ProcessedTick{
+			TickNumber: s.tickStatus.ProcessedTick,
+			Epoch:      uint32(s.tickStatus.ProcessingEpoch),
+		},
+		ProcessedTickIntervalsPerEpoch: nil,
+	}, nil
+}
+
+//
+//func (s *ArchiveServiceServer) GetTickTransactionsV2(ctx context.Context, in *protobuf.GetTickTransactionsRequestV2) (*protobuf.GetTickTransactionsResponseV2, error) {
+//
+//}
+//
+//func (s *ArchiveServiceServer) GetTickData(ctx context.Context, in *protobuf.GetTickDataRequest) (*protobuf.GetTickDataResponse, error) {
+//
+//}
+//
+//func (s *ArchiveServiceServer) GetComputors(ctx context.Context, in *protobuf.GetComputorsRequest) (*protobuf.GetComputorsResponse, error) {
+//
+//}
 
 func (s *ArchiveServiceServer) Start(errChan chan error, interceptors ...grpc.UnaryServerInterceptor) error {
 

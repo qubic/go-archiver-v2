@@ -161,6 +161,8 @@ message GetComputorsRequest {
 
 message GetComputorsResponse {
   Computors computors = 1;
+  uint32 epoch = 2;
+  uint64 tick_number = 3;
 }
 
 message TransferTransactionsPerTick {
@@ -176,14 +178,15 @@ message ProcessedTick {
 
 message GetStatusResponse {
   ProcessedTick last_processed_tick = 1;
-  map<uint32, uint32> last_processed_ticks_per_epoch = 2;
-  repeated SkippedTicksInterval skipped_ticks = 3;
-  repeated ProcessedTickIntervalsPerEpoch processed_tick_intervals_per_epoch = 4;
-  map<uint32, uint32> empty_ticks_per_epoch = 5;
+  repeated ProcessedTickIntervalsPerEpoch processed_tick_intervals_per_epoch = 2;
 }
 
 message GetHealthResponse {
   string status = 1;
+  bool up_to_date = 2;
+  uint32 processed_tick = 3;
+  uint32 live_epoch = 4;
+  uint32 live_tick = 5;
 }
 
 message GetTransferTransactionsPerTickRequest {
@@ -365,7 +368,33 @@ message GetEpochTickListResponseV2 {
 
 service ArchiveService {
 
-  // A method that is mainly used by the load-balancer to decide if the instance should be added to the balancing rotation based on if it's up-to-date with the network or not.
+  rpc GetStatus(google.protobuf.Empty) returns (GetStatusResponse) {
+    option (google.api.http) = {
+      get: "/v1/status"
+    };
+  };
+
+  // Get the transactions for one tick.
+  rpc GetTickTransactionsV2(GetTickTransactionsRequestV2) returns (GetTickTransactionsResponseV2){
+    option (google.api.http) = {
+      get: "/v2/ticks/{tick_number}/transactions"
+    };
+  };
+
+  // Get the tick data for one tick.
+  rpc GetTickData(GetTickDataRequest) returns (GetTickDataResponse){
+    option (google.api.http) = {
+      get: "/v1/ticks/{tick_number}/tick-data"
+    };
+  };
+
+  // Get the latest list of computors.
+  rpc GetComputors(GetComputorsRequest) returns (GetComputorsResponse) {
+    option (google.api.http) = {
+      get: "/v1/epochs/{epoch}/computors"
+    };
+  };
+
   rpc GetHealth(google.protobuf.Empty) returns (GetHealthResponse) {
     option (google.api.http) = {
       get: "/v1/health"

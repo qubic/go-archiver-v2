@@ -1598,6 +1598,8 @@ func (x *GetComputorsRequest) GetEpoch() uint32 {
 type GetComputorsResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Computors     *Computors             `protobuf:"bytes,1,opt,name=computors,proto3" json:"computors,omitempty"`
+	Epoch         uint32                 `protobuf:"varint,2,opt,name=epoch,proto3" json:"epoch,omitempty"`
+	TickNumber    uint64                 `protobuf:"varint,3,opt,name=tick_number,json=tickNumber,proto3" json:"tick_number,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1637,6 +1639,20 @@ func (x *GetComputorsResponse) GetComputors() *Computors {
 		return x.Computors
 	}
 	return nil
+}
+
+func (x *GetComputorsResponse) GetEpoch() uint32 {
+	if x != nil {
+		return x.Epoch
+	}
+	return 0
+}
+
+func (x *GetComputorsResponse) GetTickNumber() uint64 {
+	if x != nil {
+		return x.TickNumber
+	}
+	return 0
 }
 
 type TransferTransactionsPerTick struct {
@@ -1754,10 +1770,7 @@ func (x *ProcessedTick) GetEpoch() uint32 {
 type GetStatusResponse struct {
 	state                          protoimpl.MessageState            `protogen:"open.v1"`
 	LastProcessedTick              *ProcessedTick                    `protobuf:"bytes,1,opt,name=last_processed_tick,json=lastProcessedTick,proto3" json:"last_processed_tick,omitempty"`
-	LastProcessedTicksPerEpoch     map[uint32]uint32                 `protobuf:"bytes,2,rep,name=last_processed_ticks_per_epoch,json=lastProcessedTicksPerEpoch,proto3" json:"last_processed_ticks_per_epoch,omitempty" protobuf_key:"varint,1,opt,name=key" protobuf_val:"varint,2,opt,name=value"`
-	SkippedTicks                   []*SkippedTicksInterval           `protobuf:"bytes,3,rep,name=skipped_ticks,json=skippedTicks,proto3" json:"skipped_ticks,omitempty"`
-	ProcessedTickIntervalsPerEpoch []*ProcessedTickIntervalsPerEpoch `protobuf:"bytes,4,rep,name=processed_tick_intervals_per_epoch,json=processedTickIntervalsPerEpoch,proto3" json:"processed_tick_intervals_per_epoch,omitempty"`
-	EmptyTicksPerEpoch             map[uint32]uint32                 `protobuf:"bytes,5,rep,name=empty_ticks_per_epoch,json=emptyTicksPerEpoch,proto3" json:"empty_ticks_per_epoch,omitempty" protobuf_key:"varint,1,opt,name=key" protobuf_val:"varint,2,opt,name=value"`
+	ProcessedTickIntervalsPerEpoch []*ProcessedTickIntervalsPerEpoch `protobuf:"bytes,2,rep,name=processed_tick_intervals_per_epoch,json=processedTickIntervalsPerEpoch,proto3" json:"processed_tick_intervals_per_epoch,omitempty"`
 	unknownFields                  protoimpl.UnknownFields
 	sizeCache                      protoimpl.SizeCache
 }
@@ -1799,20 +1812,6 @@ func (x *GetStatusResponse) GetLastProcessedTick() *ProcessedTick {
 	return nil
 }
 
-func (x *GetStatusResponse) GetLastProcessedTicksPerEpoch() map[uint32]uint32 {
-	if x != nil {
-		return x.LastProcessedTicksPerEpoch
-	}
-	return nil
-}
-
-func (x *GetStatusResponse) GetSkippedTicks() []*SkippedTicksInterval {
-	if x != nil {
-		return x.SkippedTicks
-	}
-	return nil
-}
-
 func (x *GetStatusResponse) GetProcessedTickIntervalsPerEpoch() []*ProcessedTickIntervalsPerEpoch {
 	if x != nil {
 		return x.ProcessedTickIntervalsPerEpoch
@@ -1820,16 +1819,13 @@ func (x *GetStatusResponse) GetProcessedTickIntervalsPerEpoch() []*ProcessedTick
 	return nil
 }
 
-func (x *GetStatusResponse) GetEmptyTicksPerEpoch() map[uint32]uint32 {
-	if x != nil {
-		return x.EmptyTicksPerEpoch
-	}
-	return nil
-}
-
 type GetHealthResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Status        string                 `protobuf:"bytes,1,opt,name=status,proto3" json:"status,omitempty"`
+	UpToDate      bool                   `protobuf:"varint,2,opt,name=up_to_date,json=upToDate,proto3" json:"up_to_date,omitempty"`
+	ProcessedTick uint32                 `protobuf:"varint,3,opt,name=processed_tick,json=processedTick,proto3" json:"processed_tick,omitempty"`
+	LiveEpoch     uint32                 `protobuf:"varint,4,opt,name=live_epoch,json=liveEpoch,proto3" json:"live_epoch,omitempty"`
+	LiveTick      uint32                 `protobuf:"varint,5,opt,name=live_tick,json=liveTick,proto3" json:"live_tick,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1869,6 +1865,34 @@ func (x *GetHealthResponse) GetStatus() string {
 		return x.Status
 	}
 	return ""
+}
+
+func (x *GetHealthResponse) GetUpToDate() bool {
+	if x != nil {
+		return x.UpToDate
+	}
+	return false
+}
+
+func (x *GetHealthResponse) GetProcessedTick() uint32 {
+	if x != nil {
+		return x.ProcessedTick
+	}
+	return 0
+}
+
+func (x *GetHealthResponse) GetLiveEpoch() uint32 {
+	if x != nil {
+		return x.LiveEpoch
+	}
+	return 0
+}
+
+func (x *GetHealthResponse) GetLiveTick() uint32 {
+	if x != nil {
+		return x.LiveTick
+	}
+	return 0
 }
 
 type GetTransferTransactionsPerTickRequest struct {
@@ -3675,9 +3699,12 @@ const file_archive_proto_rawDesc = "" +
 	"identities\x12#\n" +
 	"\rsignature_hex\x18\x03 \x01(\tR\fsignatureHex\"+\n" +
 	"\x13GetComputorsRequest\x12\x14\n" +
-	"\x05epoch\x18\x01 \x01(\rR\x05epoch\"U\n" +
+	"\x05epoch\x18\x01 \x01(\rR\x05epoch\"\x8c\x01\n" +
 	"\x14GetComputorsResponse\x12=\n" +
-	"\tcomputors\x18\x01 \x01(\v2\x1f.qubic.archiver.v2.pb.ComputorsR\tcomputors\"\xa1\x01\n" +
+	"\tcomputors\x18\x01 \x01(\v2\x1f.qubic.archiver.v2.pb.ComputorsR\tcomputors\x12\x14\n" +
+	"\x05epoch\x18\x02 \x01(\rR\x05epoch\x12\x1f\n" +
+	"\vtick_number\x18\x03 \x01(\x04R\n" +
+	"tickNumber\"\xa1\x01\n" +
 	"\x1bTransferTransactionsPerTick\x12\x1f\n" +
 	"\vtick_number\x18\x01 \x01(\rR\n" +
 	"tickNumber\x12\x1a\n" +
@@ -3686,21 +3713,18 @@ const file_archive_proto_rawDesc = "" +
 	"\rProcessedTick\x12\x1f\n" +
 	"\vtick_number\x18\x01 \x01(\rR\n" +
 	"tickNumber\x12\x14\n" +
-	"\x05epoch\x18\x02 \x01(\rR\x05epoch\"\xd4\x05\n" +
+	"\x05epoch\x18\x02 \x01(\rR\x05epoch\"\xeb\x01\n" +
 	"\x11GetStatusResponse\x12S\n" +
-	"\x13last_processed_tick\x18\x01 \x01(\v2#.qubic.archiver.v2.pb.ProcessedTickR\x11lastProcessedTick\x12\x8b\x01\n" +
-	"\x1elast_processed_ticks_per_epoch\x18\x02 \x03(\v2G.qubic.archiver.v2.pb.GetStatusResponse.LastProcessedTicksPerEpochEntryR\x1alastProcessedTicksPerEpoch\x12O\n" +
-	"\rskipped_ticks\x18\x03 \x03(\v2*.qubic.archiver.v2.pb.SkippedTicksIntervalR\fskippedTicks\x12\x80\x01\n" +
-	"\"processed_tick_intervals_per_epoch\x18\x04 \x03(\v24.qubic.archiver.v2.pb.ProcessedTickIntervalsPerEpochR\x1eprocessedTickIntervalsPerEpoch\x12r\n" +
-	"\x15empty_ticks_per_epoch\x18\x05 \x03(\v2?.qubic.archiver.v2.pb.GetStatusResponse.EmptyTicksPerEpochEntryR\x12emptyTicksPerEpoch\x1aM\n" +
-	"\x1fLastProcessedTicksPerEpochEntry\x12\x10\n" +
-	"\x03key\x18\x01 \x01(\rR\x03key\x12\x14\n" +
-	"\x05value\x18\x02 \x01(\rR\x05value:\x028\x01\x1aE\n" +
-	"\x17EmptyTicksPerEpochEntry\x12\x10\n" +
-	"\x03key\x18\x01 \x01(\rR\x03key\x12\x14\n" +
-	"\x05value\x18\x02 \x01(\rR\x05value:\x028\x01\"+\n" +
+	"\x13last_processed_tick\x18\x01 \x01(\v2#.qubic.archiver.v2.pb.ProcessedTickR\x11lastProcessedTick\x12\x80\x01\n" +
+	"\"processed_tick_intervals_per_epoch\x18\x02 \x03(\v24.qubic.archiver.v2.pb.ProcessedTickIntervalsPerEpochR\x1eprocessedTickIntervalsPerEpoch\"\xac\x01\n" +
 	"\x11GetHealthResponse\x12\x16\n" +
-	"\x06status\x18\x01 \x01(\tR\x06status\"}\n" +
+	"\x06status\x18\x01 \x01(\tR\x06status\x12\x1c\n" +
+	"\n" +
+	"up_to_date\x18\x02 \x01(\bR\bupToDate\x12%\n" +
+	"\x0eprocessed_tick\x18\x03 \x01(\rR\rprocessedTick\x12\x1d\n" +
+	"\n" +
+	"live_epoch\x18\x04 \x01(\rR\tliveEpoch\x12\x1b\n" +
+	"\tlive_tick\x18\x05 \x01(\rR\bliveTick\"}\n" +
 	"%GetTransferTransactionsPerTickRequest\x12\x1a\n" +
 	"\bidentity\x18\x01 \x01(\tR\bidentity\x12\x1d\n" +
 	"\n" +
@@ -3835,8 +3859,13 @@ const file_archive_proto_rawDesc = "" +
 	"\n" +
 	"pagination\x18\x01 \x01(\v2 .qubic.archiver.v2.pb.PaginationR\n" +
 	"pagination\x126\n" +
-	"\x05ticks\x18\x02 \x03(\v2 .qubic.archiver.v2.pb.TickStatusR\x05ticks2r\n" +
+	"\x05ticks\x18\x02 \x03(\v2 .qubic.archiver.v2.pb.TickStatusR\x05ticks2\xa3\x05\n" +
 	"\x0eArchiveService\x12`\n" +
+	"\tGetStatus\x12\x16.google.protobuf.Empty\x1a'.qubic.archiver.v2.pb.GetStatusResponse\"\x12\x82\xd3\xe4\x93\x02\f\x12\n" +
+	"/v1/status\x12\xae\x01\n" +
+	"\x15GetTickTransactionsV2\x122.qubic.archiver.v2.pb.GetTickTransactionsRequestV2\x1a3.qubic.archiver.v2.pb.GetTickTransactionsResponseV2\",\x82\xd3\xe4\x93\x02&\x12$/v2/ticks/{tick_number}/transactions\x12\x8d\x01\n" +
+	"\vGetTickData\x12(.qubic.archiver.v2.pb.GetTickDataRequest\x1a).qubic.archiver.v2.pb.GetTickDataResponse\")\x82\xd3\xe4\x93\x02#\x12!/v1/ticks/{tick_number}/tick-data\x12\x8b\x01\n" +
+	"\fGetComputors\x12).qubic.archiver.v2.pb.GetComputorsRequest\x1a*.qubic.archiver.v2.pb.GetComputorsResponse\"$\x82\xd3\xe4\x93\x02\x1e\x12\x1c/v1/epochs/{epoch}/computors\x12`\n" +
 	"\tGetHealth\x12\x16.google.protobuf.Empty\x1a'.qubic.archiver.v2.pb.GetHealthResponse\"\x12\x82\xd3\xe4\x93\x02\f\x12\n" +
 	"/v1/healthB+Z)github.com/qubic/go-archiver-v2/protobuf/b\x06proto3"
 
@@ -3852,7 +3881,7 @@ func file_archive_proto_rawDescGZIP() []byte {
 	return file_archive_proto_rawDescData
 }
 
-var file_archive_proto_msgTypes = make([]protoimpl.MessageInfo, 68)
+var file_archive_proto_msgTypes = make([]protoimpl.MessageInfo, 66)
 var file_archive_proto_goTypes = []any{
 	(*TickData)(nil),                                  // 0: qubic.archiver.v2.pb.TickData
 	(*GetTickDataRequest)(nil),                        // 1: qubic.archiver.v2.pb.GetTickDataRequest
@@ -3920,9 +3949,7 @@ var file_archive_proto_goTypes = []any{
 	nil,                                               // 63: qubic.archiver.v2.pb.QuorumTickData.QuorumDiffPerComputorEntry
 	nil,                                               // 64: qubic.archiver.v2.pb.QuorumTickDataStored.QuorumDiffPerComputorEntry
 	nil,                                               // 65: qubic.archiver.v2.pb.LastTickQuorumDataPerEpochIntervals.QuorumDataPerIntervalEntry
-	nil,                                               // 66: qubic.archiver.v2.pb.GetStatusResponse.LastProcessedTicksPerEpochEntry
-	nil,                                               // 67: qubic.archiver.v2.pb.GetStatusResponse.EmptyTicksPerEpochEntry
-	(*emptypb.Empty)(nil),                             // 68: google.protobuf.Empty
+	(*emptypb.Empty)(nil),                             // 66: google.protobuf.Empty
 }
 var file_archive_proto_depIdxs = []int32{
 	0,  // 0: qubic.archiver.v2.pb.GetTickDataResponse.tick_data:type_name -> qubic.archiver.v2.pb.TickData
@@ -3942,35 +3969,40 @@ var file_archive_proto_depIdxs = []int32{
 	27, // 14: qubic.archiver.v2.pb.GetComputorsResponse.computors:type_name -> qubic.archiver.v2.pb.Computors
 	3,  // 15: qubic.archiver.v2.pb.TransferTransactionsPerTick.transactions:type_name -> qubic.archiver.v2.pb.Transaction
 	31, // 16: qubic.archiver.v2.pb.GetStatusResponse.last_processed_tick:type_name -> qubic.archiver.v2.pb.ProcessedTick
-	66, // 17: qubic.archiver.v2.pb.GetStatusResponse.last_processed_ticks_per_epoch:type_name -> qubic.archiver.v2.pb.GetStatusResponse.LastProcessedTicksPerEpochEntry
-	21, // 18: qubic.archiver.v2.pb.GetStatusResponse.skipped_ticks:type_name -> qubic.archiver.v2.pb.SkippedTicksInterval
-	39, // 19: qubic.archiver.v2.pb.GetStatusResponse.processed_tick_intervals_per_epoch:type_name -> qubic.archiver.v2.pb.ProcessedTickIntervalsPerEpoch
-	67, // 20: qubic.archiver.v2.pb.GetStatusResponse.empty_ticks_per_epoch:type_name -> qubic.archiver.v2.pb.GetStatusResponse.EmptyTicksPerEpochEntry
-	30, // 21: qubic.archiver.v2.pb.GetTransferTransactionsPerTickResponse.transfer_transactions_per_tick:type_name -> qubic.archiver.v2.pb.TransferTransactionsPerTick
-	38, // 22: qubic.archiver.v2.pb.ProcessedTickIntervalsPerEpoch.intervals:type_name -> qubic.archiver.v2.pb.ProcessedTickInterval
-	40, // 23: qubic.archiver.v2.pb.GetTickResponseV2.tick_Data:type_name -> qubic.archiver.v2.pb.Tick
-	49, // 24: qubic.archiver.v2.pb.PerTickIdentityTransfers.transactions:type_name -> qubic.archiver.v2.pb.TransactionData
-	57, // 25: qubic.archiver.v2.pb.GetIdentityTransfersInTickRangeResponseV2.pagination:type_name -> qubic.archiver.v2.pb.Pagination
-	42, // 26: qubic.archiver.v2.pb.GetIdentityTransfersInTickRangeResponseV2.transactions:type_name -> qubic.archiver.v2.pb.PerTickIdentityTransfers
-	44, // 27: qubic.archiver.v2.pb.SendManyTransaction.transfers:type_name -> qubic.archiver.v2.pb.SendManyTransfer
-	45, // 28: qubic.archiver.v2.pb.SendManyTransactionData.transaction:type_name -> qubic.archiver.v2.pb.SendManyTransaction
-	45, // 29: qubic.archiver.v2.pb.GetSendManyTransactionResponseV2.transaction:type_name -> qubic.archiver.v2.pb.SendManyTransaction
-	3,  // 30: qubic.archiver.v2.pb.TransactionData.transaction:type_name -> qubic.archiver.v2.pb.Transaction
-	49, // 31: qubic.archiver.v2.pb.GetTickTransactionsResponseV2.transactions:type_name -> qubic.archiver.v2.pb.TransactionData
-	3,  // 32: qubic.archiver.v2.pb.GetTransactionResponseV2.transaction:type_name -> qubic.archiver.v2.pb.Transaction
-	57, // 33: qubic.archiver.v2.pb.GetEmptyTickListResponseV2.pagination:type_name -> qubic.archiver.v2.pb.Pagination
-	57, // 34: qubic.archiver.v2.pb.GetEpochTickListResponseV2.pagination:type_name -> qubic.archiver.v2.pb.Pagination
-	60, // 35: qubic.archiver.v2.pb.GetEpochTickListResponseV2.ticks:type_name -> qubic.archiver.v2.pb.TickStatus
-	18, // 36: qubic.archiver.v2.pb.QuorumTickData.QuorumDiffPerComputorEntry.value:type_name -> qubic.archiver.v2.pb.QuorumDiff
-	20, // 37: qubic.archiver.v2.pb.QuorumTickDataStored.QuorumDiffPerComputorEntry.value:type_name -> qubic.archiver.v2.pb.QuorumDiffStored
-	16, // 38: qubic.archiver.v2.pb.LastTickQuorumDataPerEpochIntervals.QuorumDataPerIntervalEntry.value:type_name -> qubic.archiver.v2.pb.QuorumTickData
-	68, // 39: qubic.archiver.v2.pb.ArchiveService.GetHealth:input_type -> google.protobuf.Empty
-	33, // 40: qubic.archiver.v2.pb.ArchiveService.GetHealth:output_type -> qubic.archiver.v2.pb.GetHealthResponse
-	40, // [40:41] is the sub-list for method output_type
-	39, // [39:40] is the sub-list for method input_type
-	39, // [39:39] is the sub-list for extension type_name
-	39, // [39:39] is the sub-list for extension extendee
-	0,  // [0:39] is the sub-list for field type_name
+	39, // 17: qubic.archiver.v2.pb.GetStatusResponse.processed_tick_intervals_per_epoch:type_name -> qubic.archiver.v2.pb.ProcessedTickIntervalsPerEpoch
+	30, // 18: qubic.archiver.v2.pb.GetTransferTransactionsPerTickResponse.transfer_transactions_per_tick:type_name -> qubic.archiver.v2.pb.TransferTransactionsPerTick
+	38, // 19: qubic.archiver.v2.pb.ProcessedTickIntervalsPerEpoch.intervals:type_name -> qubic.archiver.v2.pb.ProcessedTickInterval
+	40, // 20: qubic.archiver.v2.pb.GetTickResponseV2.tick_Data:type_name -> qubic.archiver.v2.pb.Tick
+	49, // 21: qubic.archiver.v2.pb.PerTickIdentityTransfers.transactions:type_name -> qubic.archiver.v2.pb.TransactionData
+	57, // 22: qubic.archiver.v2.pb.GetIdentityTransfersInTickRangeResponseV2.pagination:type_name -> qubic.archiver.v2.pb.Pagination
+	42, // 23: qubic.archiver.v2.pb.GetIdentityTransfersInTickRangeResponseV2.transactions:type_name -> qubic.archiver.v2.pb.PerTickIdentityTransfers
+	44, // 24: qubic.archiver.v2.pb.SendManyTransaction.transfers:type_name -> qubic.archiver.v2.pb.SendManyTransfer
+	45, // 25: qubic.archiver.v2.pb.SendManyTransactionData.transaction:type_name -> qubic.archiver.v2.pb.SendManyTransaction
+	45, // 26: qubic.archiver.v2.pb.GetSendManyTransactionResponseV2.transaction:type_name -> qubic.archiver.v2.pb.SendManyTransaction
+	3,  // 27: qubic.archiver.v2.pb.TransactionData.transaction:type_name -> qubic.archiver.v2.pb.Transaction
+	49, // 28: qubic.archiver.v2.pb.GetTickTransactionsResponseV2.transactions:type_name -> qubic.archiver.v2.pb.TransactionData
+	3,  // 29: qubic.archiver.v2.pb.GetTransactionResponseV2.transaction:type_name -> qubic.archiver.v2.pb.Transaction
+	57, // 30: qubic.archiver.v2.pb.GetEmptyTickListResponseV2.pagination:type_name -> qubic.archiver.v2.pb.Pagination
+	57, // 31: qubic.archiver.v2.pb.GetEpochTickListResponseV2.pagination:type_name -> qubic.archiver.v2.pb.Pagination
+	60, // 32: qubic.archiver.v2.pb.GetEpochTickListResponseV2.ticks:type_name -> qubic.archiver.v2.pb.TickStatus
+	18, // 33: qubic.archiver.v2.pb.QuorumTickData.QuorumDiffPerComputorEntry.value:type_name -> qubic.archiver.v2.pb.QuorumDiff
+	20, // 34: qubic.archiver.v2.pb.QuorumTickDataStored.QuorumDiffPerComputorEntry.value:type_name -> qubic.archiver.v2.pb.QuorumDiffStored
+	16, // 35: qubic.archiver.v2.pb.LastTickQuorumDataPerEpochIntervals.QuorumDataPerIntervalEntry.value:type_name -> qubic.archiver.v2.pb.QuorumTickData
+	66, // 36: qubic.archiver.v2.pb.ArchiveService.GetStatus:input_type -> google.protobuf.Empty
+	55, // 37: qubic.archiver.v2.pb.ArchiveService.GetTickTransactionsV2:input_type -> qubic.archiver.v2.pb.GetTickTransactionsRequestV2
+	1,  // 38: qubic.archiver.v2.pb.ArchiveService.GetTickData:input_type -> qubic.archiver.v2.pb.GetTickDataRequest
+	28, // 39: qubic.archiver.v2.pb.ArchiveService.GetComputors:input_type -> qubic.archiver.v2.pb.GetComputorsRequest
+	66, // 40: qubic.archiver.v2.pb.ArchiveService.GetHealth:input_type -> google.protobuf.Empty
+	32, // 41: qubic.archiver.v2.pb.ArchiveService.GetStatus:output_type -> qubic.archiver.v2.pb.GetStatusResponse
+	52, // 42: qubic.archiver.v2.pb.ArchiveService.GetTickTransactionsV2:output_type -> qubic.archiver.v2.pb.GetTickTransactionsResponseV2
+	2,  // 43: qubic.archiver.v2.pb.ArchiveService.GetTickData:output_type -> qubic.archiver.v2.pb.GetTickDataResponse
+	29, // 44: qubic.archiver.v2.pb.ArchiveService.GetComputors:output_type -> qubic.archiver.v2.pb.GetComputorsResponse
+	33, // 45: qubic.archiver.v2.pb.ArchiveService.GetHealth:output_type -> qubic.archiver.v2.pb.GetHealthResponse
+	41, // [41:46] is the sub-list for method output_type
+	36, // [36:41] is the sub-list for method input_type
+	36, // [36:36] is the sub-list for extension type_name
+	36, // [36:36] is the sub-list for extension extendee
+	0,  // [0:36] is the sub-list for field type_name
 }
 
 func init() { file_archive_proto_init() }
@@ -3984,7 +4016,7 @@ func file_archive_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_archive_proto_rawDesc), len(file_archive_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   68,
+			NumMessages:   66,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

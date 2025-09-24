@@ -16,6 +16,13 @@ type Validator interface {
 	Validate(ctx context.Context, store *db.PebbleStore, client network.QubicClient, epoch uint16, tickNumber uint32) error
 }
 
+type TickStatus struct {
+	ProcessingEpoch uint16
+	ProcessedTick   uint32
+	LiveEpoch       uint16
+	LiveTick        uint32
+}
+
 type Processor struct {
 	clientPool         network.QubicClientPool
 	databasePool       *db.DatabasePool
@@ -23,6 +30,7 @@ type Processor struct {
 	arbitratorPubKey   [32]byte
 	processTickTimeout time.Duration
 	enableStatusAddon  bool
+	tickStatus         *TickStatus
 }
 
 func NewProcessor(clientPool network.QubicClientPool, dbPool *db.DatabasePool, tickValidator Validator, processTickTimeout time.Duration) *Processor {
@@ -31,6 +39,7 @@ func NewProcessor(clientPool network.QubicClientPool, dbPool *db.DatabasePool, t
 		databasePool:       dbPool,
 		processTickTimeout: processTickTimeout,
 		tickValidator:      tickValidator,
+		tickStatus:         &TickStatus{},
 	}
 }
 
@@ -42,6 +51,10 @@ func (p *Processor) Start() error {
 			time.Sleep(1 * time.Second)
 		}
 	}
+}
+
+func (p *Processor) GetTickStatus() *TickStatus {
+	return p.tickStatus
 }
 
 func (p *Processor) processOneByOne() error {
@@ -59,6 +72,8 @@ func (p *Processor) processOneByOne() error {
 	if err != nil {
 		return fmt.Errorf("getting tick info: %w", err)
 	}
+	p.tickStatus.LiveTick = tickInfo.Tick
+	p.tickStatus.LiveEpoch = tickInfo.Epoch
 
 	dataStore, err := p.databasePool.GetOrCreateDbForEpoch(tickInfo.Epoch)
 	if err != nil {
@@ -69,6 +84,8 @@ func (p *Processor) processOneByOne() error {
 	if err != nil {
 		return fmt.Errorf("getting last processed tick: %w", err)
 	}
+	p.tickStatus.ProcessedTick = tickInfo.Tick
+	p.tickStatus.ProcessingEpoch = tickInfo.Epoch
 
 	nextTick, err := p.getNextProcessingTick(ctx, lastProcessedTick, tickInfo)
 	if err != nil {

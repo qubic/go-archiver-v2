@@ -20,14 +20,24 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	ArchiveService_GetHealth_FullMethodName = "/qubic.archiver.v2.pb.ArchiveService/GetHealth"
+	ArchiveService_GetStatus_FullMethodName             = "/qubic.archiver.v2.pb.ArchiveService/GetStatus"
+	ArchiveService_GetTickTransactionsV2_FullMethodName = "/qubic.archiver.v2.pb.ArchiveService/GetTickTransactionsV2"
+	ArchiveService_GetTickData_FullMethodName           = "/qubic.archiver.v2.pb.ArchiveService/GetTickData"
+	ArchiveService_GetComputors_FullMethodName          = "/qubic.archiver.v2.pb.ArchiveService/GetComputors"
+	ArchiveService_GetHealth_FullMethodName             = "/qubic.archiver.v2.pb.ArchiveService/GetHealth"
 )
 
 // ArchiveServiceClient is the client API for ArchiveService service.
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type ArchiveServiceClient interface {
-	// A method that is mainly used by the load-balancer to decide if the instance should be added to the balancing rotation based on if it's up-to-date with the network or not.
+	GetStatus(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*GetStatusResponse, error)
+	// Get the transactions for one tick.
+	GetTickTransactionsV2(ctx context.Context, in *GetTickTransactionsRequestV2, opts ...grpc.CallOption) (*GetTickTransactionsResponseV2, error)
+	// Get the tick data for one tick.
+	GetTickData(ctx context.Context, in *GetTickDataRequest, opts ...grpc.CallOption) (*GetTickDataResponse, error)
+	// Get the latest list of computors.
+	GetComputors(ctx context.Context, in *GetComputorsRequest, opts ...grpc.CallOption) (*GetComputorsResponse, error)
 	GetHealth(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*GetHealthResponse, error)
 }
 
@@ -37,6 +47,46 @@ type archiveServiceClient struct {
 
 func NewArchiveServiceClient(cc grpc.ClientConnInterface) ArchiveServiceClient {
 	return &archiveServiceClient{cc}
+}
+
+func (c *archiveServiceClient) GetStatus(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*GetStatusResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetStatusResponse)
+	err := c.cc.Invoke(ctx, ArchiveService_GetStatus_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *archiveServiceClient) GetTickTransactionsV2(ctx context.Context, in *GetTickTransactionsRequestV2, opts ...grpc.CallOption) (*GetTickTransactionsResponseV2, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetTickTransactionsResponseV2)
+	err := c.cc.Invoke(ctx, ArchiveService_GetTickTransactionsV2_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *archiveServiceClient) GetTickData(ctx context.Context, in *GetTickDataRequest, opts ...grpc.CallOption) (*GetTickDataResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetTickDataResponse)
+	err := c.cc.Invoke(ctx, ArchiveService_GetTickData_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *archiveServiceClient) GetComputors(ctx context.Context, in *GetComputorsRequest, opts ...grpc.CallOption) (*GetComputorsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetComputorsResponse)
+	err := c.cc.Invoke(ctx, ArchiveService_GetComputors_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
 }
 
 func (c *archiveServiceClient) GetHealth(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*GetHealthResponse, error) {
@@ -53,7 +103,13 @@ func (c *archiveServiceClient) GetHealth(ctx context.Context, in *emptypb.Empty,
 // All implementations must embed UnimplementedArchiveServiceServer
 // for forward compatibility.
 type ArchiveServiceServer interface {
-	// A method that is mainly used by the load-balancer to decide if the instance should be added to the balancing rotation based on if it's up-to-date with the network or not.
+	GetStatus(context.Context, *emptypb.Empty) (*GetStatusResponse, error)
+	// Get the transactions for one tick.
+	GetTickTransactionsV2(context.Context, *GetTickTransactionsRequestV2) (*GetTickTransactionsResponseV2, error)
+	// Get the tick data for one tick.
+	GetTickData(context.Context, *GetTickDataRequest) (*GetTickDataResponse, error)
+	// Get the latest list of computors.
+	GetComputors(context.Context, *GetComputorsRequest) (*GetComputorsResponse, error)
 	GetHealth(context.Context, *emptypb.Empty) (*GetHealthResponse, error)
 	mustEmbedUnimplementedArchiveServiceServer()
 }
@@ -65,6 +121,18 @@ type ArchiveServiceServer interface {
 // pointer dereference when methods are called.
 type UnimplementedArchiveServiceServer struct{}
 
+func (UnimplementedArchiveServiceServer) GetStatus(context.Context, *emptypb.Empty) (*GetStatusResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetStatus not implemented")
+}
+func (UnimplementedArchiveServiceServer) GetTickTransactionsV2(context.Context, *GetTickTransactionsRequestV2) (*GetTickTransactionsResponseV2, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetTickTransactionsV2 not implemented")
+}
+func (UnimplementedArchiveServiceServer) GetTickData(context.Context, *GetTickDataRequest) (*GetTickDataResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetTickData not implemented")
+}
+func (UnimplementedArchiveServiceServer) GetComputors(context.Context, *GetComputorsRequest) (*GetComputorsResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetComputors not implemented")
+}
 func (UnimplementedArchiveServiceServer) GetHealth(context.Context, *emptypb.Empty) (*GetHealthResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetHealth not implemented")
 }
@@ -87,6 +155,78 @@ func RegisterArchiveServiceServer(s grpc.ServiceRegistrar, srv ArchiveServiceSer
 		t.testEmbeddedByValue()
 	}
 	s.RegisterService(&ArchiveService_ServiceDesc, srv)
+}
+
+func _ArchiveService_GetStatus_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(emptypb.Empty)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ArchiveServiceServer).GetStatus(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: ArchiveService_GetStatus_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ArchiveServiceServer).GetStatus(ctx, req.(*emptypb.Empty))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _ArchiveService_GetTickTransactionsV2_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetTickTransactionsRequestV2)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ArchiveServiceServer).GetTickTransactionsV2(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: ArchiveService_GetTickTransactionsV2_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ArchiveServiceServer).GetTickTransactionsV2(ctx, req.(*GetTickTransactionsRequestV2))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _ArchiveService_GetTickData_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetTickDataRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ArchiveServiceServer).GetTickData(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: ArchiveService_GetTickData_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ArchiveServiceServer).GetTickData(ctx, req.(*GetTickDataRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _ArchiveService_GetComputors_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetComputorsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ArchiveServiceServer).GetComputors(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: ArchiveService_GetComputors_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ArchiveServiceServer).GetComputors(ctx, req.(*GetComputorsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
 }
 
 func _ArchiveService_GetHealth_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
@@ -114,6 +254,22 @@ var ArchiveService_ServiceDesc = grpc.ServiceDesc{
 	ServiceName: "qubic.archiver.v2.pb.ArchiveService",
 	HandlerType: (*ArchiveServiceServer)(nil),
 	Methods: []grpc.MethodDesc{
+		{
+			MethodName: "GetStatus",
+			Handler:    _ArchiveService_GetStatus_Handler,
+		},
+		{
+			MethodName: "GetTickTransactionsV2",
+			Handler:    _ArchiveService_GetTickTransactionsV2_Handler,
+		},
+		{
+			MethodName: "GetTickData",
+			Handler:    _ArchiveService_GetTickData_Handler,
+		},
+		{
+			MethodName: "GetComputors",
+			Handler:    _ArchiveService_GetComputors_Handler,
+		},
 		{
 			MethodName: "GetHealth",
 			Handler:    _ArchiveService_GetHealth_Handler,
