@@ -129,29 +129,25 @@ func (v *vote) digest() ([32]byte, error) {
 
 func quorumTickSigVerify(ctx context.Context, quorumVotes types.QuorumVotes, computors types.Computors, targetTickVoteSignature uint32) error {
 	var errorGroup errgroup.Group
-	verifyChannel := make(chan int, len(quorumVotes))
+	verifyChannel := make(chan int, len(quorumVotes)) // second argument is buffer capacity
+	defer close(verifyChannel)
 
 	for _, quorumTickData := range quorumVotes {
 		errorGroup.Go(func() error {
 			success, err := checkSignature(ctx, quorumTickData, computors, targetTickVoteSignature)
-			verifyChannel <- success // also return errors ('0')
-			if err != nil {
-				return err
+			if success > 0 {
+				verifyChannel <- success
 			}
-			return nil
+			return err
 		})
 	}
 
 	err := errorGroup.Wait()
-	close(verifyChannel)
 	if err != nil {
 		return fmt.Errorf("checking vote signatures: %w", err)
 	}
 
-	var successVotes = 0
-	for result := range verifyChannel {
-		successVotes += result // use channel because of concurrency
-	}
+	var successVotes = len(verifyChannel)
 	if successVotes < types.MinimumQuorumVotes {
 		return fmt.Errorf("not enough verified quorum votes: %d", successVotes)
 	}
