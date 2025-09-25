@@ -1,14 +1,11 @@
 .idea/
 .DS_Store
 
-# Exclude store files
-store/*.sst
-store/CURRENT
-store/LOCK
-store/MANIFEST-*
-store/OPTIONS-*
-store/*.log
+# default data store location
 archive-data/
 
+# executable
 go-archiver-v2
-*.swagger.json
+
+# local docker config
+docker-compose-local.yml

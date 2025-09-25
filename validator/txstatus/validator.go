@@ -10,7 +10,7 @@ import (
 	"sort"
 )
 
-func Validate(ctx context.Context, tickTxStatus types.TransactionStatus, tickTxs types.Transactions) (*protobuf.TickTransactionsStatus, error) {
+func Validate(_ context.Context, tickTxStatus types.TransactionStatus, tickTxs types.Transactions) (*protobuf.TickTransactionsStatus, error) {
 	//if tickTxStatus.TxCount != uint32(len(tickTxs)) {
 	//	return nil, errors.Errorf("Mismatched tx length. Tick tx status count: %d - len(tickTx): %d", tickTxStatus.TxCount, len(tickTxs))
 	//}

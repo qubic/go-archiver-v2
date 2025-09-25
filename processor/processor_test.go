@@ -138,7 +138,7 @@ func TestProcessor_processOneByOne(t *testing.T) {
 		client: client,
 	}
 	testDir := t.TempDir()
-	dataPool, err := db.NewDatabasePool(testDir)
+	dataPool, err := db.NewDatabasePool(testDir, 5)
 	require.NoError(t, err)
 
 	processor := NewProcessor(clientPool, dataPool, &TestValidator{}, time.Millisecond)
@@ -160,7 +160,7 @@ func TestProcessor_processOneByOne_epochChange(t *testing.T) {
 		client: client,
 	}
 	testDir := t.TempDir()
-	dataPool, err := db.NewDatabasePool(testDir)
+	dataPool, err := db.NewDatabasePool(testDir, 5)
 	require.NoError(t, err)
 
 	processor := NewProcessor(clientPool, dataPool, &TestValidator{}, time.Millisecond)
