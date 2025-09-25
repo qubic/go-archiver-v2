@@ -1,0 +1,25 @@
+services:
+  qubic-archiver:
+    image: ghcr.io/qubic/qubic-archiver-v2:v0.1.0
+    container_name: qubic-archiver-v2
+    ports:
+      - "127.0.0.1:8000:8000"
+    environment:
+      QUBIC_ARCHIVER_V2_SERVER_HTTP_HOST: "0.0.0.0:8000"
+      QUBIC_ARCHIVER_V2_SERVER_GRPC_HOST: "0.0.0.0:8001"
+      QUBIC_ARCHIVER_V2_POOL_NODE_FETCHER_URL: "http://qubic-nodes:8080/status" # needs qubic-nodes service
+      QUBIC_ARCHIVER_V2_QUBIC_PROCESS_TICK_TIMEOUT: "30s"
+      QUBIC_ARCHIVER_V2_QUBIC_ENABLE_TX_STATUS_ADDON: "false" # on by default
+    volumes:
+      - ./docker/archive-data:/app/archive-data
+    networks:
+      - qubic
+    healthcheck:
+      test: [ "CMD", "wget", "-q", "--spider", "http://localhost:8000/health" ]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+    restart: always
+
+networks:
+  qubic:
