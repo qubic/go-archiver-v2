@@ -50,13 +50,23 @@ func (dp *DatabasePool) GetOrCreateDbForEpoch(epoch uint16) (*PebbleStore, error
 			return nil, fmt.Errorf("creating data store for epoch [%d]: %w", epoch, err)
 		}
 		dp.stores[epoch] = newStore
+		defer dp.closeOldEpochStores() // keep only a certain number of stores open
 		return newStore, nil
 	}
 	return store, nil
 }
 
-func (dp *DatabasePool) CloseOldEpochStores() {
+func (dp *DatabasePool) closeOldEpochStores() {
+	epochs := dp.GetAvailableEpochsDescending()
+	for i, epoch := range epochs {
+		if i >= dp.maxEpochs {
+			closeEpochStore(dp.stores[epoch], epoch)
+			dp.stores[epoch] = nil
+		}
+	}
+}
 
+func (dp *DatabasePool) GetAvailableEpochsAscending() []uint16 {
 	keys := make([]uint16, len(dp.stores))
 	pos := 0
 	for key := range dp.stores {
@@ -64,13 +74,13 @@ func (dp *DatabasePool) CloseOldEpochStores() {
 		pos++
 	}
 	slices.Sort(keys)
-	for i, epoch := range keys {
-		if i >= dp.maxEpochs {
-			closeEpochStore(dp.stores[epoch], epoch)
-			dp.stores[epoch] = nil
-		}
-	}
+	return keys
+}
 
+func (dp *DatabasePool) GetAvailableEpochsDescending() []uint16 {
+	epochs := dp.GetAvailableEpochsAscending()
+	slices.Reverse(epochs)
+	return epochs
 }
 
 func (dp *DatabasePool) Close() {

@@ -7,6 +7,7 @@ require (
 	github.com/cloudflare/circl v1.6.1
 	github.com/cockroachdb/pebble v1.1.5
 	github.com/google/go-cmp v0.7.0
+	github.com/google/uuid v1.6.0
 	github.com/grpc-ecosystem/go-grpc-middleware/providers/prometheus v1.1.0
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.27.2
 	github.com/pkg/errors v0.9.1

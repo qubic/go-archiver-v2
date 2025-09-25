@@ -3059,8 +3059,6 @@ func (x *GetTransactionResponseV2) GetMoneyFlew() bool {
 type GetTickTransactionsRequestV2 struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	TickNumber    uint32                 `protobuf:"varint,1,opt,name=tick_number,json=tickNumber,proto3" json:"tick_number,omitempty"`
-	Transfers     bool                   `protobuf:"varint,2,opt,name=transfers,proto3" json:"transfers,omitempty"`
-	Approved      bool                   `protobuf:"varint,3,opt,name=approved,proto3" json:"approved,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -3100,20 +3098,6 @@ func (x *GetTickTransactionsRequestV2) GetTickNumber() uint32 {
 		return x.TickNumber
 	}
 	return 0
-}
-
-func (x *GetTickTransactionsRequestV2) GetTransfers() bool {
-	if x != nil {
-		return x.Transfers
-	}
-	return false
-}
-
-func (x *GetTickTransactionsRequestV2) GetApproved() bool {
-	if x != nil {
-		return x.Approved
-	}
-	return false
 }
 
 type GetTransferTransactionsPerTickRequestV2 struct {
@@ -3810,12 +3794,10 @@ const file_archive_proto_rawDesc = "" +
 	"\vtransaction\x18\x01 \x01(\v2!.qubic.archiver.v2.pb.TransactionR\vtransaction\x12\x1c\n" +
 	"\ttimestamp\x18\x02 \x01(\x04R\ttimestamp\x12\x1d\n" +
 	"\n" +
-	"money_flew\x18\x03 \x01(\bR\tmoneyFlew\"y\n" +
+	"money_flew\x18\x03 \x01(\bR\tmoneyFlew\"?\n" +
 	"\x1cGetTickTransactionsRequestV2\x12\x1f\n" +
 	"\vtick_number\x18\x01 \x01(\rR\n" +
-	"tickNumber\x12\x1c\n" +
-	"\ttransfers\x18\x02 \x01(\bR\ttransfers\x12\x1a\n" +
-	"\bapproved\x18\x03 \x01(\bR\bapproved\"\xdd\x01\n" +
+	"tickNumber\"\xdd\x01\n" +
 	"'GetTransferTransactionsPerTickRequestV2\x12\x1a\n" +
 	"\bidentity\x18\x01 \x01(\tR\bidentity\x12\x1d\n" +
 	"\n" +

@@ -31,6 +31,7 @@ const (
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type ArchiveServiceClient interface {
+	// Compatible with legacy v1 status but only returns last processed tick and tick intervals per epoch.
 	GetStatus(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*GetStatusResponse, error)
 	// Get the transactions for one tick.
 	GetTickTransactionsV2(ctx context.Context, in *GetTickTransactionsRequestV2, opts ...grpc.CallOption) (*GetTickTransactionsResponseV2, error)
@@ -103,6 +104,7 @@ func (c *archiveServiceClient) GetHealth(ctx context.Context, in *emptypb.Empty,
 // All implementations must embed UnimplementedArchiveServiceServer
 // for forward compatibility.
 type ArchiveServiceServer interface {
+	// Compatible with legacy v1 status but only returns last processed tick and tick intervals per epoch.
 	GetStatus(context.Context, *emptypb.Empty) (*GetStatusResponse, error)
 	// Get the transactions for one tick.
 	GetTickTransactionsV2(context.Context, *GetTickTransactionsRequestV2) (*GetTickTransactionsResponseV2, error)

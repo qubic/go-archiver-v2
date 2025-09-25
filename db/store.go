@@ -266,7 +266,7 @@ func (s *PebbleStore) SetLastProcessedTick(ctx context.Context, lastProcessedTic
 		return fmt.Errorf("committing batch: %w", err)
 	}
 
-	ptie, err := s.getProcessedTickIntervalsPerEpoch(ctx, lastProcessedTick.Epoch)
+	ptie, err := s.GetProcessedTickIntervalsPerEpoch(ctx, lastProcessedTick.Epoch)
 	if err != nil {
 		return fmt.Errorf("getting ptie: %w", err)
 	}
@@ -632,7 +632,7 @@ func (s *PebbleStore) SetTickTransactionsStatus(_ context.Context, tickNumber ui
 	return nil
 }
 
-func (s *PebbleStore) getProcessedTickIntervalsPerEpoch(_ context.Context, epoch uint32) (*protobuf.ProcessedTickIntervalsPerEpoch, error) {
+func (s *PebbleStore) GetProcessedTickIntervalsPerEpoch(_ context.Context, epoch uint32) (*protobuf.ProcessedTickIntervalsPerEpoch, error) {
 	key := processedTickIntervalsPerEpochKey(epoch)
 	value, closer, err := s.db.Get(key)
 	if err != nil {
@@ -668,7 +668,7 @@ func (s *PebbleStore) SetProcessedTickIntervalPerEpoch(_ context.Context, epoch 
 }
 
 func (s *PebbleStore) AppendProcessedTickInterval(ctx context.Context, epoch uint32, pti *protobuf.ProcessedTickInterval) error {
-	existing, err := s.getProcessedTickIntervalsPerEpoch(ctx, epoch)
+	existing, err := s.GetProcessedTickIntervalsPerEpoch(ctx, epoch)
 	if err != nil {
 		return fmt.Errorf("getting existing processed tick intervals: %w", err)
 	}
@@ -683,34 +683,40 @@ func (s *PebbleStore) AppendProcessedTickInterval(ctx context.Context, epoch uin
 	return nil
 }
 
-func (s *PebbleStore) GetProcessedTickIntervals(_ context.Context) ([]*protobuf.ProcessedTickIntervalsPerEpoch, error) {
-	upperBound := append([]byte{ProcessedTickIntervals}, []byte(strconv.FormatUint(maxTickNumber, 10))...)
-	iter, err := s.db.NewIter(&pebble.IterOptions{
-		LowerBound: []byte{ProcessedTickIntervals},
-		UpperBound: upperBound,
-	})
-	if err != nil {
-		return nil, fmt.Errorf("creating iter: %w", err)
-	}
-	defer iter.Close()
-
-	processedTickIntervals := make([]*protobuf.ProcessedTickIntervalsPerEpoch, 0)
-	for iter.First(); iter.Valid(); iter.Next() {
-		value, err := iter.ValueAndErr()
-		if err != nil {
-			return nil, fmt.Errorf("getting value from iter: %w", err)
-		}
-
-		var ptie protobuf.ProcessedTickIntervalsPerEpoch
-		err = proto.Unmarshal(value, &ptie)
-		if err != nil {
-			return nil, fmt.Errorf("unmarshalling iter ptie: %w", err)
-		}
-		processedTickIntervals = append(processedTickIntervals, &ptie)
-	}
-
-	return processedTickIntervals, nil
-}
+// not needed anymore because we only store data for one epoch and this method returns for several epochs
+//func (s *PebbleStore) GetProcessedTickIntervalsPerEpoch(_ context.Context) ([]*protobuf.ProcessedTickIntervalsPerEpoch, error) {
+//	upperBound := append([]byte{ProcessedTickIntervals}, []byte(strconv.FormatUint(maxTickNumber, 10))...)
+//	iter, err := s.db.NewIter(&pebble.IterOptions{
+//		LowerBound: []byte{ProcessedTickIntervals},
+//		UpperBound: upperBound,
+//	})
+//
+//	if err != nil {
+//		return nil, fmt.Errorf("creating iter: %w", err)
+//	}
+//	defer iter.Close()
+//	processedTickIntervals := make([]*protobuf.ProcessedTickIntervalsPerEpoch, 0)
+//	for iter.First(); iter.Valid(); iter.Next() {
+//		value, err := iter.ValueAndErr()
+//		if err != nil {
+//			return nil, fmt.Errorf("getting value from iter: %w", err)
+//		}
+//
+//		var ptie protobuf.ProcessedTickIntervalsPerEpoch
+//		err = proto.Unmarshal(value, &ptie)
+//		if err != nil {
+//			return nil, fmt.Errorf("unmarshalling iter ptie: %w", err)
+//		}
+//		processedTickIntervals = append(processedTickIntervals, &ptie)
+//	}
+//
+//	// with the new database structure we should only have one 'intervals per epoch' per database
+//	if len(processedTickIntervals) > 1 {
+//		return nil, fmt.Errorf("too many processed tick intervals (%v)", len(processedTickIntervals))
+//	}
+//
+//	return processedTickIntervals, nil
+//}
 
 func (s *PebbleStore) SetEmptyTicksForEpoch(epoch uint32, emptyTicksCount uint32) error {
 	key := emptyTicksPerEpochKey(epoch)
@@ -824,7 +830,7 @@ func (s *PebbleStore) GetLastTickQuorumDataListPerEpochInterval(epoch uint32) (*
 
 func (s *PebbleStore) SetQuorumDataForCurrentEpochInterval(epoch uint32, quorumData *protobuf.QuorumTickData) error {
 
-	processedIntervals, err := s.getProcessedTickIntervalsPerEpoch(nil, epoch)
+	processedIntervals, err := s.GetProcessedTickIntervalsPerEpoch(nil, epoch)
 	if err != nil {
 		return fmt.Errorf("getting processed tick intervals for epoch %d: %w", epoch, err)
 	}

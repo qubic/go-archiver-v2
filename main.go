@@ -56,7 +56,7 @@ func run() error {
 		Qubic struct {
 			NodePort            string        `conf:"default:21841"`
 			ProcessTickTimeout  time.Duration `conf:"default:5s"`
-			EnableTxStatusAddon bool          `conf:"default:false"`
+			EnableTxStatusAddon bool          `conf:"default:true"`
 			ArbitratorIdentity  string        `conf:"default:AFZPUAIYVPNUYGJRQVLUKOPPVLHAZQTGLYAAUUNBXFTVTAMSBKQBLEIEPCVJ"`
 		}
 		Store struct {
