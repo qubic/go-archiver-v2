@@ -5,8 +5,8 @@ import (
 	"encoding/hex"
 	"fmt"
 	"github.com/pkg/errors"
-	"github.com/qubic/go-archiver/db"
-	"github.com/qubic/go-archiver/utils"
+	"github.com/qubic/go-archiver-v2/db"
+	"github.com/qubic/go-archiver-v2/utils"
 	"github.com/qubic/go-node-connector/types"
 )
 

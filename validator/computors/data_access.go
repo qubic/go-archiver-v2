@@ -4,8 +4,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/qubic/go-archiver/db"
-	"github.com/qubic/go-archiver/network"
+	"github.com/qubic/go-archiver-v2/db"
+	"github.com/qubic/go-archiver-v2/network"
 	"github.com/qubic/go-node-connector/types"
 )
 

@@ -4,7 +4,7 @@ import (
 	"encoding/hex"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
-	"github.com/qubic/go-archiver/protobuf"
+	"github.com/qubic/go-archiver-v2/protobuf"
 	"github.com/qubic/go-node-connector/types"
 	"testing"
 )

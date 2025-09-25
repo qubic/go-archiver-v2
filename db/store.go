@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"github.com/cockroachdb/pebble"
 	"github.com/pkg/errors"
-	"github.com/qubic/go-archiver/protobuf"
+	"github.com/qubic/go-archiver-v2/protobuf"
 	"google.golang.org/protobuf/proto"
 	"strconv"
 )

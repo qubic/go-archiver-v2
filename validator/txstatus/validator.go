@@ -4,8 +4,8 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"github.com/qubic/go-archiver/db"
-	"github.com/qubic/go-archiver/protobuf"
+	"github.com/qubic/go-archiver-v2/db"
+	"github.com/qubic/go-archiver-v2/protobuf"
 	"github.com/qubic/go-node-connector/types"
 	"sort"
 )

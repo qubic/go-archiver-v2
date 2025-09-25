@@ -2,8 +2,8 @@ package processor
 
 import (
 	"context"
-	"github.com/qubic/go-archiver/db"
-	"github.com/qubic/go-archiver/network"
+	"github.com/qubic/go-archiver-v2/db"
+	"github.com/qubic/go-archiver-v2/network"
 	qubic "github.com/qubic/go-node-connector"
 	"github.com/qubic/go-node-connector/types"
 	"github.com/stretchr/testify/require"

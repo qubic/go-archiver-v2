@@ -3,7 +3,7 @@ package quorum
 import (
 	"encoding/binary"
 	"encoding/hex"
-	"github.com/qubic/go-archiver/protobuf"
+	"github.com/qubic/go-archiver-v2/protobuf"
 	"github.com/qubic/go-node-connector/types"
 	"time"
 )

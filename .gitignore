@@ -10,5 +10,5 @@ store/OPTIONS-*
 store/*.log
 archive-data/
 
-go-archiver
+go-archiver-v2
 *.swagger.json

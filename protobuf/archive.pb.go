@@ -3849,7 +3849,7 @@ const file_archive_proto_rawDesc = "" +
 	"\vGetTickData\x12(.qubic.archiver.v2.pb.GetTickDataRequest\x1a).qubic.archiver.v2.pb.GetTickDataResponse\")\x82\xd3\xe4\x93\x02#\x12!/v1/ticks/{tick_number}/tick-data\x12\x8b\x01\n" +
 	"\fGetComputors\x12).qubic.archiver.v2.pb.GetComputorsRequest\x1a*.qubic.archiver.v2.pb.GetComputorsResponse\"$\x82\xd3\xe4\x93\x02\x1e\x12\x1c/v1/epochs/{epoch}/computors\x12`\n" +
 	"\tGetHealth\x12\x16.google.protobuf.Empty\x1a'.qubic.archiver.v2.pb.GetHealthResponse\"\x12\x82\xd3\xe4\x93\x02\f\x12\n" +
-	"/v1/healthB+Z)github.com/qubic/go-archiver-v2/protobuf/b\x06proto3"
+	"/v1/healthB.Z,github.com/qubic/go-archiver-v2-v2/protobuf/b\x06proto3"
 
 var (
 	file_archive_proto_rawDescOnce sync.Once

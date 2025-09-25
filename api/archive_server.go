@@ -6,9 +6,9 @@ import (
 	"fmt"
 	"github.com/google/uuid"
 	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
-	"github.com/qubic/go-archiver/db"
-	"github.com/qubic/go-archiver/processor"
-	"github.com/qubic/go-archiver/protobuf"
+	"github.com/qubic/go-archiver-v2/db"
+	"github.com/qubic/go-archiver-v2/processor"
+	"github.com/qubic/go-archiver-v2/protobuf"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials/insecure"
@@ -27,22 +27,24 @@ type ArchiveServiceServer struct {
 	listenAddrHTTP string
 	dbPool         *db.DatabasePool
 	tickStatus     *processor.TickStatus
+	maxDelay       uint32
 }
 
-func NewArchiveServer(dbPool *db.DatabasePool, tickStatus *processor.TickStatus, listenAddrGRPC string, listenAddrHTTP string) *ArchiveServiceServer {
+func NewArchiveServer(dbPool *db.DatabasePool, tickStatus *processor.TickStatus, listenAddrGRPC string, listenAddrHTTP string, syncThreshold uint32) *ArchiveServiceServer {
 	return &ArchiveServiceServer{
 		UnimplementedArchiveServiceServer: protobuf.UnimplementedArchiveServiceServer{},
 		listenAddrGRPC:                    listenAddrGRPC,
 		listenAddrHTTP:                    listenAddrHTTP,
 		dbPool:                            dbPool,
 		tickStatus:                        tickStatus,
+		maxDelay:                          syncThreshold,
 	}
 }
 
 func (s *ArchiveServiceServer) GetHealth(context.Context, *emptypb.Empty) (*protobuf.GetHealthResponse, error) {
 	upToDate := s.tickStatus.ProcessedTick > 0 &&
 		s.tickStatus.LiveTick > 0 &&
-		s.tickStatus.ProcessedTick > s.tickStatus.LiveTick-10
+		s.tickStatus.ProcessedTick > s.tickStatus.LiveTick-s.maxDelay
 	return &protobuf.GetHealthResponse{
 		Status:        "UP",
 		UpToDate:      upToDate,

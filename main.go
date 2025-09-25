@@ -8,11 +8,11 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/collectors"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
-	"github.com/qubic/go-archiver/api"
-	"github.com/qubic/go-archiver/db"
-	"github.com/qubic/go-archiver/network"
-	"github.com/qubic/go-archiver/processor"
-	"github.com/qubic/go-archiver/validator"
+	"github.com/qubic/go-archiver-v2/api"
+	"github.com/qubic/go-archiver-v2/db"
+	"github.com/qubic/go-archiver-v2/network"
+	"github.com/qubic/go-archiver-v2/processor"
+	"github.com/qubic/go-archiver-v2/validator"
 	qubic "github.com/qubic/go-node-connector"
 	"github.com/qubic/go-node-connector/types"
 	"log"
@@ -24,7 +24,7 @@ import (
 	"time"
 )
 
-const prefix = "QUBIC_ARCHIVER"
+const prefix = "QUBIC_ARCHIVER_V2"
 
 func main() {
 	if err := run(); err != nil {
@@ -42,8 +42,7 @@ func run() error {
 			HttpHost          string        `conf:"default:0.0.0.0:8000"`
 			GrpcHost          string        `conf:"default:0.0.0.0:8001"`
 			ProfilingHost     string        `conf:"default:0.0.0.0:8002"`
-			NodeSyncThreshold int           `conf:"default:3"`
-			ChainTickFetchUrl string        `conf:"default:http://127.0.0.1:8080/max-tick"`
+			NodeSyncThreshold uint32        `conf:"default:10"`
 		}
 		Pool struct {
 			NodeFetcherUrl     string        `conf:"default:http://127.0.0.1:8080/status"`
@@ -118,7 +117,7 @@ func run() error {
 	}()
 
 	// start API endpoints
-	rpcServer := api.NewArchiveServer(dbPool, proc.GetTickStatus(), cfg.Server.GrpcHost, cfg.Server.HttpHost)
+	rpcServer := api.NewArchiveServer(dbPool, proc.GetTickStatus(), cfg.Server.GrpcHost, cfg.Server.HttpHost, cfg.Server.NodeSyncThreshold)
 	serverError := make(chan error, 1)
 
 	// start metrics

@@ -33,9 +33,9 @@ const (
 type ArchiveServiceClient interface {
 	// Compatible with legacy v1 status but only returns last processed tick and tick intervals per epoch.
 	GetStatus(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*GetStatusResponse, error)
-	// Get the transactions for one tick.
+	// Get the transactions for one tick. Returns 404 if there is no data stored for the requested tick.
 	GetTickTransactionsV2(ctx context.Context, in *GetTickTransactionsRequestV2, opts ...grpc.CallOption) (*GetTickTransactionsResponseV2, error)
-	// Get the tick data for one tick.
+	// Get the tick data for one tick. Returns 404 if there is no data stored for the requested tick.
 	GetTickData(ctx context.Context, in *GetTickDataRequest, opts ...grpc.CallOption) (*GetTickDataResponse, error)
 	// Get the latest list of computors.
 	GetComputors(ctx context.Context, in *GetComputorsRequest, opts ...grpc.CallOption) (*GetComputorsResponse, error)
@@ -106,9 +106,9 @@ func (c *archiveServiceClient) GetHealth(ctx context.Context, in *emptypb.Empty,
 type ArchiveServiceServer interface {
 	// Compatible with legacy v1 status but only returns last processed tick and tick intervals per epoch.
 	GetStatus(context.Context, *emptypb.Empty) (*GetStatusResponse, error)
-	// Get the transactions for one tick.
+	// Get the transactions for one tick. Returns 404 if there is no data stored for the requested tick.
 	GetTickTransactionsV2(context.Context, *GetTickTransactionsRequestV2) (*GetTickTransactionsResponseV2, error)
-	// Get the tick data for one tick.
+	// Get the tick data for one tick. Returns 404 if there is no data stored for the requested tick.
 	GetTickData(context.Context, *GetTickDataRequest) (*GetTickDataResponse, error)
 	// Get the latest list of computors.
 	GetComputors(context.Context, *GetComputorsRequest) (*GetComputorsResponse, error)

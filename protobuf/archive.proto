@@ -2,7 +2,7 @@ syntax = "proto3";
 
 package qubic.archiver.v2.pb;
 
-option go_package = "github.com/qubic/go-archiver-v2/protobuf/";
+option go_package = "github.com/qubic/go-archiver-v2-v2/protobuf/";
 import "google/api/annotations.proto";
 import "google/protobuf/empty.proto";
 
