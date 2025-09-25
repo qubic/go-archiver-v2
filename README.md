@@ -5,14 +5,14 @@
 ## High level description:
 
 The archive system consists of two services:
-- `qubic-archiver` - the archiver processor and HTTP server that provides rpc endpoints to query the archiver
+- `qubic-archiver-v2` - the archiver processor and HTTP server that provides rpc endpoints to query the archiver
 - `qubic-nodes` - a service responsible with providing information regarding reliable nodes and the max tick of the
   network
 
 ## IMPORTANT
 
 > [!WARNING]  
-> This is a new implementation of the old qubic archiver and the data is **INCOMPATIBLE** with the old version.
+> The qubic archiver v2 and its data is **INCOMPATIBLE** with the old version.
 > Certain indices have been removed and the data is split into single epochs for easier archivation and service
 > operation. 
 > The archiver **DOES NOT** migrate the database to the new format by itself, and **MAY BREAK** your existing 
@@ -25,7 +25,7 @@ To build from source execute `go build` in the root level directory.
 
 ## Run
 
-To run the built application execute `./go-archiver` in the root level directory and provide the required configuration
+To run the built application execute `./go-archiver-v2` in the root level directory and provide the required configuration
 parameters.
 
 Alternatively you can run with docker. See the docker compose example and adapt to your needs. It is important to have
@@ -45,7 +45,7 @@ one subfolder per epoch with the corresponding epoch number.
     --pool-node-fetcher-timeout=2s
     --pool-node-fetcher-url=http://127.0.0.1:8080/status
     --qubic-arbitrator-identity=AFZPUAIYVPNUYGJRQVLUKOPPVLHAZQTGLYAAUUNBXFTVTAMSBKQBLEIEPCVJ
-    --qubic-enable-tx-status-addon=false
+    --qubic-enable-tx-status-addon=true
     --qubic-node-port=21841
     --qubic-process-tick-timeout=5s
     --server-chain-tick-fetch-url=http://127.0.0.1:8080/max-tick
