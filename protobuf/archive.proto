@@ -151,8 +151,9 @@ message GetQuorumTickDataResponseStored {
 
 message Computors {
   uint32 epoch = 1;
-  repeated string identities = 2;
-  string signature_hex = 3;
+  uint32 tick_number = 2;
+  repeated string identities = 3;
+  string signature_hex = 4;
 }
 
 message GetComputorsRequest {
@@ -161,8 +162,11 @@ message GetComputorsRequest {
 
 message GetComputorsResponse {
   Computors computors = 1;
-  uint32 epoch = 2;
-  uint64 tick_number = 3;
+}
+
+// same as the response but internally used
+message ComputorsList {
+  repeated Computors computors = 1;
 }
 
 message TransferTransactionsPerTick {
@@ -244,7 +248,6 @@ message GetIdentityTransfersInTickRangeResponseV2 {
   repeated PerTickIdentityTransfers transactions = 2;
 }
 
-//SendMany Transaction
 message SendManyTransfer {
   string dest_id = 1;
   int64 amount = 2;
@@ -259,7 +262,6 @@ message SendManyTransaction {
   string tx_id = 6;
 }
 
-//Wrapper around send many transaction and additional data
 message SendManyTransactionData {
   SendManyTransaction transaction = 2;
   uint64 timestamp = 3;
@@ -276,25 +278,16 @@ message GetSendManyTransactionResponseV2 {
   bool money_flew = 4;
 }
 
-
-//Normal Transaction
-
-// Wrapper around transaction and additional data
 message TransactionData {
   Transaction transaction = 1;
   uint64 timestamp = 2;
   bool money_flew = 3;
 }
 
-//Ticks
-
-// Latest Tick
-
 message GetLatestTickResponse {
   uint32 latest_tick = 1;
 }
 
-// Tick Transactions
 message GetTickRequestV2 {
   uint32 tick_number = 1;
 }
@@ -302,8 +295,6 @@ message GetTickTransactionsResponseV2 {
   repeated TransactionData transactions = 1;
 }
 
-
-// Get Transaction
 message GetTransactionRequestV2 {
   string tx_id = 1;
 }

@@ -43,7 +43,7 @@ func (v *Validator) Validate(ctx context.Context, store *db.PebbleStore, client 
 		return fmt.Errorf("not enough quorum votes yet: [%d]", len(quorumVotes))
 	}
 
-	comps, err := v.validateComputors(ctx, store, client, epoch)
+	comps, err := v.validateComputors(ctx, store, client, tickNumber, epoch)
 	if err != nil {
 		return fmt.Errorf("validating computors: %w", err)
 	}
@@ -93,27 +93,34 @@ func (v *Validator) Validate(ctx context.Context, store *db.PebbleStore, client 
 	return nil
 }
 
-func (v *Validator) validateComputors(ctx context.Context, store *db.PebbleStore, client network.QubicClient, epoch uint16) (types.Computors, error) {
+func (v *Validator) validateComputors(ctx context.Context, store *db.PebbleStore, client network.QubicClient, tickNumber uint32, epoch uint16) (computors.Computors, error) {
 
-	comps, err := computors.Get(ctx, store, client, epoch)
+	// TODO refactor to check for a new computors list frequently in case of change
+
+	comps, err := computors.Get(ctx, store, client, tickNumber, epoch)
 	if err != nil {
-		return types.Computors{}, fmt.Errorf("getting computors: %w", err)
+		return computors.Computors{}, fmt.Errorf("getting computors: %w", err)
+	}
+	if len(comps) == 0 {
+		return computors.Computors{}, errors.New("no computors fetched")
 	}
 
-	err = computors.Validate(ctx, comps, v.arbitratorPubKey)
+	latestComps := comps[len(comps)-1]
+
+	err = computors.Validate(ctx, *latestComps, v.arbitratorPubKey)
 	if err != nil {
-		return types.Computors{}, fmt.Errorf("validating computors: %w", err)
+		return computors.Computors{}, fmt.Errorf("validating computors: %w", err)
 	}
 
 	err = computors.Save(ctx, store, epoch, comps)
 	if err != nil {
-		return types.Computors{}, fmt.Errorf("saving computors: %w", err)
+		return computors.Computors{}, fmt.Errorf("saving computors: %w", err)
 	}
 
-	return comps, nil
+	return *latestComps, nil
 }
 
-func (v *Validator) validateTickData(ctx context.Context, client network.QubicClient, comps types.Computors, quorumVotes types.QuorumVotes, tickNumber uint32, isEmptyTick bool) (types.TickData, error) {
+func (v *Validator) validateTickData(ctx context.Context, client network.QubicClient, comps computors.Computors, quorumVotes types.QuorumVotes, tickNumber uint32, isEmptyTick bool) (types.TickData, error) {
 
 	if isEmptyTick {
 

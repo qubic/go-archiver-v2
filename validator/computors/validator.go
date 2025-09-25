@@ -7,7 +7,7 @@ import (
 	"github.com/qubic/go-node-connector/types"
 )
 
-func Validate(ctx context.Context, computors types.Computors, arbitratorPubKey [32]byte) error {
+func Validate(ctx context.Context, computors Computors, arbitratorPubKey [32]byte) error {
 	digest, err := getDigestFromComputors(computors)
 	if err != nil {
 		return fmt.Errorf("getting computors digest: %w", err)
@@ -21,8 +21,13 @@ func Validate(ctx context.Context, computors types.Computors, arbitratorPubKey [
 	return nil
 }
 
-func getDigestFromComputors(data types.Computors) ([32]byte, error) {
-	sData, err := utils.BinarySerialize(data)
+func getDigestFromComputors(data Computors) ([32]byte, error) {
+	// do not use tick number in digest
+	sData, err := utils.BinarySerialize(types.Computors{
+		Epoch:     data.Epoch,
+		PubKeys:   data.PubKeys,
+		Signature: data.Signature,
+	})
 	if err != nil {
 		return [32]byte{}, fmt.Errorf("serializing computors: %w", err)
 	}

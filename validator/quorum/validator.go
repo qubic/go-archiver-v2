@@ -8,6 +8,7 @@ import (
 	"github.com/qubic/go-archiver-v2/db"
 	"github.com/qubic/go-archiver-v2/network"
 	"github.com/qubic/go-archiver-v2/utils"
+	"github.com/qubic/go-archiver-v2/validator/computors"
 	"github.com/qubic/go-node-connector/types"
 	"golang.org/x/sync/errgroup"
 	"log"
@@ -15,7 +16,7 @@ import (
 )
 
 // Validate validates the quorum votes and if success returns the aligned votes back
-func Validate(ctx context.Context, store *db.PebbleStore, client network.QubicClient, quorumVotes types.QuorumVotes, computors types.Computors, epoch uint16) (types.QuorumVotes, error) {
+func Validate(ctx context.Context, store *db.PebbleStore, client network.QubicClient, quorumVotes types.QuorumVotes, computors computors.Computors, epoch uint16) (types.QuorumVotes, error) {
 	targetTickVoteSignature, err := store.GetTargetTickVoteSignature(uint32(epoch))
 	if err != nil {
 		if !errors.Is(err, db.ErrNotFound) {
@@ -35,7 +36,7 @@ func Validate(ctx context.Context, store *db.PebbleStore, client network.QubicCl
 
 }
 
-func validateVotes(ctx context.Context, quorumVotes types.QuorumVotes, computors types.Computors, targetTickVoteSignature uint32) (types.QuorumVotes, error) {
+func validateVotes(ctx context.Context, quorumVotes types.QuorumVotes, computors computors.Computors, targetTickVoteSignature uint32) (types.QuorumVotes, error) {
 	if len(quorumVotes) < types.MinimumQuorumVotes {
 		return nil, errors.New("not enough quorum votes")
 	}
@@ -127,7 +128,7 @@ func (v *vote) digest() ([32]byte, error) {
 	return digest, nil
 }
 
-func quorumTickSigVerify(ctx context.Context, quorumVotes types.QuorumVotes, computors types.Computors, targetTickVoteSignature uint32) error {
+func quorumTickSigVerify(ctx context.Context, quorumVotes types.QuorumVotes, computors computors.Computors, targetTickVoteSignature uint32) error {
 	var errorGroup errgroup.Group
 	verifyChannel := make(chan int, len(quorumVotes)) // second argument is buffer capacity
 	defer close(verifyChannel)
@@ -154,7 +155,7 @@ func quorumTickSigVerify(ctx context.Context, quorumVotes types.QuorumVotes, com
 	return nil
 }
 
-func checkSignature(ctx context.Context, quorumTickData types.QuorumTickVote, computors types.Computors, targetTickVoteSignature uint32) (int, error) {
+func checkSignature(ctx context.Context, quorumTickData types.QuorumTickVote, computors computors.Computors, targetTickVoteSignature uint32) (int, error) {
 	digest, err := getDigestFromQuorumTickData(quorumTickData)
 	if err != nil {
 		return 0, fmt.Errorf("creating digest from quorum tick data: %w", err)

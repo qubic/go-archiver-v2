@@ -125,7 +125,6 @@ func (s *ArchiveServiceServer) GetTickTransactionsV2(ctx context.Context, in *pr
 				return response, nil
 			}
 		}
-
 	}
 	// out of stored tick range
 	return nil, status.Errorf(codes.NotFound, "no data available for tick [%d]", tick)
@@ -171,10 +170,38 @@ func (s *ArchiveServiceServer) GetTickData(ctx context.Context, in *protobuf.Get
 				}, nil
 			}
 		}
-
 	}
 	// out of stored tick range
 	return nil, status.Errorf(codes.NotFound, "no data available for tick [%d]", tick)
+}
+
+func (s *ArchiveServiceServer) GetComputors(ctx context.Context, in *protobuf.GetComputorsRequest) (*protobuf.GetComputorsResponse, error) {
+	epoch := uint16(in.GetEpoch())
+
+	if s.dbPool.HasDbForEpoch(epoch) {
+		database, err := s.dbPool.GetDbForEpoch(epoch)
+		if err != nil {
+			id := uuid.New()
+			log.Printf("[ERROR] (%s) getting database for epoch [%d]: %v", id.String(), epoch, err)
+			return nil, status.Errorf(codes.Internal, "error getting computors (%v)", id.String())
+		}
+		computors, err := database.GetComputors(ctx, uint32(epoch))
+		if err != nil && !errors.Is(err, db.ErrNotFound) {
+			id := uuid.New()
+			log.Printf("[ERROR] (%s) getting computors for epoch [%d]: %v", id.String(), epoch, err)
+			return nil, status.Errorf(codes.Internal, "error getting computors (%v)", id.String())
+		}
+
+		if computors == nil || len(computors.Computors) == 0 || errors.Is(err, db.ErrNotFound) {
+			return nil, status.Errorf(codes.NotFound, "no computors found for epoch [%d]", epoch)
+		}
+
+		return &protobuf.GetComputorsResponse{
+			Computors: computors.Computors[len(computors.Computors)-1],
+		}, nil
+	}
+
+	return nil, status.Errorf(codes.NotFound, "no data available for epoch [%d]", epoch)
 
 }
 
@@ -219,10 +246,6 @@ func getMoreTransactionInformation(ctx context.Context, pebbleStore *db.PebbleSt
 	}
 	return tickData.Timestamp, txStatus.MoneyFlew, nil
 }
-
-//func (s *ArchiveServiceServer) GetComputors(ctx context.Context, in *protobuf.GetComputorsRequest) (*protobuf.GetComputorsResponse, error) {
-//
-//}
 
 func (s *ArchiveServiceServer) Start(errChan chan error, interceptors ...grpc.UnaryServerInterceptor) error {
 

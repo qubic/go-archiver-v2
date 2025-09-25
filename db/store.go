@@ -93,7 +93,7 @@ func (s *PebbleStore) GetQuorumTickData(_ context.Context, tickNumber uint32) (*
 	return &qtd, err
 }
 
-func (s *PebbleStore) GetComputors(_ context.Context, epoch uint32) (*protobuf.Computors, error) {
+func (s *PebbleStore) GetComputors(_ context.Context, epoch uint32) (*protobuf.ComputorsList, error) {
 	key := computorsKey(epoch)
 
 	value, closer, err := s.db.Get(key)
@@ -101,12 +101,11 @@ func (s *PebbleStore) GetComputors(_ context.Context, epoch uint32) (*protobuf.C
 		if errors.Is(err, pebble.ErrNotFound) {
 			return nil, ErrNotFound
 		}
-
-		return nil, fmt.Errorf("getting quorum tick data: %w", err)
+		return nil, fmt.Errorf("getting computors: %w", err)
 	}
 	defer closer.Close()
 
-	var computors protobuf.Computors
+	var computors protobuf.ComputorsList
 	if err := proto.Unmarshal(value, &computors); err != nil {
 		return nil, fmt.Errorf("unmarshalling computors to protobuf type: %w", err)
 	}
@@ -114,7 +113,7 @@ func (s *PebbleStore) GetComputors(_ context.Context, epoch uint32) (*protobuf.C
 	return &computors, nil
 }
 
-func (s *PebbleStore) SetComputors(_ context.Context, epoch uint32, computors *protobuf.Computors) error {
+func (s *PebbleStore) SetComputors(_ context.Context, epoch uint32, computors *protobuf.ComputorsList) error {
 	key := computorsKey(epoch)
 
 	serialized, err := proto.Marshal(computors)

@@ -6,10 +6,11 @@ import (
 	"fmt"
 	"github.com/qubic/go-archiver-v2/db"
 	"github.com/qubic/go-archiver-v2/utils"
+	"github.com/qubic/go-archiver-v2/validator/computors"
 	"github.com/qubic/go-node-connector/types"
 )
 
-func Validate(ctx context.Context, data types.TickData, quorumTickVote types.QuorumTickVote, comps types.Computors) error {
+func Validate(ctx context.Context, data types.TickData, quorumTickVote types.QuorumTickVote, comps computors.Computors) error {
 	if data.Epoch == 0xffff {
 		data.Epoch = 0
 	}

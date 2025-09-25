@@ -6,40 +6,48 @@ import (
 	"fmt"
 	"github.com/qubic/go-archiver-v2/db"
 	"github.com/qubic/go-archiver-v2/network"
-	"github.com/qubic/go-node-connector/types"
 )
 
 // Get computors from store, otherwise get it from a node
-func Get(ctx context.Context, store *db.PebbleStore, client network.QubicClient, epoch uint16) (types.Computors, error) {
-	comps, err := load(ctx, store, uint32(epoch))
+func Get(ctx context.Context, store *db.PebbleStore, client network.QubicClient, tickNumber uint32, epoch uint16) ([]*Computors, error) {
+	compsList, err := load(ctx, store, uint32(epoch))
 	if err != nil {
-		if !errors.Is(err, db.ErrNotFound) {
-			return types.Computors{}, fmt.Errorf("loading computors from data store: %w", err)
-		}
-		comps, err = client.GetComputors(ctx)
-		if err != nil {
-			return types.Computors{}, fmt.Errorf("getting computors from node: %w", err)
-		}
+		return nil, fmt.Errorf("loading computors from data store: %w", err)
 	}
-	return comps, nil
+	if len(compsList) == 0 {
+		comps, err := client.GetComputors(ctx)
+		if err != nil {
+			return nil, fmt.Errorf("getting computors from node: %w", err)
+		}
+		return []*Computors{
+			{
+				Epoch:      comps.Epoch,
+				TickNumber: tickNumber,
+				PubKeys:    comps.PubKeys,
+				Signature:  comps.Signature,
+			},
+		}, nil
+	}
+	return compsList, nil
 }
 
-func load(ctx context.Context, store *db.PebbleStore, epoch uint32) (types.Computors, error) {
+func load(ctx context.Context, store *db.PebbleStore, epoch uint32) ([]*Computors, error) {
 	protoModel, err := store.GetComputors(ctx, epoch)
-	if err != nil {
-		return types.Computors{}, fmt.Errorf("loading computors: %w", err)
+	if err != nil && !errors.Is(err, db.ErrNotFound) {
+		return nil, fmt.Errorf("loading computors: %w", err)
 	}
-
+	if errors.Is(err, db.ErrNotFound) {
+		return nil, nil
+	}
 	model, err := protoToQubic(protoModel)
 	if err != nil {
-		return types.Computors{}, fmt.Errorf("converting proto to computors: %w", err)
+		return nil, fmt.Errorf("converting proto to computors: %w", err)
 	}
-
 	return model, nil
 }
 
 // Save computors to store
-func Save(ctx context.Context, store *db.PebbleStore, epoch uint16, computors types.Computors) error {
+func Save(ctx context.Context, store *db.PebbleStore, epoch uint16, computors []*Computors) error {
 	protoModel, err := qubicToProto(computors)
 	if err != nil {
 		return fmt.Errorf("converting computors to proto: %w", err)

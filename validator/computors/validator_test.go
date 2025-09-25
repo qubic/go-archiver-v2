@@ -5,15 +5,10 @@ import (
 	"context"
 	"encoding/base64"
 	"github.com/qubic/go-node-connector/types"
-	"github.com/qubic/go-schnorrq"
 	"github.com/stretchr/testify/assert"
 	"os"
 	"testing"
 )
-
-func GoSchnorrqVerify(_ context.Context, pubkey [32]byte, digest [32]byte, sig [64]byte) error {
-	return schnorrq.Verify(pubkey, digest, sig)
-}
 
 func TestValidator_Validate(t *testing.T) {
 	arbId := types.Identity("AFZPUAIYVPNUYGJRQVLUKOPPVLHAZQTGLYAAUUNBXFTVTAMSBKQBLEIEPCVJ")
@@ -25,10 +20,11 @@ func TestValidator_Validate(t *testing.T) {
 	decodedSigSlice, err := base64.StdEncoding.DecodeString(signature)
 	assert.NoError(t, err)
 
-	comps := types.Computors{
-		Epoch:     148,
-		PubKeys:   readCompKeys(t),
-		Signature: [64]byte(decodedSigSlice),
+	comps := Computors{
+		Epoch:      148,
+		TickNumber: 666, // not part of digest!
+		PubKeys:    readCompKeys(t),
+		Signature:  [64]byte(decodedSigSlice),
 	}
 
 	err = Validate(context.Background(), comps, arbPubKey)

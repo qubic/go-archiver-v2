@@ -33,6 +33,11 @@ func NewDatabasePool(storageFolder string, epochCount int) (*DatabasePool, error
 	}, nil
 }
 
+func (dp *DatabasePool) HasDbForEpoch(epoch uint16) bool {
+	store := dp.stores[epoch]
+	return store != nil
+}
+
 func (dp *DatabasePool) GetDbForEpoch(epoch uint16) (*PebbleStore, error) {
 	store := dp.stores[epoch]
 	if store == nil {

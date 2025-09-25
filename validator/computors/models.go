@@ -7,36 +7,63 @@ import (
 	"github.com/qubic/go-node-connector/types"
 )
 
-func qubicToProto(computors types.Computors) (*protobuf.Computors, error) {
-	identities, err := pubKeysToIdentities(computors.PubKeys)
-	if err != nil {
-		return nil, fmt.Errorf("getting identities: %w", err)
+const (
+	SignatureSize     = 64
+	NumberOfComputors = 676
+)
+
+type Computors struct {
+	Epoch      uint16
+	TickNumber uint32
+	PubKeys    [NumberOfComputors][32]byte
+	Signature  [SignatureSize]byte
+}
+
+func qubicToProto(computorsList []*Computors) (*protobuf.ComputorsList, error) {
+	var compLists = make([]*protobuf.Computors, 0, len(computorsList))
+	for _, computors := range computorsList {
+		identities, err := pubKeysToIdentities(computors.PubKeys)
+		if err != nil {
+			return nil, fmt.Errorf("converting public keys to identities: %w", err)
+		}
+		compLists = append(compLists, &protobuf.Computors{
+			Epoch:        uint32(computors.Epoch),
+			TickNumber:   computors.TickNumber,
+			Identities:   identities,
+			SignatureHex: hex.EncodeToString(computors.Signature[:]),
+		})
 	}
-	return &protobuf.Computors{
-		Epoch:        uint32(computors.Epoch),
-		Identities:   identities,
-		SignatureHex: hex.EncodeToString(computors.Signature[:]),
+
+	return &protobuf.ComputorsList{
+		Computors: compLists,
 	}, nil
 }
 
-func protoToQubic(computors *protobuf.Computors) (types.Computors, error) {
-	pubKeys, err := identitiesToPubKeys(computors.Identities)
-	if err != nil {
-		return types.Computors{}, fmt.Errorf("getting public keys: %w", err)
+func protoToQubic(computorsList *protobuf.ComputorsList) ([]*Computors, error) {
+	var convertedLists = make([]*Computors, 0, len(computorsList.Computors))
+
+	for _, computors := range computorsList.GetComputors() {
+		pubKeys, err := identitiesToPubKeys(computors.Identities)
+		if err != nil {
+			return nil, fmt.Errorf("getting public keys: %w", err)
+		}
+
+		var sig [64]byte
+		sigBytes, err := hex.DecodeString(computors.SignatureHex)
+		if err != nil {
+			return nil, fmt.Errorf("decoding hex signature: %w", err)
+		}
+		copy(sig[:], sigBytes)
+
+		convertedLists = append(convertedLists, &Computors{
+			Epoch:      uint16(computors.Epoch),
+			TickNumber: computors.TickNumber,
+			PubKeys:    pubKeys,
+			Signature:  sig,
+		})
 	}
 
-	var sig [64]byte
-	sigBytes, err := hex.DecodeString(computors.SignatureHex)
-	if err != nil {
-		return types.Computors{}, fmt.Errorf("decoding hex signature: %w", err)
-	}
-	copy(sig[:], sigBytes)
-
-	return types.Computors{
-		Epoch:     uint16(int(computors.Epoch)),
-		PubKeys:   pubKeys,
-		Signature: sig,
-	}, nil
+	return convertedLists, nil
 }
 
 func pubKeysToIdentities(pubKeys [types.NumberOfComputors][32]byte) ([]string, error) {

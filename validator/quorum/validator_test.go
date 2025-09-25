@@ -2,6 +2,7 @@ package quorum
 
 import (
 	"context"
+	"github.com/qubic/go-archiver-v2/validator/computors"
 	"github.com/qubic/go-node-connector/types"
 	"github.com/stretchr/testify/require"
 	"testing"
@@ -61,7 +62,7 @@ func TestValidateVotes(t *testing.T) {
 		},
 	}
 
-	_, err := validateVotes(context.Background(), originalData, types.Computors{}, 0)
+	_, err := validateVotes(context.Background(), originalData, computors.Computors{}, 0)
 	require.ErrorContains(t, err, "not enough quorum votes")
 
 	cases := []struct {
