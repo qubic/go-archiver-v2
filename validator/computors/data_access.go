@@ -2,32 +2,41 @@ package computors
 
 import (
 	"context"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"github.com/qubic/go-archiver-v2/db"
 	"github.com/qubic/go-archiver-v2/network"
+	"log"
+	"math/rand/v2"
 )
 
-// Get computors from store, otherwise get it from a node
+// Get computors list
 func Get(ctx context.Context, store *db.PebbleStore, client network.QubicClient, tickNumber uint32, epoch uint16) ([]*Computors, error) {
 	compsList, err := load(ctx, store, uint32(epoch))
 	if err != nil {
 		return nil, fmt.Errorf("loading computors from data store: %w", err)
 	}
+
 	if len(compsList) == 0 {
-		comps, err := client.GetComputors(ctx)
+		comps, err := getFromNode(ctx, client, tickNumber)
 		if err != nil {
 			return nil, fmt.Errorf("getting computors from node: %w", err)
 		}
-		return []*Computors{
-			{
-				Epoch:      comps.Epoch,
-				TickNumber: tickNumber,
-				PubKeys:    comps.PubKeys,
-				Signature:  comps.Signature,
-			},
-		}, nil
+		log.Printf("[INFO] New computors list. Signature: [%s]", hex.EncodeToString(comps.Signature[:]))
+		return []*Computors{comps}, nil
+	} else if rand.IntN(100) < 10 { // don't update computors every time. Call costs some time.
+		log.Printf("[INFO] checking for new computors...")
+		comps, err := getFromNode(ctx, client, tickNumber)
+		if err != nil {
+			return nil, fmt.Errorf("getting computors from node: %w", err)
+		}
+		if compsList[len(compsList)-1].Signature != comps.Signature {
+			log.Printf("[INFO] Computors list changed in tick [%d]. Signature: [%s]", tickNumber, hex.EncodeToString(comps.Signature[:]))
+			compsList = append(compsList, comps)
+		}
 	}
+
 	return compsList, nil
 }
 
@@ -44,6 +53,19 @@ func load(ctx context.Context, store *db.PebbleStore, epoch uint32) ([]*Computor
 		return nil, fmt.Errorf("converting proto to computors: %w", err)
 	}
 	return model, nil
+}
+
+func getFromNode(ctx context.Context, client network.QubicClient, tickNumber uint32) (*Computors, error) {
+	comps, err := client.GetComputors(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("get computors call: %w", err)
+	}
+	return &Computors{
+		Epoch:      comps.Epoch,
+		TickNumber: tickNumber,
+		PubKeys:    comps.PubKeys,
+		Signature:  comps.Signature,
+	}, nil
 }
 
 // Save computors to store

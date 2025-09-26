@@ -58,6 +58,7 @@ func (p *Processor) GetTickStatus() *TickStatus {
 }
 
 func (p *Processor) processOneByOne() error {
+	start := time.Now()
 	ctx, cancel := context.WithTimeout(context.Background(), p.processTickTimeout)
 	defer cancel()
 
@@ -115,10 +116,8 @@ func (p *Processor) processOneByOne() error {
 		return fmt.Errorf("storing processed tick: %w", err)
 	}
 
-	log.Printf("Successfully processed tick [%d].", nextTick.TickNumber)
-
+	log.Printf("Successfully processed tick [%d] in %dms.", nextTick.TickNumber, time.Since(start).Milliseconds())
 	return nil
-
 }
 
 func (p *Processor) releaseClient(err error, client network.QubicClient) {
@@ -146,7 +145,6 @@ func (p *Processor) getLastProcessedTick(ctx context.Context, dataStore *db.Pebb
 		}
 		return nil, fmt.Errorf("getting last processed tick for epoch %d: %w", epoch, err)
 	}
-
 	return lastTick, nil
 }
 
@@ -166,7 +164,6 @@ func (p *Processor) storeProcessedTick(ctx context.Context, dataStore *db.Pebble
 	if err != nil {
 		return fmt.Errorf("setting last processed tick [%d]: %w", tick.TickNumber, err)
 	}
-
 	return nil
 }
 

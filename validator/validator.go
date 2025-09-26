@@ -1,6 +1,7 @@
 package validator
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"fmt"
@@ -30,9 +31,9 @@ func NewValidator(arbitratorPubKey [32]byte, enableStatusAddon bool) *Validator 
 
 func (v *Validator) Validate(ctx context.Context, store *db.PebbleStore, client network.QubicClient, epoch uint16, tickNumber uint32) error {
 
-	// verify quorum is reached
+	// validate quorum
 
-	quorumVotes, err := client.GetQuorumVotes(ctx, tickNumber)
+	quorumVotes, err := client.GetQuorumVotes(ctx, tickNumber) // this takes long
 	if err != nil {
 		return fmt.Errorf("getting quorum votes: %w", err)
 	}
@@ -43,12 +44,13 @@ func (v *Validator) Validate(ctx context.Context, store *db.PebbleStore, client 
 		return fmt.Errorf("not enough quorum votes yet: [%d]", len(quorumVotes))
 	}
 
+	// takes long if node is called. otherwise fast.
 	comps, err := v.validateComputors(ctx, store, client, tickNumber, epoch)
 	if err != nil {
 		return fmt.Errorf("validating computors: %w", err)
 	}
 
-	alignedVotes, err := quorum.Validate(ctx, store, client, quorumVotes, comps, epoch)
+	alignedVotes, err := quorum.Validate(ctx, store, client, quorumVotes, comps, epoch) // fast
 	if err != nil {
 		return fmt.Errorf("validating quorum votes: %w", err)
 	}
@@ -56,7 +58,7 @@ func (v *Validator) Validate(ctx context.Context, store *db.PebbleStore, client 
 
 	// validate tick data and transactions
 
-	isEmpty := isEmptyTick(alignedVotes) // TODO check if this is sufficient
+	isEmpty := isEmptyTick(alignedVotes)
 
 	tickData, err := v.validateTickData(ctx, client, comps, alignedVotes, tickNumber, isEmpty)
 	if err != nil {
@@ -95,8 +97,6 @@ func (v *Validator) Validate(ctx context.Context, store *db.PebbleStore, client 
 
 func (v *Validator) validateComputors(ctx context.Context, store *db.PebbleStore, client network.QubicClient, tickNumber uint32, epoch uint16) (computors.Computors, error) {
 
-	// TODO refactor to check for a new computors list frequently in case of change
-
 	comps, err := computors.Get(ctx, store, client, tickNumber, epoch)
 	if err != nil {
 		return computors.Computors{}, fmt.Errorf("getting computors: %w", err)
@@ -106,15 +106,18 @@ func (v *Validator) validateComputors(ctx context.Context, store *db.PebbleStore
 	}
 
 	latestComps := comps[len(comps)-1]
+	if !latestComps.Validated || bytes.Compare(v.arbitratorPubKey[:], latestComps.Arbitrator[:]) != 0 {
+		err = computors.Validate(ctx, *latestComps, v.arbitratorPubKey)
+		if err != nil {
+			return computors.Computors{}, fmt.Errorf("validating computors: %w", err)
+		}
+		latestComps.Validated = true
+		latestComps.Arbitrator = v.arbitratorPubKey
 
-	err = computors.Validate(ctx, *latestComps, v.arbitratorPubKey)
-	if err != nil {
-		return computors.Computors{}, fmt.Errorf("validating computors: %w", err)
-	}
-
-	err = computors.Save(ctx, store, epoch, comps)
-	if err != nil {
-		return computors.Computors{}, fmt.Errorf("saving computors: %w", err)
+		err = computors.Save(ctx, store, epoch, comps)
+		if err != nil {
+			return computors.Computors{}, fmt.Errorf("saving computors: %w", err)
+		}
 	}
 
 	return *latestComps, nil
@@ -153,7 +156,6 @@ func (v *Validator) validateTransactions(ctx context.Context, client network.Qub
 
 	} else {
 
-		// get's all non-zero transactions
 		transactions, err := client.GetTickTransactions(ctx, tickNumber)
 		if err != nil {
 			return nil, nil, fmt.Errorf("getting tick transactions: %w", err)

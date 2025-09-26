@@ -17,6 +17,8 @@ type Computors struct {
 	TickNumber uint32
 	PubKeys    [NumberOfComputors][32]byte
 	Signature  [SignatureSize]byte
+	Arbitrator [32]byte
+	Validated  bool
 }
 
 func qubicToProto(computorsList []*Computors) (*protobuf.ComputorsList, error) {
