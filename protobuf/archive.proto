@@ -371,6 +371,7 @@ service ArchiveService {
     };
   };
 
+
   // Get the tick data for one tick. Returns 404 if there is no data stored for the requested tick.
   rpc GetTickData(GetTickDataRequest) returns (GetTickDataResponse){
     option (google.api.http) = {
@@ -385,6 +386,21 @@ service ArchiveService {
     };
   };
 
+  // Get the transaction by hash.
+  rpc GetTransactionV2(GetTransactionRequestV2) returns (GetTransactionResponseV2) {
+    option (google.api.http) = {
+      get: "/v2/transactions/{tx_id}"
+    };
+  };
+
+  // Get quorum votes for one tick.
+  rpc GetTickQuorumDataV2(GetTickRequestV2) returns (GetQuorumTickDataResponse) {
+    option (google.api.http) = {
+      get: "/v2/ticks/{tick_number}/quorum-data"
+    };
+  };
+
+  // Basic health check
   rpc GetHealth(google.protobuf.Empty) returns (GetHealthResponse) {
     option (google.api.http) = {
       get: "/v1/health"

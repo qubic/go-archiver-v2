@@ -9,6 +9,7 @@ import (
 	"github.com/qubic/go-archiver-v2/db"
 	"github.com/qubic/go-archiver-v2/processor"
 	"github.com/qubic/go-archiver-v2/protobuf"
+	"github.com/qubic/go-node-connector/types"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials/insecure"
@@ -205,6 +206,55 @@ func (s *ArchiveServiceServer) GetComputors(ctx context.Context, in *protobuf.Ge
 
 }
 
+func (s *ArchiveServiceServer) GetTransactionV2(ctx context.Context, req *protobuf.GetTransactionRequestV2) (*protobuf.GetTransactionResponseV2, error) {
+
+	hash := types.Identity(req.TxId)
+	_, err := hash.ToPubKey(true)
+	if err != nil {
+		return nil, status.Error(codes.InvalidArgument, "invalid transaction hash")
+	}
+
+	epochs := s.dbPool.GetAvailableEpochsDescending() // first look in current epoch
+	for _, epoch := range epochs {
+
+		database, err := s.dbPool.GetDbForEpoch(epoch)
+		if err != nil {
+			id := uuid.New()
+			log.Printf("[ERROR] (%s) getting database for epoch [%d]: %v", id.String(), epoch, err)
+			return nil, status.Errorf(codes.Internal, "error getting transaction (%v)", id.String())
+		}
+
+		tx, err := database.GetTransaction(ctx, req.TxId)
+		if err != nil && !errors.Is(err, db.ErrNotFound) {
+			id := uuid.New()
+			log.Printf("[ERROR] (%s) getting tx with hash [%s] in epoch [%d]: %v",
+				id.String(), req.GetTxId(), epoch, err)
+			return nil, status.Errorf(codes.Internal, "error getting transaction: %v", err)
+		}
+
+		if tx != nil { // && err == nil
+
+			timestamp, moneyFlew, err := getMoreTransactionInformation(ctx, database, req.GetTxId(), tx.GetTickNumber())
+			if err != nil {
+				id := uuid.New()
+				log.Printf("[ERROR] (%s) getting info for tx with hash [%s] in tick [%d] and epoch [%d]: %v",
+					id.String(), req.GetTxId(), tx.GetTickNumber(), epoch, err)
+				return nil, status.Errorf(codes.Internal, "error getting transaction: %v", err)
+			}
+
+			return &protobuf.GetTransactionResponseV2{
+				Transaction: tx,
+				MoneyFlew:   moneyFlew,
+				Timestamp:   timestamp,
+			}, nil
+
+		}
+
+	}
+
+	return nil, status.Errorf(codes.NotFound, "transaction not found")
+}
+
 func (s *ArchiveServiceServer) getAllTickTransactionsV2(ctx context.Context, database *db.PebbleStore, tickNumber uint32) (*protobuf.GetTickTransactionsResponseV2, error) {
 	txs, err := database.GetTickTransactions(ctx, tickNumber)
 	if err != nil {
@@ -231,18 +281,18 @@ func (s *ArchiveServiceServer) getAllTickTransactionsV2(ctx context.Context, dat
 	return &protobuf.GetTickTransactionsResponseV2{Transactions: transactions}, nil
 }
 
-func getMoreTransactionInformation(ctx context.Context, pebbleStore *db.PebbleStore, transactionId string, tickNumber uint32) (uint64, bool, error) {
+func getMoreTransactionInformation(ctx context.Context, pebbleStore *db.PebbleStore, transactionHash string, tickNumber uint32) (uint64, bool, error) {
 	tickData, err := pebbleStore.GetTickData(ctx, tickNumber)
 	if err != nil {
 		return 0, false, fmt.Errorf("getting tick data for tick [%d]: %w", tickNumber, err)
 	}
-	txStatus, err := pebbleStore.GetTransactionStatus(ctx, transactionId)
+	txStatus, err := pebbleStore.GetTransactionStatus(ctx, transactionHash)
 	if err != nil {
 		if errors.Is(err, db.ErrNotFound) {
 			// default false
 			return tickData.Timestamp, false, nil
 		}
-		return 0, false, fmt.Errorf("getting transaction status for transaction [%s]: %w", transactionId, err)
+		return 0, false, fmt.Errorf("getting transaction status for transaction [%s]: %w", transactionHash, err)
 	}
 	return tickData.Timestamp, txStatus.MoneyFlew, nil
 }

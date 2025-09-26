@@ -3874,13 +3874,15 @@ const file_archive_proto_rawDesc = "" +
 	"\n" +
 	"pagination\x18\x01 \x01(\v2 .qubic.archiver.v2.pb.PaginationR\n" +
 	"pagination\x126\n" +
-	"\x05ticks\x18\x02 \x03(\v2 .qubic.archiver.v2.pb.TickStatusR\x05ticks2\xa3\x05\n" +
+	"\x05ticks\x18\x02 \x03(\v2 .qubic.archiver.v2.pb.TickStatusR\x05ticks2\xd7\a\n" +
 	"\x0eArchiveService\x12`\n" +
 	"\tGetStatus\x12\x16.google.protobuf.Empty\x1a'.qubic.archiver.v2.pb.GetStatusResponse\"\x12\x82\xd3\xe4\x93\x02\f\x12\n" +
 	"/v1/status\x12\xae\x01\n" +
 	"\x15GetTickTransactionsV2\x122.qubic.archiver.v2.pb.GetTickTransactionsRequestV2\x1a3.qubic.archiver.v2.pb.GetTickTransactionsResponseV2\",\x82\xd3\xe4\x93\x02&\x12$/v2/ticks/{tick_number}/transactions\x12\x8d\x01\n" +
 	"\vGetTickData\x12(.qubic.archiver.v2.pb.GetTickDataRequest\x1a).qubic.archiver.v2.pb.GetTickDataResponse\")\x82\xd3\xe4\x93\x02#\x12!/v1/ticks/{tick_number}/tick-data\x12\x8b\x01\n" +
-	"\fGetComputors\x12).qubic.archiver.v2.pb.GetComputorsRequest\x1a*.qubic.archiver.v2.pb.GetComputorsResponse\"$\x82\xd3\xe4\x93\x02\x1e\x12\x1c/v1/epochs/{epoch}/computors\x12`\n" +
+	"\fGetComputors\x12).qubic.archiver.v2.pb.GetComputorsRequest\x1a*.qubic.archiver.v2.pb.GetComputorsResponse\"$\x82\xd3\xe4\x93\x02\x1e\x12\x1c/v1/epochs/{epoch}/computors\x12\x93\x01\n" +
+	"\x10GetTransactionV2\x12-.qubic.archiver.v2.pb.GetTransactionRequestV2\x1a..qubic.archiver.v2.pb.GetTransactionResponseV2\" \x82\xd3\xe4\x93\x02\x1a\x12\x18/v2/transactions/{tx_id}\x12\x9b\x01\n" +
+	"\x13GetTickQuorumDataV2\x12&.qubic.archiver.v2.pb.GetTickRequestV2\x1a/.qubic.archiver.v2.pb.GetQuorumTickDataResponse\"+\x82\xd3\xe4\x93\x02%\x12#/v2/ticks/{tick_number}/quorum-data\x12`\n" +
 	"\tGetHealth\x12\x16.google.protobuf.Empty\x1a'.qubic.archiver.v2.pb.GetHealthResponse\"\x12\x82\xd3\xe4\x93\x02\f\x12\n" +
 	"/v1/healthB.Z,github.com/qubic/go-archiver-v2-v2/protobuf/b\x06proto3"
 
@@ -4009,14 +4011,18 @@ var file_archive_proto_depIdxs = []int32{
 	56, // 38: qubic.archiver.v2.pb.ArchiveService.GetTickTransactionsV2:input_type -> qubic.archiver.v2.pb.GetTickTransactionsRequestV2
 	1,  // 39: qubic.archiver.v2.pb.ArchiveService.GetTickData:input_type -> qubic.archiver.v2.pb.GetTickDataRequest
 	28, // 40: qubic.archiver.v2.pb.ArchiveService.GetComputors:input_type -> qubic.archiver.v2.pb.GetComputorsRequest
-	67, // 41: qubic.archiver.v2.pb.ArchiveService.GetHealth:input_type -> google.protobuf.Empty
-	33, // 42: qubic.archiver.v2.pb.ArchiveService.GetStatus:output_type -> qubic.archiver.v2.pb.GetStatusResponse
-	53, // 43: qubic.archiver.v2.pb.ArchiveService.GetTickTransactionsV2:output_type -> qubic.archiver.v2.pb.GetTickTransactionsResponseV2
-	2,  // 44: qubic.archiver.v2.pb.ArchiveService.GetTickData:output_type -> qubic.archiver.v2.pb.GetTickDataResponse
-	29, // 45: qubic.archiver.v2.pb.ArchiveService.GetComputors:output_type -> qubic.archiver.v2.pb.GetComputorsResponse
-	34, // 46: qubic.archiver.v2.pb.ArchiveService.GetHealth:output_type -> qubic.archiver.v2.pb.GetHealthResponse
-	42, // [42:47] is the sub-list for method output_type
-	37, // [37:42] is the sub-list for method input_type
+	54, // 41: qubic.archiver.v2.pb.ArchiveService.GetTransactionV2:input_type -> qubic.archiver.v2.pb.GetTransactionRequestV2
+	52, // 42: qubic.archiver.v2.pb.ArchiveService.GetTickQuorumDataV2:input_type -> qubic.archiver.v2.pb.GetTickRequestV2
+	67, // 43: qubic.archiver.v2.pb.ArchiveService.GetHealth:input_type -> google.protobuf.Empty
+	33, // 44: qubic.archiver.v2.pb.ArchiveService.GetStatus:output_type -> qubic.archiver.v2.pb.GetStatusResponse
+	53, // 45: qubic.archiver.v2.pb.ArchiveService.GetTickTransactionsV2:output_type -> qubic.archiver.v2.pb.GetTickTransactionsResponseV2
+	2,  // 46: qubic.archiver.v2.pb.ArchiveService.GetTickData:output_type -> qubic.archiver.v2.pb.GetTickDataResponse
+	29, // 47: qubic.archiver.v2.pb.ArchiveService.GetComputors:output_type -> qubic.archiver.v2.pb.GetComputorsResponse
+	55, // 48: qubic.archiver.v2.pb.ArchiveService.GetTransactionV2:output_type -> qubic.archiver.v2.pb.GetTransactionResponseV2
+	25, // 49: qubic.archiver.v2.pb.ArchiveService.GetTickQuorumDataV2:output_type -> qubic.archiver.v2.pb.GetQuorumTickDataResponse
+	34, // 50: qubic.archiver.v2.pb.ArchiveService.GetHealth:output_type -> qubic.archiver.v2.pb.GetHealthResponse
+	44, // [44:51] is the sub-list for method output_type
+	37, // [37:44] is the sub-list for method input_type
 	37, // [37:37] is the sub-list for extension type_name
 	37, // [37:37] is the sub-list for extension extendee
 	0,  // [0:37] is the sub-list for field type_name
