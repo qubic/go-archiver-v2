@@ -423,446 +423,6 @@ func (x *TickTransactionsStatus) GetTransactions() []*TransactionStatus {
 	return nil
 }
 
-type NextAvailableTick struct {
-	state          protoimpl.MessageState `protogen:"open.v1"`
-	NextTickNumber uint32                 `protobuf:"varint,1,opt,name=next_tick_number,json=nextTickNumber,proto3" json:"next_tick_number,omitempty"`
-	unknownFields  protoimpl.UnknownFields
-	sizeCache      protoimpl.SizeCache
-}
-
-func (x *NextAvailableTick) Reset() {
-	*x = NextAvailableTick{}
-	mi := &file_archive_proto_msgTypes[6]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *NextAvailableTick) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*NextAvailableTick) ProtoMessage() {}
-
-func (x *NextAvailableTick) ProtoReflect() protoreflect.Message {
-	mi := &file_archive_proto_msgTypes[6]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use NextAvailableTick.ProtoReflect.Descriptor instead.
-func (*NextAvailableTick) Descriptor() ([]byte, []int) {
-	return file_archive_proto_rawDescGZIP(), []int{6}
-}
-
-func (x *NextAvailableTick) GetNextTickNumber() uint32 {
-	if x != nil {
-		return x.NextTickNumber
-	}
-	return 0
-}
-
-type LastProcessedTick struct {
-	state             protoimpl.MessageState `protogen:"open.v1"`
-	LastProcessedTick uint32                 `protobuf:"varint,1,opt,name=last_processed_tick,json=lastProcessedTick,proto3" json:"last_processed_tick,omitempty"`
-	unknownFields     protoimpl.UnknownFields
-	sizeCache         protoimpl.SizeCache
-}
-
-func (x *LastProcessedTick) Reset() {
-	*x = LastProcessedTick{}
-	mi := &file_archive_proto_msgTypes[7]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *LastProcessedTick) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*LastProcessedTick) ProtoMessage() {}
-
-func (x *LastProcessedTick) ProtoReflect() protoreflect.Message {
-	mi := &file_archive_proto_msgTypes[7]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use LastProcessedTick.ProtoReflect.Descriptor instead.
-func (*LastProcessedTick) Descriptor() ([]byte, []int) {
-	return file_archive_proto_rawDescGZIP(), []int{7}
-}
-
-func (x *LastProcessedTick) GetLastProcessedTick() uint32 {
-	if x != nil {
-		return x.LastProcessedTick
-	}
-	return 0
-}
-
-type GetTransactionRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	TxId          string                 `protobuf:"bytes,1,opt,name=tx_id,json=txId,proto3" json:"tx_id,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *GetTransactionRequest) Reset() {
-	*x = GetTransactionRequest{}
-	mi := &file_archive_proto_msgTypes[8]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *GetTransactionRequest) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*GetTransactionRequest) ProtoMessage() {}
-
-func (x *GetTransactionRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_archive_proto_msgTypes[8]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use GetTransactionRequest.ProtoReflect.Descriptor instead.
-func (*GetTransactionRequest) Descriptor() ([]byte, []int) {
-	return file_archive_proto_rawDescGZIP(), []int{8}
-}
-
-func (x *GetTransactionRequest) GetTxId() string {
-	if x != nil {
-		return x.TxId
-	}
-	return ""
-}
-
-type GetTransactionResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Transaction   *Transaction           `protobuf:"bytes,1,opt,name=transaction,proto3" json:"transaction,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *GetTransactionResponse) Reset() {
-	*x = GetTransactionResponse{}
-	mi := &file_archive_proto_msgTypes[9]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *GetTransactionResponse) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*GetTransactionResponse) ProtoMessage() {}
-
-func (x *GetTransactionResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_archive_proto_msgTypes[9]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use GetTransactionResponse.ProtoReflect.Descriptor instead.
-func (*GetTransactionResponse) Descriptor() ([]byte, []int) {
-	return file_archive_proto_rawDescGZIP(), []int{9}
-}
-
-func (x *GetTransactionResponse) GetTransaction() *Transaction {
-	if x != nil {
-		return x.Transaction
-	}
-	return nil
-}
-
-type GetTransactionStatusRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	TxId          string                 `protobuf:"bytes,1,opt,name=tx_id,json=txId,proto3" json:"tx_id,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *GetTransactionStatusRequest) Reset() {
-	*x = GetTransactionStatusRequest{}
-	mi := &file_archive_proto_msgTypes[10]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *GetTransactionStatusRequest) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*GetTransactionStatusRequest) ProtoMessage() {}
-
-func (x *GetTransactionStatusRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_archive_proto_msgTypes[10]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use GetTransactionStatusRequest.ProtoReflect.Descriptor instead.
-func (*GetTransactionStatusRequest) Descriptor() ([]byte, []int) {
-	return file_archive_proto_rawDescGZIP(), []int{10}
-}
-
-func (x *GetTransactionStatusRequest) GetTxId() string {
-	if x != nil {
-		return x.TxId
-	}
-	return ""
-}
-
-type GetTransactionStatusResponse struct {
-	state             protoimpl.MessageState `protogen:"open.v1"`
-	TransactionStatus *TransactionStatus     `protobuf:"bytes,1,opt,name=transaction_status,json=transactionStatus,proto3" json:"transaction_status,omitempty"`
-	unknownFields     protoimpl.UnknownFields
-	sizeCache         protoimpl.SizeCache
-}
-
-func (x *GetTransactionStatusResponse) Reset() {
-	*x = GetTransactionStatusResponse{}
-	mi := &file_archive_proto_msgTypes[11]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *GetTransactionStatusResponse) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*GetTransactionStatusResponse) ProtoMessage() {}
-
-func (x *GetTransactionStatusResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_archive_proto_msgTypes[11]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use GetTransactionStatusResponse.ProtoReflect.Descriptor instead.
-func (*GetTransactionStatusResponse) Descriptor() ([]byte, []int) {
-	return file_archive_proto_rawDescGZIP(), []int{11}
-}
-
-func (x *GetTransactionStatusResponse) GetTransactionStatus() *TransactionStatus {
-	if x != nil {
-		return x.TransactionStatus
-	}
-	return nil
-}
-
-type GetTickTransactionsRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	TickNumber    uint32                 `protobuf:"varint,1,opt,name=tick_number,json=tickNumber,proto3" json:"tick_number,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *GetTickTransactionsRequest) Reset() {
-	*x = GetTickTransactionsRequest{}
-	mi := &file_archive_proto_msgTypes[12]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *GetTickTransactionsRequest) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*GetTickTransactionsRequest) ProtoMessage() {}
-
-func (x *GetTickTransactionsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_archive_proto_msgTypes[12]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use GetTickTransactionsRequest.ProtoReflect.Descriptor instead.
-func (*GetTickTransactionsRequest) Descriptor() ([]byte, []int) {
-	return file_archive_proto_rawDescGZIP(), []int{12}
-}
-
-func (x *GetTickTransactionsRequest) GetTickNumber() uint32 {
-	if x != nil {
-		return x.TickNumber
-	}
-	return 0
-}
-
-type GetTickTransactionsResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Transactions  []*Transaction         `protobuf:"bytes,1,rep,name=transactions,proto3" json:"transactions,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *GetTickTransactionsResponse) Reset() {
-	*x = GetTickTransactionsResponse{}
-	mi := &file_archive_proto_msgTypes[13]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *GetTickTransactionsResponse) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*GetTickTransactionsResponse) ProtoMessage() {}
-
-func (x *GetTickTransactionsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_archive_proto_msgTypes[13]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use GetTickTransactionsResponse.ProtoReflect.Descriptor instead.
-func (*GetTickTransactionsResponse) Descriptor() ([]byte, []int) {
-	return file_archive_proto_rawDescGZIP(), []int{13}
-}
-
-func (x *GetTickTransactionsResponse) GetTransactions() []*Transaction {
-	if x != nil {
-		return x.Transactions
-	}
-	return nil
-}
-
-type GetTickApprovedTransactionsRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	TickNumber    uint32                 `protobuf:"varint,1,opt,name=tick_number,json=tickNumber,proto3" json:"tick_number,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *GetTickApprovedTransactionsRequest) Reset() {
-	*x = GetTickApprovedTransactionsRequest{}
-	mi := &file_archive_proto_msgTypes[14]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *GetTickApprovedTransactionsRequest) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*GetTickApprovedTransactionsRequest) ProtoMessage() {}
-
-func (x *GetTickApprovedTransactionsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_archive_proto_msgTypes[14]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use GetTickApprovedTransactionsRequest.ProtoReflect.Descriptor instead.
-func (*GetTickApprovedTransactionsRequest) Descriptor() ([]byte, []int) {
-	return file_archive_proto_rawDescGZIP(), []int{14}
-}
-
-func (x *GetTickApprovedTransactionsRequest) GetTickNumber() uint32 {
-	if x != nil {
-		return x.TickNumber
-	}
-	return 0
-}
-
-type GetTickApprovedTransactionsResponse struct {
-	state                protoimpl.MessageState `protogen:"open.v1"`
-	ApprovedTransactions []*Transaction         `protobuf:"bytes,1,rep,name=approved_transactions,json=approvedTransactions,proto3" json:"approved_transactions,omitempty"`
-	unknownFields        protoimpl.UnknownFields
-	sizeCache            protoimpl.SizeCache
-}
-
-func (x *GetTickApprovedTransactionsResponse) Reset() {
-	*x = GetTickApprovedTransactionsResponse{}
-	mi := &file_archive_proto_msgTypes[15]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *GetTickApprovedTransactionsResponse) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*GetTickApprovedTransactionsResponse) ProtoMessage() {}
-
-func (x *GetTickApprovedTransactionsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_archive_proto_msgTypes[15]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use GetTickApprovedTransactionsResponse.ProtoReflect.Descriptor instead.
-func (*GetTickApprovedTransactionsResponse) Descriptor() ([]byte, []int) {
-	return file_archive_proto_rawDescGZIP(), []int{15}
-}
-
-func (x *GetTickApprovedTransactionsResponse) GetApprovedTransactions() []*Transaction {
-	if x != nil {
-		return x.ApprovedTransactions
-	}
-	return nil
-}
-
 type QuorumTickData struct {
 	state                 protoimpl.MessageState `protogen:"open.v1"`
 	QuorumTickStructure   *QuorumTickStructure   `protobuf:"bytes,1,opt,name=quorum_tick_structure,json=quorumTickStructure,proto3" json:"quorum_tick_structure,omitempty"`
@@ -873,7 +433,7 @@ type QuorumTickData struct {
 
 func (x *QuorumTickData) Reset() {
 	*x = QuorumTickData{}
-	mi := &file_archive_proto_msgTypes[16]
+	mi := &file_archive_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -885,7 +445,7 @@ func (x *QuorumTickData) String() string {
 func (*QuorumTickData) ProtoMessage() {}
 
 func (x *QuorumTickData) ProtoReflect() protoreflect.Message {
-	mi := &file_archive_proto_msgTypes[16]
+	mi := &file_archive_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -898,7 +458,7 @@ func (x *QuorumTickData) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use QuorumTickData.ProtoReflect.Descriptor instead.
 func (*QuorumTickData) Descriptor() ([]byte, []int) {
-	return file_archive_proto_rawDescGZIP(), []int{16}
+	return file_archive_proto_rawDescGZIP(), []int{6}
 }
 
 func (x *QuorumTickData) GetQuorumTickStructure() *QuorumTickStructure {
@@ -932,7 +492,7 @@ type QuorumTickStructure struct {
 
 func (x *QuorumTickStructure) Reset() {
 	*x = QuorumTickStructure{}
-	mi := &file_archive_proto_msgTypes[17]
+	mi := &file_archive_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -944,7 +504,7 @@ func (x *QuorumTickStructure) String() string {
 func (*QuorumTickStructure) ProtoMessage() {}
 
 func (x *QuorumTickStructure) ProtoReflect() protoreflect.Message {
-	mi := &file_archive_proto_msgTypes[17]
+	mi := &file_archive_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -957,7 +517,7 @@ func (x *QuorumTickStructure) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use QuorumTickStructure.ProtoReflect.Descriptor instead.
 func (*QuorumTickStructure) Descriptor() ([]byte, []int) {
-	return file_archive_proto_rawDescGZIP(), []int{17}
+	return file_archive_proto_rawDescGZIP(), []int{7}
 }
 
 func (x *QuorumTickStructure) GetEpoch() uint32 {
@@ -1038,7 +598,7 @@ type QuorumDiff struct {
 
 func (x *QuorumDiff) Reset() {
 	*x = QuorumDiff{}
-	mi := &file_archive_proto_msgTypes[18]
+	mi := &file_archive_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1050,7 +610,7 @@ func (x *QuorumDiff) String() string {
 func (*QuorumDiff) ProtoMessage() {}
 
 func (x *QuorumDiff) ProtoReflect() protoreflect.Message {
-	mi := &file_archive_proto_msgTypes[18]
+	mi := &file_archive_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1063,7 +623,7 @@ func (x *QuorumDiff) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use QuorumDiff.ProtoReflect.Descriptor instead.
 func (*QuorumDiff) Descriptor() ([]byte, []int) {
-	return file_archive_proto_rawDescGZIP(), []int{18}
+	return file_archive_proto_rawDescGZIP(), []int{8}
 }
 
 func (x *QuorumDiff) GetSaltedResourceTestingDigestHex() string {
@@ -1125,7 +685,7 @@ type QuorumTickDataStored struct {
 
 func (x *QuorumTickDataStored) Reset() {
 	*x = QuorumTickDataStored{}
-	mi := &file_archive_proto_msgTypes[19]
+	mi := &file_archive_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1137,7 +697,7 @@ func (x *QuorumTickDataStored) String() string {
 func (*QuorumTickDataStored) ProtoMessage() {}
 
 func (x *QuorumTickDataStored) ProtoReflect() protoreflect.Message {
-	mi := &file_archive_proto_msgTypes[19]
+	mi := &file_archive_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1150,7 +710,7 @@ func (x *QuorumTickDataStored) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use QuorumTickDataStored.ProtoReflect.Descriptor instead.
 func (*QuorumTickDataStored) Descriptor() ([]byte, []int) {
-	return file_archive_proto_rawDescGZIP(), []int{19}
+	return file_archive_proto_rawDescGZIP(), []int{9}
 }
 
 func (x *QuorumTickDataStored) GetQuorumTickStructure() *QuorumTickStructure {
@@ -1177,7 +737,7 @@ type QuorumDiffStored struct {
 
 func (x *QuorumDiffStored) Reset() {
 	*x = QuorumDiffStored{}
-	mi := &file_archive_proto_msgTypes[20]
+	mi := &file_archive_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1189,7 +749,7 @@ func (x *QuorumDiffStored) String() string {
 func (*QuorumDiffStored) ProtoMessage() {}
 
 func (x *QuorumDiffStored) ProtoReflect() protoreflect.Message {
-	mi := &file_archive_proto_msgTypes[20]
+	mi := &file_archive_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1202,7 +762,7 @@ func (x *QuorumDiffStored) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use QuorumDiffStored.ProtoReflect.Descriptor instead.
 func (*QuorumDiffStored) Descriptor() ([]byte, []int) {
-	return file_archive_proto_rawDescGZIP(), []int{20}
+	return file_archive_proto_rawDescGZIP(), []int{10}
 }
 
 func (x *QuorumDiffStored) GetExpectedNextTickTxDigestHex() string {
@@ -1219,102 +779,6 @@ func (x *QuorumDiffStored) GetSignatureHex() string {
 	return ""
 }
 
-type SkippedTicksInterval struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	StartTick     uint32                 `protobuf:"varint,1,opt,name=start_tick,json=startTick,proto3" json:"start_tick,omitempty"`
-	EndTick       uint32                 `protobuf:"varint,2,opt,name=end_tick,json=endTick,proto3" json:"end_tick,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *SkippedTicksInterval) Reset() {
-	*x = SkippedTicksInterval{}
-	mi := &file_archive_proto_msgTypes[21]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *SkippedTicksInterval) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*SkippedTicksInterval) ProtoMessage() {}
-
-func (x *SkippedTicksInterval) ProtoReflect() protoreflect.Message {
-	mi := &file_archive_proto_msgTypes[21]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use SkippedTicksInterval.ProtoReflect.Descriptor instead.
-func (*SkippedTicksInterval) Descriptor() ([]byte, []int) {
-	return file_archive_proto_rawDescGZIP(), []int{21}
-}
-
-func (x *SkippedTicksInterval) GetStartTick() uint32 {
-	if x != nil {
-		return x.StartTick
-	}
-	return 0
-}
-
-func (x *SkippedTicksInterval) GetEndTick() uint32 {
-	if x != nil {
-		return x.EndTick
-	}
-	return 0
-}
-
-type SkippedTicksIntervalList struct {
-	state         protoimpl.MessageState  `protogen:"open.v1"`
-	SkippedTicks  []*SkippedTicksInterval `protobuf:"bytes,1,rep,name=skipped_ticks,json=skippedTicks,proto3" json:"skipped_ticks,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *SkippedTicksIntervalList) Reset() {
-	*x = SkippedTicksIntervalList{}
-	mi := &file_archive_proto_msgTypes[22]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *SkippedTicksIntervalList) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*SkippedTicksIntervalList) ProtoMessage() {}
-
-func (x *SkippedTicksIntervalList) ProtoReflect() protoreflect.Message {
-	mi := &file_archive_proto_msgTypes[22]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use SkippedTicksIntervalList.ProtoReflect.Descriptor instead.
-func (*SkippedTicksIntervalList) Descriptor() ([]byte, []int) {
-	return file_archive_proto_rawDescGZIP(), []int{22}
-}
-
-func (x *SkippedTicksIntervalList) GetSkippedTicks() []*SkippedTicksInterval {
-	if x != nil {
-		return x.SkippedTicks
-	}
-	return nil
-}
-
 type LastTickQuorumDataPerEpochIntervals struct {
 	state                 protoimpl.MessageState    `protogen:"open.v1"`
 	QuorumDataPerInterval map[int32]*QuorumTickData `protobuf:"bytes,1,rep,name=quorum_data_per_interval,json=quorumDataPerInterval,proto3" json:"quorum_data_per_interval,omitempty" protobuf_key:"varint,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
@@ -1324,7 +788,7 @@ type LastTickQuorumDataPerEpochIntervals struct {
 
 func (x *LastTickQuorumDataPerEpochIntervals) Reset() {
 	*x = LastTickQuorumDataPerEpochIntervals{}
-	mi := &file_archive_proto_msgTypes[23]
+	mi := &file_archive_proto_msgTypes[11]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1336,7 +800,7 @@ func (x *LastTickQuorumDataPerEpochIntervals) String() string {
 func (*LastTickQuorumDataPerEpochIntervals) ProtoMessage() {}
 
 func (x *LastTickQuorumDataPerEpochIntervals) ProtoReflect() protoreflect.Message {
-	mi := &file_archive_proto_msgTypes[23]
+	mi := &file_archive_proto_msgTypes[11]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1349,7 +813,7 @@ func (x *LastTickQuorumDataPerEpochIntervals) ProtoReflect() protoreflect.Messag
 
 // Deprecated: Use LastTickQuorumDataPerEpochIntervals.ProtoReflect.Descriptor instead.
 func (*LastTickQuorumDataPerEpochIntervals) Descriptor() ([]byte, []int) {
-	return file_archive_proto_rawDescGZIP(), []int{23}
+	return file_archive_proto_rawDescGZIP(), []int{11}
 }
 
 func (x *LastTickQuorumDataPerEpochIntervals) GetQuorumDataPerInterval() map[int32]*QuorumTickData {
@@ -1368,7 +832,7 @@ type GetQuorumTickDataRequest struct {
 
 func (x *GetQuorumTickDataRequest) Reset() {
 	*x = GetQuorumTickDataRequest{}
-	mi := &file_archive_proto_msgTypes[24]
+	mi := &file_archive_proto_msgTypes[12]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1380,7 +844,7 @@ func (x *GetQuorumTickDataRequest) String() string {
 func (*GetQuorumTickDataRequest) ProtoMessage() {}
 
 func (x *GetQuorumTickDataRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_archive_proto_msgTypes[24]
+	mi := &file_archive_proto_msgTypes[12]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1393,7 +857,7 @@ func (x *GetQuorumTickDataRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetQuorumTickDataRequest.ProtoReflect.Descriptor instead.
 func (*GetQuorumTickDataRequest) Descriptor() ([]byte, []int) {
-	return file_archive_proto_rawDescGZIP(), []int{24}
+	return file_archive_proto_rawDescGZIP(), []int{12}
 }
 
 func (x *GetQuorumTickDataRequest) GetTickNumber() uint32 {
@@ -1412,7 +876,7 @@ type GetQuorumTickDataResponse struct {
 
 func (x *GetQuorumTickDataResponse) Reset() {
 	*x = GetQuorumTickDataResponse{}
-	mi := &file_archive_proto_msgTypes[25]
+	mi := &file_archive_proto_msgTypes[13]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1424,7 +888,7 @@ func (x *GetQuorumTickDataResponse) String() string {
 func (*GetQuorumTickDataResponse) ProtoMessage() {}
 
 func (x *GetQuorumTickDataResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_archive_proto_msgTypes[25]
+	mi := &file_archive_proto_msgTypes[13]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1437,7 +901,7 @@ func (x *GetQuorumTickDataResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetQuorumTickDataResponse.ProtoReflect.Descriptor instead.
 func (*GetQuorumTickDataResponse) Descriptor() ([]byte, []int) {
-	return file_archive_proto_rawDescGZIP(), []int{25}
+	return file_archive_proto_rawDescGZIP(), []int{13}
 }
 
 func (x *GetQuorumTickDataResponse) GetQuorumTickData() *QuorumTickData {
@@ -1456,7 +920,7 @@ type GetQuorumTickDataResponseStored struct {
 
 func (x *GetQuorumTickDataResponseStored) Reset() {
 	*x = GetQuorumTickDataResponseStored{}
-	mi := &file_archive_proto_msgTypes[26]
+	mi := &file_archive_proto_msgTypes[14]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1468,7 +932,7 @@ func (x *GetQuorumTickDataResponseStored) String() string {
 func (*GetQuorumTickDataResponseStored) ProtoMessage() {}
 
 func (x *GetQuorumTickDataResponseStored) ProtoReflect() protoreflect.Message {
-	mi := &file_archive_proto_msgTypes[26]
+	mi := &file_archive_proto_msgTypes[14]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1481,7 +945,7 @@ func (x *GetQuorumTickDataResponseStored) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetQuorumTickDataResponseStored.ProtoReflect.Descriptor instead.
 func (*GetQuorumTickDataResponseStored) Descriptor() ([]byte, []int) {
-	return file_archive_proto_rawDescGZIP(), []int{26}
+	return file_archive_proto_rawDescGZIP(), []int{14}
 }
 
 func (x *GetQuorumTickDataResponseStored) GetQuorumTickData() *QuorumTickDataStored {
@@ -1503,7 +967,7 @@ type Computors struct {
 
 func (x *Computors) Reset() {
 	*x = Computors{}
-	mi := &file_archive_proto_msgTypes[27]
+	mi := &file_archive_proto_msgTypes[15]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1515,7 +979,7 @@ func (x *Computors) String() string {
 func (*Computors) ProtoMessage() {}
 
 func (x *Computors) ProtoReflect() protoreflect.Message {
-	mi := &file_archive_proto_msgTypes[27]
+	mi := &file_archive_proto_msgTypes[15]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1528,7 +992,7 @@ func (x *Computors) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Computors.ProtoReflect.Descriptor instead.
 func (*Computors) Descriptor() ([]byte, []int) {
-	return file_archive_proto_rawDescGZIP(), []int{27}
+	return file_archive_proto_rawDescGZIP(), []int{15}
 }
 
 func (x *Computors) GetEpoch() uint32 {
@@ -1568,7 +1032,7 @@ type GetComputorsRequest struct {
 
 func (x *GetComputorsRequest) Reset() {
 	*x = GetComputorsRequest{}
-	mi := &file_archive_proto_msgTypes[28]
+	mi := &file_archive_proto_msgTypes[16]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1580,7 +1044,7 @@ func (x *GetComputorsRequest) String() string {
 func (*GetComputorsRequest) ProtoMessage() {}
 
 func (x *GetComputorsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_archive_proto_msgTypes[28]
+	mi := &file_archive_proto_msgTypes[16]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1593,7 +1057,7 @@ func (x *GetComputorsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetComputorsRequest.ProtoReflect.Descriptor instead.
 func (*GetComputorsRequest) Descriptor() ([]byte, []int) {
-	return file_archive_proto_rawDescGZIP(), []int{28}
+	return file_archive_proto_rawDescGZIP(), []int{16}
 }
 
 func (x *GetComputorsRequest) GetEpoch() uint32 {
@@ -1612,7 +1076,7 @@ type GetComputorsResponse struct {
 
 func (x *GetComputorsResponse) Reset() {
 	*x = GetComputorsResponse{}
-	mi := &file_archive_proto_msgTypes[29]
+	mi := &file_archive_proto_msgTypes[17]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1624,7 +1088,7 @@ func (x *GetComputorsResponse) String() string {
 func (*GetComputorsResponse) ProtoMessage() {}
 
 func (x *GetComputorsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_archive_proto_msgTypes[29]
+	mi := &file_archive_proto_msgTypes[17]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1637,7 +1101,7 @@ func (x *GetComputorsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetComputorsResponse.ProtoReflect.Descriptor instead.
 func (*GetComputorsResponse) Descriptor() ([]byte, []int) {
-	return file_archive_proto_rawDescGZIP(), []int{29}
+	return file_archive_proto_rawDescGZIP(), []int{17}
 }
 
 func (x *GetComputorsResponse) GetComputors() *Computors {
@@ -1657,7 +1121,7 @@ type ComputorsList struct {
 
 func (x *ComputorsList) Reset() {
 	*x = ComputorsList{}
-	mi := &file_archive_proto_msgTypes[30]
+	mi := &file_archive_proto_msgTypes[18]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1669,7 +1133,7 @@ func (x *ComputorsList) String() string {
 func (*ComputorsList) ProtoMessage() {}
 
 func (x *ComputorsList) ProtoReflect() protoreflect.Message {
-	mi := &file_archive_proto_msgTypes[30]
+	mi := &file_archive_proto_msgTypes[18]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1682,72 +1146,12 @@ func (x *ComputorsList) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ComputorsList.ProtoReflect.Descriptor instead.
 func (*ComputorsList) Descriptor() ([]byte, []int) {
-	return file_archive_proto_rawDescGZIP(), []int{30}
+	return file_archive_proto_rawDescGZIP(), []int{18}
 }
 
 func (x *ComputorsList) GetComputors() []*Computors {
 	if x != nil {
 		return x.Computors
-	}
-	return nil
-}
-
-type TransferTransactionsPerTick struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	TickNumber    uint32                 `protobuf:"varint,1,opt,name=tick_number,json=tickNumber,proto3" json:"tick_number,omitempty"`
-	Identity      string                 `protobuf:"bytes,2,opt,name=identity,proto3" json:"identity,omitempty"`
-	Transactions  []*Transaction         `protobuf:"bytes,3,rep,name=transactions,proto3" json:"transactions,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *TransferTransactionsPerTick) Reset() {
-	*x = TransferTransactionsPerTick{}
-	mi := &file_archive_proto_msgTypes[31]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *TransferTransactionsPerTick) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*TransferTransactionsPerTick) ProtoMessage() {}
-
-func (x *TransferTransactionsPerTick) ProtoReflect() protoreflect.Message {
-	mi := &file_archive_proto_msgTypes[31]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use TransferTransactionsPerTick.ProtoReflect.Descriptor instead.
-func (*TransferTransactionsPerTick) Descriptor() ([]byte, []int) {
-	return file_archive_proto_rawDescGZIP(), []int{31}
-}
-
-func (x *TransferTransactionsPerTick) GetTickNumber() uint32 {
-	if x != nil {
-		return x.TickNumber
-	}
-	return 0
-}
-
-func (x *TransferTransactionsPerTick) GetIdentity() string {
-	if x != nil {
-		return x.Identity
-	}
-	return ""
-}
-
-func (x *TransferTransactionsPerTick) GetTransactions() []*Transaction {
-	if x != nil {
-		return x.Transactions
 	}
 	return nil
 }
@@ -1762,7 +1166,7 @@ type ProcessedTick struct {
 
 func (x *ProcessedTick) Reset() {
 	*x = ProcessedTick{}
-	mi := &file_archive_proto_msgTypes[32]
+	mi := &file_archive_proto_msgTypes[19]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1774,7 +1178,7 @@ func (x *ProcessedTick) String() string {
 func (*ProcessedTick) ProtoMessage() {}
 
 func (x *ProcessedTick) ProtoReflect() protoreflect.Message {
-	mi := &file_archive_proto_msgTypes[32]
+	mi := &file_archive_proto_msgTypes[19]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1787,7 +1191,7 @@ func (x *ProcessedTick) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ProcessedTick.ProtoReflect.Descriptor instead.
 func (*ProcessedTick) Descriptor() ([]byte, []int) {
-	return file_archive_proto_rawDescGZIP(), []int{32}
+	return file_archive_proto_rawDescGZIP(), []int{19}
 }
 
 func (x *ProcessedTick) GetTickNumber() uint32 {
@@ -1814,7 +1218,7 @@ type GetStatusResponse struct {
 
 func (x *GetStatusResponse) Reset() {
 	*x = GetStatusResponse{}
-	mi := &file_archive_proto_msgTypes[33]
+	mi := &file_archive_proto_msgTypes[20]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1826,7 +1230,7 @@ func (x *GetStatusResponse) String() string {
 func (*GetStatusResponse) ProtoMessage() {}
 
 func (x *GetStatusResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_archive_proto_msgTypes[33]
+	mi := &file_archive_proto_msgTypes[20]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1839,7 +1243,7 @@ func (x *GetStatusResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetStatusResponse.ProtoReflect.Descriptor instead.
 func (*GetStatusResponse) Descriptor() ([]byte, []int) {
-	return file_archive_proto_rawDescGZIP(), []int{33}
+	return file_archive_proto_rawDescGZIP(), []int{20}
 }
 
 func (x *GetStatusResponse) GetLastProcessedTick() *ProcessedTick {
@@ -1869,7 +1273,7 @@ type GetHealthResponse struct {
 
 func (x *GetHealthResponse) Reset() {
 	*x = GetHealthResponse{}
-	mi := &file_archive_proto_msgTypes[34]
+	mi := &file_archive_proto_msgTypes[21]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1881,7 +1285,7 @@ func (x *GetHealthResponse) String() string {
 func (*GetHealthResponse) ProtoMessage() {}
 
 func (x *GetHealthResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_archive_proto_msgTypes[34]
+	mi := &file_archive_proto_msgTypes[21]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1894,7 +1298,7 @@ func (x *GetHealthResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetHealthResponse.ProtoReflect.Descriptor instead.
 func (*GetHealthResponse) Descriptor() ([]byte, []int) {
-	return file_archive_proto_rawDescGZIP(), []int{34}
+	return file_archive_proto_rawDescGZIP(), []int{21}
 }
 
 func (x *GetHealthResponse) GetStatus() string {
@@ -1932,198 +1336,6 @@ func (x *GetHealthResponse) GetLiveTick() uint32 {
 	return 0
 }
 
-type GetTransferTransactionsPerTickRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Identity      string                 `protobuf:"bytes,1,opt,name=identity,proto3" json:"identity,omitempty"`
-	StartTick     uint32                 `protobuf:"varint,2,opt,name=start_tick,json=startTick,proto3" json:"start_tick,omitempty"`
-	EndTick       uint32                 `protobuf:"varint,3,opt,name=end_tick,json=endTick,proto3" json:"end_tick,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *GetTransferTransactionsPerTickRequest) Reset() {
-	*x = GetTransferTransactionsPerTickRequest{}
-	mi := &file_archive_proto_msgTypes[35]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *GetTransferTransactionsPerTickRequest) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*GetTransferTransactionsPerTickRequest) ProtoMessage() {}
-
-func (x *GetTransferTransactionsPerTickRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_archive_proto_msgTypes[35]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use GetTransferTransactionsPerTickRequest.ProtoReflect.Descriptor instead.
-func (*GetTransferTransactionsPerTickRequest) Descriptor() ([]byte, []int) {
-	return file_archive_proto_rawDescGZIP(), []int{35}
-}
-
-func (x *GetTransferTransactionsPerTickRequest) GetIdentity() string {
-	if x != nil {
-		return x.Identity
-	}
-	return ""
-}
-
-func (x *GetTransferTransactionsPerTickRequest) GetStartTick() uint32 {
-	if x != nil {
-		return x.StartTick
-	}
-	return 0
-}
-
-func (x *GetTransferTransactionsPerTickRequest) GetEndTick() uint32 {
-	if x != nil {
-		return x.EndTick
-	}
-	return 0
-}
-
-type GetTransferTransactionsPerTickResponse struct {
-	state                       protoimpl.MessageState         `protogen:"open.v1"`
-	TransferTransactionsPerTick []*TransferTransactionsPerTick `protobuf:"bytes,1,rep,name=transfer_transactions_per_tick,json=transferTransactionsPerTick,proto3" json:"transfer_transactions_per_tick,omitempty"`
-	unknownFields               protoimpl.UnknownFields
-	sizeCache                   protoimpl.SizeCache
-}
-
-func (x *GetTransferTransactionsPerTickResponse) Reset() {
-	*x = GetTransferTransactionsPerTickResponse{}
-	mi := &file_archive_proto_msgTypes[36]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *GetTransferTransactionsPerTickResponse) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*GetTransferTransactionsPerTickResponse) ProtoMessage() {}
-
-func (x *GetTransferTransactionsPerTickResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_archive_proto_msgTypes[36]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use GetTransferTransactionsPerTickResponse.ProtoReflect.Descriptor instead.
-func (*GetTransferTransactionsPerTickResponse) Descriptor() ([]byte, []int) {
-	return file_archive_proto_rawDescGZIP(), []int{36}
-}
-
-func (x *GetTransferTransactionsPerTickResponse) GetTransferTransactionsPerTick() []*TransferTransactionsPerTick {
-	if x != nil {
-		return x.TransferTransactionsPerTick
-	}
-	return nil
-}
-
-type GetChainHashRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	TickNumber    uint32                 `protobuf:"varint,1,opt,name=tick_number,json=tickNumber,proto3" json:"tick_number,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *GetChainHashRequest) Reset() {
-	*x = GetChainHashRequest{}
-	mi := &file_archive_proto_msgTypes[37]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *GetChainHashRequest) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*GetChainHashRequest) ProtoMessage() {}
-
-func (x *GetChainHashRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_archive_proto_msgTypes[37]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use GetChainHashRequest.ProtoReflect.Descriptor instead.
-func (*GetChainHashRequest) Descriptor() ([]byte, []int) {
-	return file_archive_proto_rawDescGZIP(), []int{37}
-}
-
-func (x *GetChainHashRequest) GetTickNumber() uint32 {
-	if x != nil {
-		return x.TickNumber
-	}
-	return 0
-}
-
-type GetChainHashResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	HexDigest     string                 `protobuf:"bytes,1,opt,name=hex_digest,json=hexDigest,proto3" json:"hex_digest,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *GetChainHashResponse) Reset() {
-	*x = GetChainHashResponse{}
-	mi := &file_archive_proto_msgTypes[38]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *GetChainHashResponse) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*GetChainHashResponse) ProtoMessage() {}
-
-func (x *GetChainHashResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_archive_proto_msgTypes[38]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use GetChainHashResponse.ProtoReflect.Descriptor instead.
-func (*GetChainHashResponse) Descriptor() ([]byte, []int) {
-	return file_archive_proto_rawDescGZIP(), []int{38}
-}
-
-func (x *GetChainHashResponse) GetHexDigest() string {
-	if x != nil {
-		return x.HexDigest
-	}
-	return ""
-}
-
 type ProcessedTickInterval struct {
 	state                protoimpl.MessageState `protogen:"open.v1"`
 	InitialProcessedTick uint32                 `protobuf:"varint,1,opt,name=initial_processed_tick,json=initialProcessedTick,proto3" json:"initial_processed_tick,omitempty"`
@@ -2134,7 +1346,7 @@ type ProcessedTickInterval struct {
 
 func (x *ProcessedTickInterval) Reset() {
 	*x = ProcessedTickInterval{}
-	mi := &file_archive_proto_msgTypes[39]
+	mi := &file_archive_proto_msgTypes[22]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2146,7 +1358,7 @@ func (x *ProcessedTickInterval) String() string {
 func (*ProcessedTickInterval) ProtoMessage() {}
 
 func (x *ProcessedTickInterval) ProtoReflect() protoreflect.Message {
-	mi := &file_archive_proto_msgTypes[39]
+	mi := &file_archive_proto_msgTypes[22]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2159,7 +1371,7 @@ func (x *ProcessedTickInterval) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ProcessedTickInterval.ProtoReflect.Descriptor instead.
 func (*ProcessedTickInterval) Descriptor() ([]byte, []int) {
-	return file_archive_proto_rawDescGZIP(), []int{39}
+	return file_archive_proto_rawDescGZIP(), []int{22}
 }
 
 func (x *ProcessedTickInterval) GetInitialProcessedTick() uint32 {
@@ -2186,7 +1398,7 @@ type ProcessedTickIntervalsPerEpoch struct {
 
 func (x *ProcessedTickIntervalsPerEpoch) Reset() {
 	*x = ProcessedTickIntervalsPerEpoch{}
-	mi := &file_archive_proto_msgTypes[40]
+	mi := &file_archive_proto_msgTypes[23]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2198,7 +1410,7 @@ func (x *ProcessedTickIntervalsPerEpoch) String() string {
 func (*ProcessedTickIntervalsPerEpoch) ProtoMessage() {}
 
 func (x *ProcessedTickIntervalsPerEpoch) ProtoReflect() protoreflect.Message {
-	mi := &file_archive_proto_msgTypes[40]
+	mi := &file_archive_proto_msgTypes[23]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2211,7 +1423,7 @@ func (x *ProcessedTickIntervalsPerEpoch) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ProcessedTickIntervalsPerEpoch.ProtoReflect.Descriptor instead.
 func (*ProcessedTickIntervalsPerEpoch) Descriptor() ([]byte, []int) {
-	return file_archive_proto_rawDescGZIP(), []int{40}
+	return file_archive_proto_rawDescGZIP(), []int{23}
 }
 
 func (x *ProcessedTickIntervalsPerEpoch) GetEpoch() uint32 {
@@ -2228,570 +1440,6 @@ func (x *ProcessedTickIntervalsPerEpoch) GetIntervals() []*ProcessedTickInterval
 	return nil
 }
 
-type Tick struct {
-	state          protoimpl.MessageState `protogen:"open.v1"`
-	ComputorIndex  uint32                 `protobuf:"varint,1,opt,name=computor_index,json=computorIndex,proto3" json:"computor_index,omitempty"`
-	Epoch          uint32                 `protobuf:"varint,2,opt,name=epoch,proto3" json:"epoch,omitempty"`
-	TickNumber     uint32                 `protobuf:"varint,3,opt,name=tick_number,json=tickNumber,proto3" json:"tick_number,omitempty"`
-	Timestamp      uint64                 `protobuf:"varint,4,opt,name=timestamp,proto3" json:"timestamp,omitempty"`
-	VarStruct      []byte                 `protobuf:"bytes,5,opt,name=var_struct,json=varStruct,proto3" json:"var_struct,omitempty"` //Will change to return with unmarshalled info
-	TimeLock       []byte                 `protobuf:"bytes,6,opt,name=time_lock,json=timeLock,proto3" json:"time_lock,omitempty"`
-	TransactionIds []string               `protobuf:"bytes,7,rep,name=transaction_ids,json=transactionIds,proto3" json:"transaction_ids,omitempty"`
-	ContractFees   []int64                `protobuf:"varint,8,rep,packed,name=contract_fees,json=contractFees,proto3" json:"contract_fees,omitempty"`
-	SignatureHex   string                 `protobuf:"bytes,9,opt,name=signature_hex,json=signatureHex,proto3" json:"signature_hex,omitempty"`
-	unknownFields  protoimpl.UnknownFields
-	sizeCache      protoimpl.SizeCache
-}
-
-func (x *Tick) Reset() {
-	*x = Tick{}
-	mi := &file_archive_proto_msgTypes[41]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *Tick) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*Tick) ProtoMessage() {}
-
-func (x *Tick) ProtoReflect() protoreflect.Message {
-	mi := &file_archive_proto_msgTypes[41]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use Tick.ProtoReflect.Descriptor instead.
-func (*Tick) Descriptor() ([]byte, []int) {
-	return file_archive_proto_rawDescGZIP(), []int{41}
-}
-
-func (x *Tick) GetComputorIndex() uint32 {
-	if x != nil {
-		return x.ComputorIndex
-	}
-	return 0
-}
-
-func (x *Tick) GetEpoch() uint32 {
-	if x != nil {
-		return x.Epoch
-	}
-	return 0
-}
-
-func (x *Tick) GetTickNumber() uint32 {
-	if x != nil {
-		return x.TickNumber
-	}
-	return 0
-}
-
-func (x *Tick) GetTimestamp() uint64 {
-	if x != nil {
-		return x.Timestamp
-	}
-	return 0
-}
-
-func (x *Tick) GetVarStruct() []byte {
-	if x != nil {
-		return x.VarStruct
-	}
-	return nil
-}
-
-func (x *Tick) GetTimeLock() []byte {
-	if x != nil {
-		return x.TimeLock
-	}
-	return nil
-}
-
-func (x *Tick) GetTransactionIds() []string {
-	if x != nil {
-		return x.TransactionIds
-	}
-	return nil
-}
-
-func (x *Tick) GetContractFees() []int64 {
-	if x != nil {
-		return x.ContractFees
-	}
-	return nil
-}
-
-func (x *Tick) GetSignatureHex() string {
-	if x != nil {
-		return x.SignatureHex
-	}
-	return ""
-}
-
-type GetTickResponseV2 struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Tick_Data     *Tick                  `protobuf:"bytes,1,opt,name=tick_Data,json=tickData,proto3" json:"tick_Data,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *GetTickResponseV2) Reset() {
-	*x = GetTickResponseV2{}
-	mi := &file_archive_proto_msgTypes[42]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *GetTickResponseV2) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*GetTickResponseV2) ProtoMessage() {}
-
-func (x *GetTickResponseV2) ProtoReflect() protoreflect.Message {
-	mi := &file_archive_proto_msgTypes[42]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use GetTickResponseV2.ProtoReflect.Descriptor instead.
-func (*GetTickResponseV2) Descriptor() ([]byte, []int) {
-	return file_archive_proto_rawDescGZIP(), []int{42}
-}
-
-func (x *GetTickResponseV2) GetTick_Data() *Tick {
-	if x != nil {
-		return x.Tick_Data
-	}
-	return nil
-}
-
-type PerTickIdentityTransfers struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	TickNumber    uint32                 `protobuf:"varint,1,opt,name=tick_number,json=tickNumber,proto3" json:"tick_number,omitempty"`
-	Identity      string                 `protobuf:"bytes,2,opt,name=identity,proto3" json:"identity,omitempty"`
-	Transactions  []*TransactionData     `protobuf:"bytes,3,rep,name=transactions,proto3" json:"transactions,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *PerTickIdentityTransfers) Reset() {
-	*x = PerTickIdentityTransfers{}
-	mi := &file_archive_proto_msgTypes[43]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *PerTickIdentityTransfers) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*PerTickIdentityTransfers) ProtoMessage() {}
-
-func (x *PerTickIdentityTransfers) ProtoReflect() protoreflect.Message {
-	mi := &file_archive_proto_msgTypes[43]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use PerTickIdentityTransfers.ProtoReflect.Descriptor instead.
-func (*PerTickIdentityTransfers) Descriptor() ([]byte, []int) {
-	return file_archive_proto_rawDescGZIP(), []int{43}
-}
-
-func (x *PerTickIdentityTransfers) GetTickNumber() uint32 {
-	if x != nil {
-		return x.TickNumber
-	}
-	return 0
-}
-
-func (x *PerTickIdentityTransfers) GetIdentity() string {
-	if x != nil {
-		return x.Identity
-	}
-	return ""
-}
-
-func (x *PerTickIdentityTransfers) GetTransactions() []*TransactionData {
-	if x != nil {
-		return x.Transactions
-	}
-	return nil
-}
-
-type GetIdentityTransfersInTickRangeResponseV2 struct {
-	state         protoimpl.MessageState      `protogen:"open.v1"`
-	Pagination    *Pagination                 `protobuf:"bytes,1,opt,name=pagination,proto3" json:"pagination,omitempty"`
-	Transactions  []*PerTickIdentityTransfers `protobuf:"bytes,2,rep,name=transactions,proto3" json:"transactions,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *GetIdentityTransfersInTickRangeResponseV2) Reset() {
-	*x = GetIdentityTransfersInTickRangeResponseV2{}
-	mi := &file_archive_proto_msgTypes[44]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *GetIdentityTransfersInTickRangeResponseV2) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*GetIdentityTransfersInTickRangeResponseV2) ProtoMessage() {}
-
-func (x *GetIdentityTransfersInTickRangeResponseV2) ProtoReflect() protoreflect.Message {
-	mi := &file_archive_proto_msgTypes[44]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use GetIdentityTransfersInTickRangeResponseV2.ProtoReflect.Descriptor instead.
-func (*GetIdentityTransfersInTickRangeResponseV2) Descriptor() ([]byte, []int) {
-	return file_archive_proto_rawDescGZIP(), []int{44}
-}
-
-func (x *GetIdentityTransfersInTickRangeResponseV2) GetPagination() *Pagination {
-	if x != nil {
-		return x.Pagination
-	}
-	return nil
-}
-
-func (x *GetIdentityTransfersInTickRangeResponseV2) GetTransactions() []*PerTickIdentityTransfers {
-	if x != nil {
-		return x.Transactions
-	}
-	return nil
-}
-
-type SendManyTransfer struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	DestId        string                 `protobuf:"bytes,1,opt,name=dest_id,json=destId,proto3" json:"dest_id,omitempty"`
-	Amount        int64                  `protobuf:"varint,2,opt,name=amount,proto3" json:"amount,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *SendManyTransfer) Reset() {
-	*x = SendManyTransfer{}
-	mi := &file_archive_proto_msgTypes[45]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *SendManyTransfer) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*SendManyTransfer) ProtoMessage() {}
-
-func (x *SendManyTransfer) ProtoReflect() protoreflect.Message {
-	mi := &file_archive_proto_msgTypes[45]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use SendManyTransfer.ProtoReflect.Descriptor instead.
-func (*SendManyTransfer) Descriptor() ([]byte, []int) {
-	return file_archive_proto_rawDescGZIP(), []int{45}
-}
-
-func (x *SendManyTransfer) GetDestId() string {
-	if x != nil {
-		return x.DestId
-	}
-	return ""
-}
-
-func (x *SendManyTransfer) GetAmount() int64 {
-	if x != nil {
-		return x.Amount
-	}
-	return 0
-}
-
-type SendManyTransaction struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	SourceId      string                 `protobuf:"bytes,1,opt,name=source_id,json=sourceId,proto3" json:"source_id,omitempty"`
-	TickNumber    uint32                 `protobuf:"varint,2,opt,name=tick_number,json=tickNumber,proto3" json:"tick_number,omitempty"`
-	Transfers     []*SendManyTransfer    `protobuf:"bytes,3,rep,name=transfers,proto3" json:"transfers,omitempty"`
-	TotalAmount   int64                  `protobuf:"varint,4,opt,name=total_amount,json=totalAmount,proto3" json:"total_amount,omitempty"`
-	SignatureHex  string                 `protobuf:"bytes,5,opt,name=signature_hex,json=signatureHex,proto3" json:"signature_hex,omitempty"`
-	TxId          string                 `protobuf:"bytes,6,opt,name=tx_id,json=txId,proto3" json:"tx_id,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *SendManyTransaction) Reset() {
-	*x = SendManyTransaction{}
-	mi := &file_archive_proto_msgTypes[46]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *SendManyTransaction) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*SendManyTransaction) ProtoMessage() {}
-
-func (x *SendManyTransaction) ProtoReflect() protoreflect.Message {
-	mi := &file_archive_proto_msgTypes[46]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use SendManyTransaction.ProtoReflect.Descriptor instead.
-func (*SendManyTransaction) Descriptor() ([]byte, []int) {
-	return file_archive_proto_rawDescGZIP(), []int{46}
-}
-
-func (x *SendManyTransaction) GetSourceId() string {
-	if x != nil {
-		return x.SourceId
-	}
-	return ""
-}
-
-func (x *SendManyTransaction) GetTickNumber() uint32 {
-	if x != nil {
-		return x.TickNumber
-	}
-	return 0
-}
-
-func (x *SendManyTransaction) GetTransfers() []*SendManyTransfer {
-	if x != nil {
-		return x.Transfers
-	}
-	return nil
-}
-
-func (x *SendManyTransaction) GetTotalAmount() int64 {
-	if x != nil {
-		return x.TotalAmount
-	}
-	return 0
-}
-
-func (x *SendManyTransaction) GetSignatureHex() string {
-	if x != nil {
-		return x.SignatureHex
-	}
-	return ""
-}
-
-func (x *SendManyTransaction) GetTxId() string {
-	if x != nil {
-		return x.TxId
-	}
-	return ""
-}
-
-type SendManyTransactionData struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Transaction   *SendManyTransaction   `protobuf:"bytes,2,opt,name=transaction,proto3" json:"transaction,omitempty"`
-	Timestamp     uint64                 `protobuf:"varint,3,opt,name=timestamp,proto3" json:"timestamp,omitempty"`
-	MoneyFlew     bool                   `protobuf:"varint,4,opt,name=money_flew,json=moneyFlew,proto3" json:"money_flew,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *SendManyTransactionData) Reset() {
-	*x = SendManyTransactionData{}
-	mi := &file_archive_proto_msgTypes[47]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *SendManyTransactionData) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*SendManyTransactionData) ProtoMessage() {}
-
-func (x *SendManyTransactionData) ProtoReflect() protoreflect.Message {
-	mi := &file_archive_proto_msgTypes[47]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use SendManyTransactionData.ProtoReflect.Descriptor instead.
-func (*SendManyTransactionData) Descriptor() ([]byte, []int) {
-	return file_archive_proto_rawDescGZIP(), []int{47}
-}
-
-func (x *SendManyTransactionData) GetTransaction() *SendManyTransaction {
-	if x != nil {
-		return x.Transaction
-	}
-	return nil
-}
-
-func (x *SendManyTransactionData) GetTimestamp() uint64 {
-	if x != nil {
-		return x.Timestamp
-	}
-	return 0
-}
-
-func (x *SendManyTransactionData) GetMoneyFlew() bool {
-	if x != nil {
-		return x.MoneyFlew
-	}
-	return false
-}
-
-type GetSendManyTransactionRequestV2 struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	TxId          string                 `protobuf:"bytes,1,opt,name=tx_id,json=txId,proto3" json:"tx_id,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *GetSendManyTransactionRequestV2) Reset() {
-	*x = GetSendManyTransactionRequestV2{}
-	mi := &file_archive_proto_msgTypes[48]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *GetSendManyTransactionRequestV2) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*GetSendManyTransactionRequestV2) ProtoMessage() {}
-
-func (x *GetSendManyTransactionRequestV2) ProtoReflect() protoreflect.Message {
-	mi := &file_archive_proto_msgTypes[48]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use GetSendManyTransactionRequestV2.ProtoReflect.Descriptor instead.
-func (*GetSendManyTransactionRequestV2) Descriptor() ([]byte, []int) {
-	return file_archive_proto_rawDescGZIP(), []int{48}
-}
-
-func (x *GetSendManyTransactionRequestV2) GetTxId() string {
-	if x != nil {
-		return x.TxId
-	}
-	return ""
-}
-
-type GetSendManyTransactionResponseV2 struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Transaction   *SendManyTransaction   `protobuf:"bytes,2,opt,name=transaction,proto3" json:"transaction,omitempty"`
-	Timestamp     uint64                 `protobuf:"varint,3,opt,name=timestamp,proto3" json:"timestamp,omitempty"`
-	MoneyFlew     bool                   `protobuf:"varint,4,opt,name=money_flew,json=moneyFlew,proto3" json:"money_flew,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *GetSendManyTransactionResponseV2) Reset() {
-	*x = GetSendManyTransactionResponseV2{}
-	mi := &file_archive_proto_msgTypes[49]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *GetSendManyTransactionResponseV2) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*GetSendManyTransactionResponseV2) ProtoMessage() {}
-
-func (x *GetSendManyTransactionResponseV2) ProtoReflect() protoreflect.Message {
-	mi := &file_archive_proto_msgTypes[49]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use GetSendManyTransactionResponseV2.ProtoReflect.Descriptor instead.
-func (*GetSendManyTransactionResponseV2) Descriptor() ([]byte, []int) {
-	return file_archive_proto_rawDescGZIP(), []int{49}
-}
-
-func (x *GetSendManyTransactionResponseV2) GetTransaction() *SendManyTransaction {
-	if x != nil {
-		return x.Transaction
-	}
-	return nil
-}
-
-func (x *GetSendManyTransactionResponseV2) GetTimestamp() uint64 {
-	if x != nil {
-		return x.Timestamp
-	}
-	return 0
-}
-
-func (x *GetSendManyTransactionResponseV2) GetMoneyFlew() bool {
-	if x != nil {
-		return x.MoneyFlew
-	}
-	return false
-}
-
 type TransactionData struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Transaction   *Transaction           `protobuf:"bytes,1,opt,name=transaction,proto3" json:"transaction,omitempty"`
@@ -2803,7 +1451,7 @@ type TransactionData struct {
 
 func (x *TransactionData) Reset() {
 	*x = TransactionData{}
-	mi := &file_archive_proto_msgTypes[50]
+	mi := &file_archive_proto_msgTypes[24]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2815,7 +1463,7 @@ func (x *TransactionData) String() string {
 func (*TransactionData) ProtoMessage() {}
 
 func (x *TransactionData) ProtoReflect() protoreflect.Message {
-	mi := &file_archive_proto_msgTypes[50]
+	mi := &file_archive_proto_msgTypes[24]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2828,7 +1476,7 @@ func (x *TransactionData) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use TransactionData.ProtoReflect.Descriptor instead.
 func (*TransactionData) Descriptor() ([]byte, []int) {
-	return file_archive_proto_rawDescGZIP(), []int{50}
+	return file_archive_proto_rawDescGZIP(), []int{24}
 }
 
 func (x *TransactionData) GetTransaction() *Transaction {
@@ -2861,7 +1509,7 @@ type GetLatestTickResponse struct {
 
 func (x *GetLatestTickResponse) Reset() {
 	*x = GetLatestTickResponse{}
-	mi := &file_archive_proto_msgTypes[51]
+	mi := &file_archive_proto_msgTypes[25]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2873,7 +1521,7 @@ func (x *GetLatestTickResponse) String() string {
 func (*GetLatestTickResponse) ProtoMessage() {}
 
 func (x *GetLatestTickResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_archive_proto_msgTypes[51]
+	mi := &file_archive_proto_msgTypes[25]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2886,7 +1534,7 @@ func (x *GetLatestTickResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetLatestTickResponse.ProtoReflect.Descriptor instead.
 func (*GetLatestTickResponse) Descriptor() ([]byte, []int) {
-	return file_archive_proto_rawDescGZIP(), []int{51}
+	return file_archive_proto_rawDescGZIP(), []int{25}
 }
 
 func (x *GetLatestTickResponse) GetLatestTick() uint32 {
@@ -2896,28 +1544,28 @@ func (x *GetLatestTickResponse) GetLatestTick() uint32 {
 	return 0
 }
 
-type GetTickRequestV2 struct {
+type GetQuorumRequestV2 struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	TickNumber    uint32                 `protobuf:"varint,1,opt,name=tick_number,json=tickNumber,proto3" json:"tick_number,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *GetTickRequestV2) Reset() {
-	*x = GetTickRequestV2{}
-	mi := &file_archive_proto_msgTypes[52]
+func (x *GetQuorumRequestV2) Reset() {
+	*x = GetQuorumRequestV2{}
+	mi := &file_archive_proto_msgTypes[26]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *GetTickRequestV2) String() string {
+func (x *GetQuorumRequestV2) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*GetTickRequestV2) ProtoMessage() {}
+func (*GetQuorumRequestV2) ProtoMessage() {}
 
-func (x *GetTickRequestV2) ProtoReflect() protoreflect.Message {
-	mi := &file_archive_proto_msgTypes[52]
+func (x *GetQuorumRequestV2) ProtoReflect() protoreflect.Message {
+	mi := &file_archive_proto_msgTypes[26]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2928,12 +1576,56 @@ func (x *GetTickRequestV2) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use GetTickRequestV2.ProtoReflect.Descriptor instead.
-func (*GetTickRequestV2) Descriptor() ([]byte, []int) {
-	return file_archive_proto_rawDescGZIP(), []int{52}
+// Deprecated: Use GetQuorumRequestV2.ProtoReflect.Descriptor instead.
+func (*GetQuorumRequestV2) Descriptor() ([]byte, []int) {
+	return file_archive_proto_rawDescGZIP(), []int{26}
 }
 
-func (x *GetTickRequestV2) GetTickNumber() uint32 {
+func (x *GetQuorumRequestV2) GetTickNumber() uint32 {
+	if x != nil {
+		return x.TickNumber
+	}
+	return 0
+}
+
+type GetTickTransactionsRequestV2 struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	TickNumber    uint32                 `protobuf:"varint,1,opt,name=tick_number,json=tickNumber,proto3" json:"tick_number,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetTickTransactionsRequestV2) Reset() {
+	*x = GetTickTransactionsRequestV2{}
+	mi := &file_archive_proto_msgTypes[27]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetTickTransactionsRequestV2) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetTickTransactionsRequestV2) ProtoMessage() {}
+
+func (x *GetTickTransactionsRequestV2) ProtoReflect() protoreflect.Message {
+	mi := &file_archive_proto_msgTypes[27]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetTickTransactionsRequestV2.ProtoReflect.Descriptor instead.
+func (*GetTickTransactionsRequestV2) Descriptor() ([]byte, []int) {
+	return file_archive_proto_rawDescGZIP(), []int{27}
+}
+
+func (x *GetTickTransactionsRequestV2) GetTickNumber() uint32 {
 	if x != nil {
 		return x.TickNumber
 	}
@@ -2949,7 +1641,7 @@ type GetTickTransactionsResponseV2 struct {
 
 func (x *GetTickTransactionsResponseV2) Reset() {
 	*x = GetTickTransactionsResponseV2{}
-	mi := &file_archive_proto_msgTypes[53]
+	mi := &file_archive_proto_msgTypes[28]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2961,7 +1653,7 @@ func (x *GetTickTransactionsResponseV2) String() string {
 func (*GetTickTransactionsResponseV2) ProtoMessage() {}
 
 func (x *GetTickTransactionsResponseV2) ProtoReflect() protoreflect.Message {
-	mi := &file_archive_proto_msgTypes[53]
+	mi := &file_archive_proto_msgTypes[28]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2974,7 +1666,7 @@ func (x *GetTickTransactionsResponseV2) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetTickTransactionsResponseV2.ProtoReflect.Descriptor instead.
 func (*GetTickTransactionsResponseV2) Descriptor() ([]byte, []int) {
-	return file_archive_proto_rawDescGZIP(), []int{53}
+	return file_archive_proto_rawDescGZIP(), []int{28}
 }
 
 func (x *GetTickTransactionsResponseV2) GetTransactions() []*TransactionData {
@@ -2993,7 +1685,7 @@ type GetTransactionRequestV2 struct {
 
 func (x *GetTransactionRequestV2) Reset() {
 	*x = GetTransactionRequestV2{}
-	mi := &file_archive_proto_msgTypes[54]
+	mi := &file_archive_proto_msgTypes[29]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3005,7 +1697,7 @@ func (x *GetTransactionRequestV2) String() string {
 func (*GetTransactionRequestV2) ProtoMessage() {}
 
 func (x *GetTransactionRequestV2) ProtoReflect() protoreflect.Message {
-	mi := &file_archive_proto_msgTypes[54]
+	mi := &file_archive_proto_msgTypes[29]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3018,7 +1710,7 @@ func (x *GetTransactionRequestV2) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetTransactionRequestV2.ProtoReflect.Descriptor instead.
 func (*GetTransactionRequestV2) Descriptor() ([]byte, []int) {
-	return file_archive_proto_rawDescGZIP(), []int{54}
+	return file_archive_proto_rawDescGZIP(), []int{29}
 }
 
 func (x *GetTransactionRequestV2) GetTxId() string {
@@ -3039,7 +1731,7 @@ type GetTransactionResponseV2 struct {
 
 func (x *GetTransactionResponseV2) Reset() {
 	*x = GetTransactionResponseV2{}
-	mi := &file_archive_proto_msgTypes[55]
+	mi := &file_archive_proto_msgTypes[30]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3051,7 +1743,7 @@ func (x *GetTransactionResponseV2) String() string {
 func (*GetTransactionResponseV2) ProtoMessage() {}
 
 func (x *GetTransactionResponseV2) ProtoReflect() protoreflect.Message {
-	mi := &file_archive_proto_msgTypes[55]
+	mi := &file_archive_proto_msgTypes[30]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3064,7 +1756,7 @@ func (x *GetTransactionResponseV2) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetTransactionResponseV2.ProtoReflect.Descriptor instead.
 func (*GetTransactionResponseV2) Descriptor() ([]byte, []int) {
-	return file_archive_proto_rawDescGZIP(), []int{55}
+	return file_archive_proto_rawDescGZIP(), []int{30}
 }
 
 func (x *GetTransactionResponseV2) GetTransaction() *Transaction {
@@ -3086,510 +1778,6 @@ func (x *GetTransactionResponseV2) GetMoneyFlew() bool {
 		return x.MoneyFlew
 	}
 	return false
-}
-
-type GetTickTransactionsRequestV2 struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	TickNumber    uint32                 `protobuf:"varint,1,opt,name=tick_number,json=tickNumber,proto3" json:"tick_number,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *GetTickTransactionsRequestV2) Reset() {
-	*x = GetTickTransactionsRequestV2{}
-	mi := &file_archive_proto_msgTypes[56]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *GetTickTransactionsRequestV2) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*GetTickTransactionsRequestV2) ProtoMessage() {}
-
-func (x *GetTickTransactionsRequestV2) ProtoReflect() protoreflect.Message {
-	mi := &file_archive_proto_msgTypes[56]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use GetTickTransactionsRequestV2.ProtoReflect.Descriptor instead.
-func (*GetTickTransactionsRequestV2) Descriptor() ([]byte, []int) {
-	return file_archive_proto_rawDescGZIP(), []int{56}
-}
-
-func (x *GetTickTransactionsRequestV2) GetTickNumber() uint32 {
-	if x != nil {
-		return x.TickNumber
-	}
-	return 0
-}
-
-type GetTransferTransactionsPerTickRequestV2 struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Identity      string                 `protobuf:"bytes,1,opt,name=identity,proto3" json:"identity,omitempty"`
-	StartTick     uint32                 `protobuf:"varint,2,opt,name=start_tick,json=startTick,proto3" json:"start_tick,omitempty"`
-	EndTick       uint32                 `protobuf:"varint,3,opt,name=end_tick,json=endTick,proto3" json:"end_tick,omitempty"`
-	ScOnly        bool                   `protobuf:"varint,4,opt,name=sc_only,json=scOnly,proto3" json:"sc_only,omitempty"`
-	Desc          bool                   `protobuf:"varint,5,opt,name=desc,proto3" json:"desc,omitempty"`
-	Page          uint32                 `protobuf:"varint,6,opt,name=page,proto3" json:"page,omitempty"`
-	PageSize      uint32                 `protobuf:"varint,7,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *GetTransferTransactionsPerTickRequestV2) Reset() {
-	*x = GetTransferTransactionsPerTickRequestV2{}
-	mi := &file_archive_proto_msgTypes[57]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *GetTransferTransactionsPerTickRequestV2) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*GetTransferTransactionsPerTickRequestV2) ProtoMessage() {}
-
-func (x *GetTransferTransactionsPerTickRequestV2) ProtoReflect() protoreflect.Message {
-	mi := &file_archive_proto_msgTypes[57]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use GetTransferTransactionsPerTickRequestV2.ProtoReflect.Descriptor instead.
-func (*GetTransferTransactionsPerTickRequestV2) Descriptor() ([]byte, []int) {
-	return file_archive_proto_rawDescGZIP(), []int{57}
-}
-
-func (x *GetTransferTransactionsPerTickRequestV2) GetIdentity() string {
-	if x != nil {
-		return x.Identity
-	}
-	return ""
-}
-
-func (x *GetTransferTransactionsPerTickRequestV2) GetStartTick() uint32 {
-	if x != nil {
-		return x.StartTick
-	}
-	return 0
-}
-
-func (x *GetTransferTransactionsPerTickRequestV2) GetEndTick() uint32 {
-	if x != nil {
-		return x.EndTick
-	}
-	return 0
-}
-
-func (x *GetTransferTransactionsPerTickRequestV2) GetScOnly() bool {
-	if x != nil {
-		return x.ScOnly
-	}
-	return false
-}
-
-func (x *GetTransferTransactionsPerTickRequestV2) GetDesc() bool {
-	if x != nil {
-		return x.Desc
-	}
-	return false
-}
-
-func (x *GetTransferTransactionsPerTickRequestV2) GetPage() uint32 {
-	if x != nil {
-		return x.Page
-	}
-	return 0
-}
-
-func (x *GetTransferTransactionsPerTickRequestV2) GetPageSize() uint32 {
-	if x != nil {
-		return x.PageSize
-	}
-	return 0
-}
-
-type Pagination struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	TotalRecords  int32                  `protobuf:"varint,1,opt,name=total_records,json=totalRecords,proto3" json:"total_records,omitempty"`
-	CurrentPage   int32                  `protobuf:"varint,2,opt,name=current_page,json=currentPage,proto3" json:"current_page,omitempty"`
-	TotalPages    int32                  `protobuf:"varint,3,opt,name=total_pages,json=totalPages,proto3" json:"total_pages,omitempty"`
-	PageSize      int32                  `protobuf:"varint,4,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
-	NextPage      int32                  `protobuf:"varint,5,opt,name=next_page,json=nextPage,proto3" json:"next_page,omitempty"`
-	PreviousPage  int32                  `protobuf:"varint,6,opt,name=previous_page,json=previousPage,proto3" json:"previous_page,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *Pagination) Reset() {
-	*x = Pagination{}
-	mi := &file_archive_proto_msgTypes[58]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *Pagination) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*Pagination) ProtoMessage() {}
-
-func (x *Pagination) ProtoReflect() protoreflect.Message {
-	mi := &file_archive_proto_msgTypes[58]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use Pagination.ProtoReflect.Descriptor instead.
-func (*Pagination) Descriptor() ([]byte, []int) {
-	return file_archive_proto_rawDescGZIP(), []int{58}
-}
-
-func (x *Pagination) GetTotalRecords() int32 {
-	if x != nil {
-		return x.TotalRecords
-	}
-	return 0
-}
-
-func (x *Pagination) GetCurrentPage() int32 {
-	if x != nil {
-		return x.CurrentPage
-	}
-	return 0
-}
-
-func (x *Pagination) GetTotalPages() int32 {
-	if x != nil {
-		return x.TotalPages
-	}
-	return 0
-}
-
-func (x *Pagination) GetPageSize() int32 {
-	if x != nil {
-		return x.PageSize
-	}
-	return 0
-}
-
-func (x *Pagination) GetNextPage() int32 {
-	if x != nil {
-		return x.NextPage
-	}
-	return 0
-}
-
-func (x *Pagination) GetPreviousPage() int32 {
-	if x != nil {
-		return x.PreviousPage
-	}
-	return 0
-}
-
-type GetEmptyTickListRequestV2 struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Epoch         uint32                 `protobuf:"varint,1,opt,name=epoch,proto3" json:"epoch,omitempty"`
-	Page          int32                  `protobuf:"varint,2,opt,name=page,proto3" json:"page,omitempty"`
-	PageSize      int32                  `protobuf:"varint,3,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *GetEmptyTickListRequestV2) Reset() {
-	*x = GetEmptyTickListRequestV2{}
-	mi := &file_archive_proto_msgTypes[59]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *GetEmptyTickListRequestV2) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*GetEmptyTickListRequestV2) ProtoMessage() {}
-
-func (x *GetEmptyTickListRequestV2) ProtoReflect() protoreflect.Message {
-	mi := &file_archive_proto_msgTypes[59]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use GetEmptyTickListRequestV2.ProtoReflect.Descriptor instead.
-func (*GetEmptyTickListRequestV2) Descriptor() ([]byte, []int) {
-	return file_archive_proto_rawDescGZIP(), []int{59}
-}
-
-func (x *GetEmptyTickListRequestV2) GetEpoch() uint32 {
-	if x != nil {
-		return x.Epoch
-	}
-	return 0
-}
-
-func (x *GetEmptyTickListRequestV2) GetPage() int32 {
-	if x != nil {
-		return x.Page
-	}
-	return 0
-}
-
-func (x *GetEmptyTickListRequestV2) GetPageSize() int32 {
-	if x != nil {
-		return x.PageSize
-	}
-	return 0
-}
-
-type GetEmptyTickListResponseV2 struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Pagination    *Pagination            `protobuf:"bytes,1,opt,name=pagination,proto3" json:"pagination,omitempty"`
-	EmptyTicks    []uint32               `protobuf:"varint,2,rep,packed,name=emptyTicks,proto3" json:"emptyTicks,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *GetEmptyTickListResponseV2) Reset() {
-	*x = GetEmptyTickListResponseV2{}
-	mi := &file_archive_proto_msgTypes[60]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *GetEmptyTickListResponseV2) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*GetEmptyTickListResponseV2) ProtoMessage() {}
-
-func (x *GetEmptyTickListResponseV2) ProtoReflect() protoreflect.Message {
-	mi := &file_archive_proto_msgTypes[60]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use GetEmptyTickListResponseV2.ProtoReflect.Descriptor instead.
-func (*GetEmptyTickListResponseV2) Descriptor() ([]byte, []int) {
-	return file_archive_proto_rawDescGZIP(), []int{60}
-}
-
-func (x *GetEmptyTickListResponseV2) GetPagination() *Pagination {
-	if x != nil {
-		return x.Pagination
-	}
-	return nil
-}
-
-func (x *GetEmptyTickListResponseV2) GetEmptyTicks() []uint32 {
-	if x != nil {
-		return x.EmptyTicks
-	}
-	return nil
-}
-
-type TickStatus struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	TickNumber    uint32                 `protobuf:"varint,1,opt,name=tick_number,json=tickNumber,proto3" json:"tick_number,omitempty"`
-	IsEmpty       bool                   `protobuf:"varint,2,opt,name=is_empty,json=isEmpty,proto3" json:"is_empty,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *TickStatus) Reset() {
-	*x = TickStatus{}
-	mi := &file_archive_proto_msgTypes[61]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *TickStatus) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*TickStatus) ProtoMessage() {}
-
-func (x *TickStatus) ProtoReflect() protoreflect.Message {
-	mi := &file_archive_proto_msgTypes[61]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use TickStatus.ProtoReflect.Descriptor instead.
-func (*TickStatus) Descriptor() ([]byte, []int) {
-	return file_archive_proto_rawDescGZIP(), []int{61}
-}
-
-func (x *TickStatus) GetTickNumber() uint32 {
-	if x != nil {
-		return x.TickNumber
-	}
-	return 0
-}
-
-func (x *TickStatus) GetIsEmpty() bool {
-	if x != nil {
-		return x.IsEmpty
-	}
-	return false
-}
-
-type GetEpochTickListRequestV2 struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Epoch         uint32                 `protobuf:"varint,1,opt,name=epoch,proto3" json:"epoch,omitempty"`
-	Page          int32                  `protobuf:"varint,2,opt,name=page,proto3" json:"page,omitempty"`
-	PageSize      int32                  `protobuf:"varint,3,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
-	Desc          bool                   `protobuf:"varint,4,opt,name=desc,proto3" json:"desc,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *GetEpochTickListRequestV2) Reset() {
-	*x = GetEpochTickListRequestV2{}
-	mi := &file_archive_proto_msgTypes[62]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *GetEpochTickListRequestV2) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*GetEpochTickListRequestV2) ProtoMessage() {}
-
-func (x *GetEpochTickListRequestV2) ProtoReflect() protoreflect.Message {
-	mi := &file_archive_proto_msgTypes[62]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use GetEpochTickListRequestV2.ProtoReflect.Descriptor instead.
-func (*GetEpochTickListRequestV2) Descriptor() ([]byte, []int) {
-	return file_archive_proto_rawDescGZIP(), []int{62}
-}
-
-func (x *GetEpochTickListRequestV2) GetEpoch() uint32 {
-	if x != nil {
-		return x.Epoch
-	}
-	return 0
-}
-
-func (x *GetEpochTickListRequestV2) GetPage() int32 {
-	if x != nil {
-		return x.Page
-	}
-	return 0
-}
-
-func (x *GetEpochTickListRequestV2) GetPageSize() int32 {
-	if x != nil {
-		return x.PageSize
-	}
-	return 0
-}
-
-func (x *GetEpochTickListRequestV2) GetDesc() bool {
-	if x != nil {
-		return x.Desc
-	}
-	return false
-}
-
-type GetEpochTickListResponseV2 struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Pagination    *Pagination            `protobuf:"bytes,1,opt,name=pagination,proto3" json:"pagination,omitempty"`
-	Ticks         []*TickStatus          `protobuf:"bytes,2,rep,name=ticks,proto3" json:"ticks,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *GetEpochTickListResponseV2) Reset() {
-	*x = GetEpochTickListResponseV2{}
-	mi := &file_archive_proto_msgTypes[63]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *GetEpochTickListResponseV2) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*GetEpochTickListResponseV2) ProtoMessage() {}
-
-func (x *GetEpochTickListResponseV2) ProtoReflect() protoreflect.Message {
-	mi := &file_archive_proto_msgTypes[63]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use GetEpochTickListResponseV2.ProtoReflect.Descriptor instead.
-func (*GetEpochTickListResponseV2) Descriptor() ([]byte, []int) {
-	return file_archive_proto_rawDescGZIP(), []int{63}
-}
-
-func (x *GetEpochTickListResponseV2) GetPagination() *Pagination {
-	if x != nil {
-		return x.Pagination
-	}
-	return nil
-}
-
-func (x *GetEpochTickListResponseV2) GetTicks() []*TickStatus {
-	if x != nil {
-		return x.Ticks
-	}
-	return nil
 }
 
 var File_archive_proto protoreflect.FileDescriptor
@@ -3631,29 +1819,7 @@ const file_archive_proto_rawDesc = "" +
 	"\x05tx_id\x18\x01 \x01(\tR\x04txId\x12\x1c\n" +
 	"\tmoneyFlew\x18\x02 \x01(\bR\tmoneyFlew\"e\n" +
 	"\x16TickTransactionsStatus\x12K\n" +
-	"\ftransactions\x18\x01 \x03(\v2'.qubic.archiver.v2.pb.TransactionStatusR\ftransactions\"=\n" +
-	"\x11NextAvailableTick\x12(\n" +
-	"\x10next_tick_number\x18\x01 \x01(\rR\x0enextTickNumber\"C\n" +
-	"\x11LastProcessedTick\x12.\n" +
-	"\x13last_processed_tick\x18\x01 \x01(\rR\x11lastProcessedTick\",\n" +
-	"\x15GetTransactionRequest\x12\x13\n" +
-	"\x05tx_id\x18\x01 \x01(\tR\x04txId\"]\n" +
-	"\x16GetTransactionResponse\x12C\n" +
-	"\vtransaction\x18\x01 \x01(\v2!.qubic.archiver.v2.pb.TransactionR\vtransaction\"2\n" +
-	"\x1bGetTransactionStatusRequest\x12\x13\n" +
-	"\x05tx_id\x18\x01 \x01(\tR\x04txId\"v\n" +
-	"\x1cGetTransactionStatusResponse\x12V\n" +
-	"\x12transaction_status\x18\x01 \x01(\v2'.qubic.archiver.v2.pb.TransactionStatusR\x11transactionStatus\"=\n" +
-	"\x1aGetTickTransactionsRequest\x12\x1f\n" +
-	"\vtick_number\x18\x01 \x01(\rR\n" +
-	"tickNumber\"d\n" +
-	"\x1bGetTickTransactionsResponse\x12E\n" +
-	"\ftransactions\x18\x01 \x03(\v2!.qubic.archiver.v2.pb.TransactionR\ftransactions\"E\n" +
-	"\"GetTickApprovedTransactionsRequest\x12\x1f\n" +
-	"\vtick_number\x18\x01 \x01(\rR\n" +
-	"tickNumber\"}\n" +
-	"#GetTickApprovedTransactionsResponse\x12V\n" +
-	"\x15approved_transactions\x18\x01 \x03(\v2!.qubic.archiver.v2.pb.TransactionR\x14approvedTransactions\"\xd5\x02\n" +
+	"\ftransactions\x18\x01 \x03(\v2'.qubic.archiver.v2.pb.TransactionStatusR\ftransactions\"\xd5\x02\n" +
 	"\x0eQuorumTickData\x12]\n" +
 	"\x15quorum_tick_structure\x18\x01 \x01(\v2).qubic.archiver.v2.pb.QuorumTickStructureR\x13quorumTickStructure\x12x\n" +
 	"\x18quorum_diff_per_computor\x18\x02 \x03(\v2?.qubic.archiver.v2.pb.QuorumTickData.QuorumDiffPerComputorEntryR\x15quorumDiffPerComputor\x1aj\n" +
@@ -3689,13 +1855,7 @@ const file_archive_proto_rawDesc = "" +
 	"\x05value\x18\x02 \x01(\v2&.qubic.archiver.v2.pb.QuorumDiffStoredR\x05value:\x028\x01\"~\n" +
 	"\x10QuorumDiffStored\x12E\n" +
 	" expected_next_tick_tx_digest_hex\x18\x05 \x01(\tR\x1bexpectedNextTickTxDigestHex\x12#\n" +
-	"\rsignature_hex\x18\x06 \x01(\tR\fsignatureHex\"P\n" +
-	"\x14SkippedTicksInterval\x12\x1d\n" +
-	"\n" +
-	"start_tick\x18\x01 \x01(\rR\tstartTick\x12\x19\n" +
-	"\bend_tick\x18\x02 \x01(\rR\aendTick\"k\n" +
-	"\x18SkippedTicksIntervalList\x12O\n" +
-	"\rskipped_ticks\x18\x01 \x03(\v2*.qubic.archiver.v2.pb.SkippedTicksIntervalR\fskippedTicks\"\xa5\x02\n" +
+	"\rsignature_hex\x18\x06 \x01(\tR\fsignatureHex\"\xa5\x02\n" +
 	"#LastTickQuorumDataPerEpochIntervals\x12\x8d\x01\n" +
 	"\x18quorum_data_per_interval\x18\x01 \x03(\v2T.qubic.archiver.v2.pb.LastTickQuorumDataPerEpochIntervals.QuorumDataPerIntervalEntryR\x15quorumDataPerInterval\x1an\n" +
 	"\x1aQuorumDataPerIntervalEntry\x12\x10\n" +
@@ -3721,12 +1881,7 @@ const file_archive_proto_rawDesc = "" +
 	"\x14GetComputorsResponse\x12=\n" +
 	"\tcomputors\x18\x01 \x01(\v2\x1f.qubic.archiver.v2.pb.ComputorsR\tcomputors\"N\n" +
 	"\rComputorsList\x12=\n" +
-	"\tcomputors\x18\x01 \x03(\v2\x1f.qubic.archiver.v2.pb.ComputorsR\tcomputors\"\xa1\x01\n" +
-	"\x1bTransferTransactionsPerTick\x12\x1f\n" +
-	"\vtick_number\x18\x01 \x01(\rR\n" +
-	"tickNumber\x12\x1a\n" +
-	"\bidentity\x18\x02 \x01(\tR\bidentity\x12E\n" +
-	"\ftransactions\x18\x03 \x03(\v2!.qubic.archiver.v2.pb.TransactionR\ftransactions\"F\n" +
+	"\tcomputors\x18\x01 \x03(\v2\x1f.qubic.archiver.v2.pb.ComputorsR\tcomputors\"F\n" +
 	"\rProcessedTick\x12\x1f\n" +
 	"\vtick_number\x18\x01 \x01(\rR\n" +
 	"tickNumber\x12\x14\n" +
@@ -3742,72 +1897,12 @@ const file_archive_proto_rawDesc = "" +
 	"\n" +
 	"live_epoch\x18\x04 \x01(\rR\tliveEpoch\x12\x1b\n" +
 	"\tlive_tick\x18\x05 \x01(\rR\bliveTick\"}\n" +
-	"%GetTransferTransactionsPerTickRequest\x12\x1a\n" +
-	"\bidentity\x18\x01 \x01(\tR\bidentity\x12\x1d\n" +
-	"\n" +
-	"start_tick\x18\x02 \x01(\rR\tstartTick\x12\x19\n" +
-	"\bend_tick\x18\x03 \x01(\rR\aendTick\"\xa0\x01\n" +
-	"&GetTransferTransactionsPerTickResponse\x12v\n" +
-	"\x1etransfer_transactions_per_tick\x18\x01 \x03(\v21.qubic.archiver.v2.pb.TransferTransactionsPerTickR\x1btransferTransactionsPerTick\"6\n" +
-	"\x13GetChainHashRequest\x12\x1f\n" +
-	"\vtick_number\x18\x01 \x01(\rR\n" +
-	"tickNumber\"5\n" +
-	"\x14GetChainHashResponse\x12\x1d\n" +
-	"\n" +
-	"hex_digest\x18\x01 \x01(\tR\thexDigest\"}\n" +
 	"\x15ProcessedTickInterval\x124\n" +
 	"\x16initial_processed_tick\x18\x01 \x01(\rR\x14initialProcessedTick\x12.\n" +
 	"\x13last_processed_tick\x18\x02 \x01(\rR\x11lastProcessedTick\"\x81\x01\n" +
 	"\x1eProcessedTickIntervalsPerEpoch\x12\x14\n" +
 	"\x05epoch\x18\x01 \x01(\rR\x05epoch\x12I\n" +
-	"\tintervals\x18\x02 \x03(\v2+.qubic.archiver.v2.pb.ProcessedTickIntervalR\tintervals\"\xb1\x02\n" +
-	"\x04Tick\x12%\n" +
-	"\x0ecomputor_index\x18\x01 \x01(\rR\rcomputorIndex\x12\x14\n" +
-	"\x05epoch\x18\x02 \x01(\rR\x05epoch\x12\x1f\n" +
-	"\vtick_number\x18\x03 \x01(\rR\n" +
-	"tickNumber\x12\x1c\n" +
-	"\ttimestamp\x18\x04 \x01(\x04R\ttimestamp\x12\x1d\n" +
-	"\n" +
-	"var_struct\x18\x05 \x01(\fR\tvarStruct\x12\x1b\n" +
-	"\ttime_lock\x18\x06 \x01(\fR\btimeLock\x12'\n" +
-	"\x0ftransaction_ids\x18\a \x03(\tR\x0etransactionIds\x12#\n" +
-	"\rcontract_fees\x18\b \x03(\x03R\fcontractFees\x12#\n" +
-	"\rsignature_hex\x18\t \x01(\tR\fsignatureHex\"L\n" +
-	"\x11GetTickResponseV2\x127\n" +
-	"\ttick_Data\x18\x01 \x01(\v2\x1a.qubic.archiver.v2.pb.TickR\btickData\"\xa2\x01\n" +
-	"\x18PerTickIdentityTransfers\x12\x1f\n" +
-	"\vtick_number\x18\x01 \x01(\rR\n" +
-	"tickNumber\x12\x1a\n" +
-	"\bidentity\x18\x02 \x01(\tR\bidentity\x12I\n" +
-	"\ftransactions\x18\x03 \x03(\v2%.qubic.archiver.v2.pb.TransactionDataR\ftransactions\"\xc1\x01\n" +
-	")GetIdentityTransfersInTickRangeResponseV2\x12@\n" +
-	"\n" +
-	"pagination\x18\x01 \x01(\v2 .qubic.archiver.v2.pb.PaginationR\n" +
-	"pagination\x12R\n" +
-	"\ftransactions\x18\x02 \x03(\v2..qubic.archiver.v2.pb.PerTickIdentityTransfersR\ftransactions\"C\n" +
-	"\x10SendManyTransfer\x12\x17\n" +
-	"\adest_id\x18\x01 \x01(\tR\x06destId\x12\x16\n" +
-	"\x06amount\x18\x02 \x01(\x03R\x06amount\"\xf6\x01\n" +
-	"\x13SendManyTransaction\x12\x1b\n" +
-	"\tsource_id\x18\x01 \x01(\tR\bsourceId\x12\x1f\n" +
-	"\vtick_number\x18\x02 \x01(\rR\n" +
-	"tickNumber\x12D\n" +
-	"\ttransfers\x18\x03 \x03(\v2&.qubic.archiver.v2.pb.SendManyTransferR\ttransfers\x12!\n" +
-	"\ftotal_amount\x18\x04 \x01(\x03R\vtotalAmount\x12#\n" +
-	"\rsignature_hex\x18\x05 \x01(\tR\fsignatureHex\x12\x13\n" +
-	"\x05tx_id\x18\x06 \x01(\tR\x04txId\"\xa3\x01\n" +
-	"\x17SendManyTransactionData\x12K\n" +
-	"\vtransaction\x18\x02 \x01(\v2).qubic.archiver.v2.pb.SendManyTransactionR\vtransaction\x12\x1c\n" +
-	"\ttimestamp\x18\x03 \x01(\x04R\ttimestamp\x12\x1d\n" +
-	"\n" +
-	"money_flew\x18\x04 \x01(\bR\tmoneyFlew\"6\n" +
-	"\x1fGetSendManyTransactionRequestV2\x12\x13\n" +
-	"\x05tx_id\x18\x01 \x01(\tR\x04txId\"\xac\x01\n" +
-	" GetSendManyTransactionResponseV2\x12K\n" +
-	"\vtransaction\x18\x02 \x01(\v2).qubic.archiver.v2.pb.SendManyTransactionR\vtransaction\x12\x1c\n" +
-	"\ttimestamp\x18\x03 \x01(\x04R\ttimestamp\x12\x1d\n" +
-	"\n" +
-	"money_flew\x18\x04 \x01(\bR\tmoneyFlew\"\x93\x01\n" +
+	"\tintervals\x18\x02 \x03(\v2+.qubic.archiver.v2.pb.ProcessedTickIntervalR\tintervals\"\x93\x01\n" +
 	"\x0fTransactionData\x12C\n" +
 	"\vtransaction\x18\x01 \x01(\v2!.qubic.archiver.v2.pb.TransactionR\vtransaction\x12\x1c\n" +
 	"\ttimestamp\x18\x02 \x01(\x04R\ttimestamp\x12\x1d\n" +
@@ -3815,8 +1910,11 @@ const file_archive_proto_rawDesc = "" +
 	"money_flew\x18\x03 \x01(\bR\tmoneyFlew\"8\n" +
 	"\x15GetLatestTickResponse\x12\x1f\n" +
 	"\vlatest_tick\x18\x01 \x01(\rR\n" +
-	"latestTick\"3\n" +
-	"\x10GetTickRequestV2\x12\x1f\n" +
+	"latestTick\"5\n" +
+	"\x12GetQuorumRequestV2\x12\x1f\n" +
+	"\vtick_number\x18\x01 \x01(\rR\n" +
+	"tickNumber\"?\n" +
+	"\x1cGetTickTransactionsRequestV2\x12\x1f\n" +
 	"\vtick_number\x18\x01 \x01(\rR\n" +
 	"tickNumber\"j\n" +
 	"\x1dGetTickTransactionsResponseV2\x12I\n" +
@@ -3827,62 +1925,15 @@ const file_archive_proto_rawDesc = "" +
 	"\vtransaction\x18\x01 \x01(\v2!.qubic.archiver.v2.pb.TransactionR\vtransaction\x12\x1c\n" +
 	"\ttimestamp\x18\x02 \x01(\x04R\ttimestamp\x12\x1d\n" +
 	"\n" +
-	"money_flew\x18\x03 \x01(\bR\tmoneyFlew\"?\n" +
-	"\x1cGetTickTransactionsRequestV2\x12\x1f\n" +
-	"\vtick_number\x18\x01 \x01(\rR\n" +
-	"tickNumber\"\xdd\x01\n" +
-	"'GetTransferTransactionsPerTickRequestV2\x12\x1a\n" +
-	"\bidentity\x18\x01 \x01(\tR\bidentity\x12\x1d\n" +
-	"\n" +
-	"start_tick\x18\x02 \x01(\rR\tstartTick\x12\x19\n" +
-	"\bend_tick\x18\x03 \x01(\rR\aendTick\x12\x17\n" +
-	"\asc_only\x18\x04 \x01(\bR\x06scOnly\x12\x12\n" +
-	"\x04desc\x18\x05 \x01(\bR\x04desc\x12\x12\n" +
-	"\x04page\x18\x06 \x01(\rR\x04page\x12\x1b\n" +
-	"\tpage_size\x18\a \x01(\rR\bpageSize\"\xd4\x01\n" +
-	"\n" +
-	"Pagination\x12#\n" +
-	"\rtotal_records\x18\x01 \x01(\x05R\ftotalRecords\x12!\n" +
-	"\fcurrent_page\x18\x02 \x01(\x05R\vcurrentPage\x12\x1f\n" +
-	"\vtotal_pages\x18\x03 \x01(\x05R\n" +
-	"totalPages\x12\x1b\n" +
-	"\tpage_size\x18\x04 \x01(\x05R\bpageSize\x12\x1b\n" +
-	"\tnext_page\x18\x05 \x01(\x05R\bnextPage\x12#\n" +
-	"\rprevious_page\x18\x06 \x01(\x05R\fpreviousPage\"b\n" +
-	"\x19GetEmptyTickListRequestV2\x12\x14\n" +
-	"\x05epoch\x18\x01 \x01(\rR\x05epoch\x12\x12\n" +
-	"\x04page\x18\x02 \x01(\x05R\x04page\x12\x1b\n" +
-	"\tpage_size\x18\x03 \x01(\x05R\bpageSize\"~\n" +
-	"\x1aGetEmptyTickListResponseV2\x12@\n" +
-	"\n" +
-	"pagination\x18\x01 \x01(\v2 .qubic.archiver.v2.pb.PaginationR\n" +
-	"pagination\x12\x1e\n" +
-	"\n" +
-	"emptyTicks\x18\x02 \x03(\rR\n" +
-	"emptyTicks\"H\n" +
-	"\n" +
-	"TickStatus\x12\x1f\n" +
-	"\vtick_number\x18\x01 \x01(\rR\n" +
-	"tickNumber\x12\x19\n" +
-	"\bis_empty\x18\x02 \x01(\bR\aisEmpty\"v\n" +
-	"\x19GetEpochTickListRequestV2\x12\x14\n" +
-	"\x05epoch\x18\x01 \x01(\rR\x05epoch\x12\x12\n" +
-	"\x04page\x18\x02 \x01(\x05R\x04page\x12\x1b\n" +
-	"\tpage_size\x18\x03 \x01(\x05R\bpageSize\x12\x12\n" +
-	"\x04desc\x18\x04 \x01(\bR\x04desc\"\x96\x01\n" +
-	"\x1aGetEpochTickListResponseV2\x12@\n" +
-	"\n" +
-	"pagination\x18\x01 \x01(\v2 .qubic.archiver.v2.pb.PaginationR\n" +
-	"pagination\x126\n" +
-	"\x05ticks\x18\x02 \x03(\v2 .qubic.archiver.v2.pb.TickStatusR\x05ticks2\xd7\a\n" +
+	"money_flew\x18\x03 \x01(\bR\tmoneyFlew2\xdf\a\n" +
 	"\x0eArchiveService\x12`\n" +
 	"\tGetStatus\x12\x16.google.protobuf.Empty\x1a'.qubic.archiver.v2.pb.GetStatusResponse\"\x12\x82\xd3\xe4\x93\x02\f\x12\n" +
 	"/v1/status\x12\xae\x01\n" +
 	"\x15GetTickTransactionsV2\x122.qubic.archiver.v2.pb.GetTickTransactionsRequestV2\x1a3.qubic.archiver.v2.pb.GetTickTransactionsResponseV2\",\x82\xd3\xe4\x93\x02&\x12$/v2/ticks/{tick_number}/transactions\x12\x8d\x01\n" +
 	"\vGetTickData\x12(.qubic.archiver.v2.pb.GetTickDataRequest\x1a).qubic.archiver.v2.pb.GetTickDataResponse\")\x82\xd3\xe4\x93\x02#\x12!/v1/ticks/{tick_number}/tick-data\x12\x8b\x01\n" +
 	"\fGetComputors\x12).qubic.archiver.v2.pb.GetComputorsRequest\x1a*.qubic.archiver.v2.pb.GetComputorsResponse\"$\x82\xd3\xe4\x93\x02\x1e\x12\x1c/v1/epochs/{epoch}/computors\x12\x93\x01\n" +
-	"\x10GetTransactionV2\x12-.qubic.archiver.v2.pb.GetTransactionRequestV2\x1a..qubic.archiver.v2.pb.GetTransactionResponseV2\" \x82\xd3\xe4\x93\x02\x1a\x12\x18/v2/transactions/{tx_id}\x12\x9b\x01\n" +
-	"\x13GetTickQuorumDataV2\x12&.qubic.archiver.v2.pb.GetTickRequestV2\x1a/.qubic.archiver.v2.pb.GetQuorumTickDataResponse\"+\x82\xd3\xe4\x93\x02%\x12#/v2/ticks/{tick_number}/quorum-data\x12`\n" +
+	"\x10GetTransactionV2\x12-.qubic.archiver.v2.pb.GetTransactionRequestV2\x1a..qubic.archiver.v2.pb.GetTransactionResponseV2\" \x82\xd3\xe4\x93\x02\x1a\x12\x18/v2/transactions/{tx_id}\x12\xa3\x01\n" +
+	"\x13GetTickQuorumDataV2\x12..qubic.archiver.v2.pb.GetQuorumTickDataRequest\x1a/.qubic.archiver.v2.pb.GetQuorumTickDataResponse\"+\x82\xd3\xe4\x93\x02%\x12#/v2/ticks/{tick_number}/quorum-data\x12`\n" +
 	"\tGetHealth\x12\x16.google.protobuf.Empty\x1a'.qubic.archiver.v2.pb.GetHealthResponse\"\x12\x82\xd3\xe4\x93\x02\f\x12\n" +
 	"/v1/healthB.Z,github.com/qubic/go-archiver-v2-v2/protobuf/b\x06proto3"
 
@@ -3898,134 +1949,84 @@ func file_archive_proto_rawDescGZIP() []byte {
 	return file_archive_proto_rawDescData
 }
 
-var file_archive_proto_msgTypes = make([]protoimpl.MessageInfo, 67)
+var file_archive_proto_msgTypes = make([]protoimpl.MessageInfo, 34)
 var file_archive_proto_goTypes = []any{
-	(*TickData)(nil),                                  // 0: qubic.archiver.v2.pb.TickData
-	(*GetTickDataRequest)(nil),                        // 1: qubic.archiver.v2.pb.GetTickDataRequest
-	(*GetTickDataResponse)(nil),                       // 2: qubic.archiver.v2.pb.GetTickDataResponse
-	(*Transaction)(nil),                               // 3: qubic.archiver.v2.pb.Transaction
-	(*TransactionStatus)(nil),                         // 4: qubic.archiver.v2.pb.TransactionStatus
-	(*TickTransactionsStatus)(nil),                    // 5: qubic.archiver.v2.pb.TickTransactionsStatus
-	(*NextAvailableTick)(nil),                         // 6: qubic.archiver.v2.pb.NextAvailableTick
-	(*LastProcessedTick)(nil),                         // 7: qubic.archiver.v2.pb.LastProcessedTick
-	(*GetTransactionRequest)(nil),                     // 8: qubic.archiver.v2.pb.GetTransactionRequest
-	(*GetTransactionResponse)(nil),                    // 9: qubic.archiver.v2.pb.GetTransactionResponse
-	(*GetTransactionStatusRequest)(nil),               // 10: qubic.archiver.v2.pb.GetTransactionStatusRequest
-	(*GetTransactionStatusResponse)(nil),              // 11: qubic.archiver.v2.pb.GetTransactionStatusResponse
-	(*GetTickTransactionsRequest)(nil),                // 12: qubic.archiver.v2.pb.GetTickTransactionsRequest
-	(*GetTickTransactionsResponse)(nil),               // 13: qubic.archiver.v2.pb.GetTickTransactionsResponse
-	(*GetTickApprovedTransactionsRequest)(nil),        // 14: qubic.archiver.v2.pb.GetTickApprovedTransactionsRequest
-	(*GetTickApprovedTransactionsResponse)(nil),       // 15: qubic.archiver.v2.pb.GetTickApprovedTransactionsResponse
-	(*QuorumTickData)(nil),                            // 16: qubic.archiver.v2.pb.QuorumTickData
-	(*QuorumTickStructure)(nil),                       // 17: qubic.archiver.v2.pb.QuorumTickStructure
-	(*QuorumDiff)(nil),                                // 18: qubic.archiver.v2.pb.QuorumDiff
-	(*QuorumTickDataStored)(nil),                      // 19: qubic.archiver.v2.pb.QuorumTickDataStored
-	(*QuorumDiffStored)(nil),                          // 20: qubic.archiver.v2.pb.QuorumDiffStored
-	(*SkippedTicksInterval)(nil),                      // 21: qubic.archiver.v2.pb.SkippedTicksInterval
-	(*SkippedTicksIntervalList)(nil),                  // 22: qubic.archiver.v2.pb.SkippedTicksIntervalList
-	(*LastTickQuorumDataPerEpochIntervals)(nil),       // 23: qubic.archiver.v2.pb.LastTickQuorumDataPerEpochIntervals
-	(*GetQuorumTickDataRequest)(nil),                  // 24: qubic.archiver.v2.pb.GetQuorumTickDataRequest
-	(*GetQuorumTickDataResponse)(nil),                 // 25: qubic.archiver.v2.pb.GetQuorumTickDataResponse
-	(*GetQuorumTickDataResponseStored)(nil),           // 26: qubic.archiver.v2.pb.GetQuorumTickDataResponseStored
-	(*Computors)(nil),                                 // 27: qubic.archiver.v2.pb.Computors
-	(*GetComputorsRequest)(nil),                       // 28: qubic.archiver.v2.pb.GetComputorsRequest
-	(*GetComputorsResponse)(nil),                      // 29: qubic.archiver.v2.pb.GetComputorsResponse
-	(*ComputorsList)(nil),                             // 30: qubic.archiver.v2.pb.ComputorsList
-	(*TransferTransactionsPerTick)(nil),               // 31: qubic.archiver.v2.pb.TransferTransactionsPerTick
-	(*ProcessedTick)(nil),                             // 32: qubic.archiver.v2.pb.ProcessedTick
-	(*GetStatusResponse)(nil),                         // 33: qubic.archiver.v2.pb.GetStatusResponse
-	(*GetHealthResponse)(nil),                         // 34: qubic.archiver.v2.pb.GetHealthResponse
-	(*GetTransferTransactionsPerTickRequest)(nil),     // 35: qubic.archiver.v2.pb.GetTransferTransactionsPerTickRequest
-	(*GetTransferTransactionsPerTickResponse)(nil),    // 36: qubic.archiver.v2.pb.GetTransferTransactionsPerTickResponse
-	(*GetChainHashRequest)(nil),                       // 37: qubic.archiver.v2.pb.GetChainHashRequest
-	(*GetChainHashResponse)(nil),                      // 38: qubic.archiver.v2.pb.GetChainHashResponse
-	(*ProcessedTickInterval)(nil),                     // 39: qubic.archiver.v2.pb.ProcessedTickInterval
-	(*ProcessedTickIntervalsPerEpoch)(nil),            // 40: qubic.archiver.v2.pb.ProcessedTickIntervalsPerEpoch
-	(*Tick)(nil),                                      // 41: qubic.archiver.v2.pb.Tick
-	(*GetTickResponseV2)(nil),                         // 42: qubic.archiver.v2.pb.GetTickResponseV2
-	(*PerTickIdentityTransfers)(nil),                  // 43: qubic.archiver.v2.pb.PerTickIdentityTransfers
-	(*GetIdentityTransfersInTickRangeResponseV2)(nil), // 44: qubic.archiver.v2.pb.GetIdentityTransfersInTickRangeResponseV2
-	(*SendManyTransfer)(nil),                          // 45: qubic.archiver.v2.pb.SendManyTransfer
-	(*SendManyTransaction)(nil),                       // 46: qubic.archiver.v2.pb.SendManyTransaction
-	(*SendManyTransactionData)(nil),                   // 47: qubic.archiver.v2.pb.SendManyTransactionData
-	(*GetSendManyTransactionRequestV2)(nil),           // 48: qubic.archiver.v2.pb.GetSendManyTransactionRequestV2
-	(*GetSendManyTransactionResponseV2)(nil),          // 49: qubic.archiver.v2.pb.GetSendManyTransactionResponseV2
-	(*TransactionData)(nil),                           // 50: qubic.archiver.v2.pb.TransactionData
-	(*GetLatestTickResponse)(nil),                     // 51: qubic.archiver.v2.pb.GetLatestTickResponse
-	(*GetTickRequestV2)(nil),                          // 52: qubic.archiver.v2.pb.GetTickRequestV2
-	(*GetTickTransactionsResponseV2)(nil),             // 53: qubic.archiver.v2.pb.GetTickTransactionsResponseV2
-	(*GetTransactionRequestV2)(nil),                   // 54: qubic.archiver.v2.pb.GetTransactionRequestV2
-	(*GetTransactionResponseV2)(nil),                  // 55: qubic.archiver.v2.pb.GetTransactionResponseV2
-	(*GetTickTransactionsRequestV2)(nil),              // 56: qubic.archiver.v2.pb.GetTickTransactionsRequestV2
-	(*GetTransferTransactionsPerTickRequestV2)(nil),   // 57: qubic.archiver.v2.pb.GetTransferTransactionsPerTickRequestV2
-	(*Pagination)(nil),                                // 58: qubic.archiver.v2.pb.Pagination
-	(*GetEmptyTickListRequestV2)(nil),                 // 59: qubic.archiver.v2.pb.GetEmptyTickListRequestV2
-	(*GetEmptyTickListResponseV2)(nil),                // 60: qubic.archiver.v2.pb.GetEmptyTickListResponseV2
-	(*TickStatus)(nil),                                // 61: qubic.archiver.v2.pb.TickStatus
-	(*GetEpochTickListRequestV2)(nil),                 // 62: qubic.archiver.v2.pb.GetEpochTickListRequestV2
-	(*GetEpochTickListResponseV2)(nil),                // 63: qubic.archiver.v2.pb.GetEpochTickListResponseV2
-	nil,                                               // 64: qubic.archiver.v2.pb.QuorumTickData.QuorumDiffPerComputorEntry
-	nil,                                               // 65: qubic.archiver.v2.pb.QuorumTickDataStored.QuorumDiffPerComputorEntry
-	nil,                                               // 66: qubic.archiver.v2.pb.LastTickQuorumDataPerEpochIntervals.QuorumDataPerIntervalEntry
-	(*emptypb.Empty)(nil),                             // 67: google.protobuf.Empty
+	(*TickData)(nil),                            // 0: qubic.archiver.v2.pb.TickData
+	(*GetTickDataRequest)(nil),                  // 1: qubic.archiver.v2.pb.GetTickDataRequest
+	(*GetTickDataResponse)(nil),                 // 2: qubic.archiver.v2.pb.GetTickDataResponse
+	(*Transaction)(nil),                         // 3: qubic.archiver.v2.pb.Transaction
+	(*TransactionStatus)(nil),                   // 4: qubic.archiver.v2.pb.TransactionStatus
+	(*TickTransactionsStatus)(nil),              // 5: qubic.archiver.v2.pb.TickTransactionsStatus
+	(*QuorumTickData)(nil),                      // 6: qubic.archiver.v2.pb.QuorumTickData
+	(*QuorumTickStructure)(nil),                 // 7: qubic.archiver.v2.pb.QuorumTickStructure
+	(*QuorumDiff)(nil),                          // 8: qubic.archiver.v2.pb.QuorumDiff
+	(*QuorumTickDataStored)(nil),                // 9: qubic.archiver.v2.pb.QuorumTickDataStored
+	(*QuorumDiffStored)(nil),                    // 10: qubic.archiver.v2.pb.QuorumDiffStored
+	(*LastTickQuorumDataPerEpochIntervals)(nil), // 11: qubic.archiver.v2.pb.LastTickQuorumDataPerEpochIntervals
+	(*GetQuorumTickDataRequest)(nil),            // 12: qubic.archiver.v2.pb.GetQuorumTickDataRequest
+	(*GetQuorumTickDataResponse)(nil),           // 13: qubic.archiver.v2.pb.GetQuorumTickDataResponse
+	(*GetQuorumTickDataResponseStored)(nil),     // 14: qubic.archiver.v2.pb.GetQuorumTickDataResponseStored
+	(*Computors)(nil),                           // 15: qubic.archiver.v2.pb.Computors
+	(*GetComputorsRequest)(nil),                 // 16: qubic.archiver.v2.pb.GetComputorsRequest
+	(*GetComputorsResponse)(nil),                // 17: qubic.archiver.v2.pb.GetComputorsResponse
+	(*ComputorsList)(nil),                       // 18: qubic.archiver.v2.pb.ComputorsList
+	(*ProcessedTick)(nil),                       // 19: qubic.archiver.v2.pb.ProcessedTick
+	(*GetStatusResponse)(nil),                   // 20: qubic.archiver.v2.pb.GetStatusResponse
+	(*GetHealthResponse)(nil),                   // 21: qubic.archiver.v2.pb.GetHealthResponse
+	(*ProcessedTickInterval)(nil),               // 22: qubic.archiver.v2.pb.ProcessedTickInterval
+	(*ProcessedTickIntervalsPerEpoch)(nil),      // 23: qubic.archiver.v2.pb.ProcessedTickIntervalsPerEpoch
+	(*TransactionData)(nil),                     // 24: qubic.archiver.v2.pb.TransactionData
+	(*GetLatestTickResponse)(nil),               // 25: qubic.archiver.v2.pb.GetLatestTickResponse
+	(*GetQuorumRequestV2)(nil),                  // 26: qubic.archiver.v2.pb.GetQuorumRequestV2
+	(*GetTickTransactionsRequestV2)(nil),        // 27: qubic.archiver.v2.pb.GetTickTransactionsRequestV2
+	(*GetTickTransactionsResponseV2)(nil),       // 28: qubic.archiver.v2.pb.GetTickTransactionsResponseV2
+	(*GetTransactionRequestV2)(nil),             // 29: qubic.archiver.v2.pb.GetTransactionRequestV2
+	(*GetTransactionResponseV2)(nil),            // 30: qubic.archiver.v2.pb.GetTransactionResponseV2
+	nil,                                         // 31: qubic.archiver.v2.pb.QuorumTickData.QuorumDiffPerComputorEntry
+	nil,                                         // 32: qubic.archiver.v2.pb.QuorumTickDataStored.QuorumDiffPerComputorEntry
+	nil,                                         // 33: qubic.archiver.v2.pb.LastTickQuorumDataPerEpochIntervals.QuorumDataPerIntervalEntry
+	(*emptypb.Empty)(nil),                       // 34: google.protobuf.Empty
 }
 var file_archive_proto_depIdxs = []int32{
 	0,  // 0: qubic.archiver.v2.pb.GetTickDataResponse.tick_data:type_name -> qubic.archiver.v2.pb.TickData
 	4,  // 1: qubic.archiver.v2.pb.TickTransactionsStatus.transactions:type_name -> qubic.archiver.v2.pb.TransactionStatus
-	3,  // 2: qubic.archiver.v2.pb.GetTransactionResponse.transaction:type_name -> qubic.archiver.v2.pb.Transaction
-	4,  // 3: qubic.archiver.v2.pb.GetTransactionStatusResponse.transaction_status:type_name -> qubic.archiver.v2.pb.TransactionStatus
-	3,  // 4: qubic.archiver.v2.pb.GetTickTransactionsResponse.transactions:type_name -> qubic.archiver.v2.pb.Transaction
-	3,  // 5: qubic.archiver.v2.pb.GetTickApprovedTransactionsResponse.approved_transactions:type_name -> qubic.archiver.v2.pb.Transaction
-	17, // 6: qubic.archiver.v2.pb.QuorumTickData.quorum_tick_structure:type_name -> qubic.archiver.v2.pb.QuorumTickStructure
-	64, // 7: qubic.archiver.v2.pb.QuorumTickData.quorum_diff_per_computor:type_name -> qubic.archiver.v2.pb.QuorumTickData.QuorumDiffPerComputorEntry
-	17, // 8: qubic.archiver.v2.pb.QuorumTickDataStored.quorum_tick_structure:type_name -> qubic.archiver.v2.pb.QuorumTickStructure
-	65, // 9: qubic.archiver.v2.pb.QuorumTickDataStored.quorum_diff_per_computor:type_name -> qubic.archiver.v2.pb.QuorumTickDataStored.QuorumDiffPerComputorEntry
-	21, // 10: qubic.archiver.v2.pb.SkippedTicksIntervalList.skipped_ticks:type_name -> qubic.archiver.v2.pb.SkippedTicksInterval
-	66, // 11: qubic.archiver.v2.pb.LastTickQuorumDataPerEpochIntervals.quorum_data_per_interval:type_name -> qubic.archiver.v2.pb.LastTickQuorumDataPerEpochIntervals.QuorumDataPerIntervalEntry
-	16, // 12: qubic.archiver.v2.pb.GetQuorumTickDataResponse.quorum_tick_data:type_name -> qubic.archiver.v2.pb.QuorumTickData
-	19, // 13: qubic.archiver.v2.pb.GetQuorumTickDataResponseStored.quorum_tick_data:type_name -> qubic.archiver.v2.pb.QuorumTickDataStored
-	27, // 14: qubic.archiver.v2.pb.GetComputorsResponse.computors:type_name -> qubic.archiver.v2.pb.Computors
-	27, // 15: qubic.archiver.v2.pb.ComputorsList.computors:type_name -> qubic.archiver.v2.pb.Computors
-	3,  // 16: qubic.archiver.v2.pb.TransferTransactionsPerTick.transactions:type_name -> qubic.archiver.v2.pb.Transaction
-	32, // 17: qubic.archiver.v2.pb.GetStatusResponse.last_processed_tick:type_name -> qubic.archiver.v2.pb.ProcessedTick
-	40, // 18: qubic.archiver.v2.pb.GetStatusResponse.processed_tick_intervals_per_epoch:type_name -> qubic.archiver.v2.pb.ProcessedTickIntervalsPerEpoch
-	31, // 19: qubic.archiver.v2.pb.GetTransferTransactionsPerTickResponse.transfer_transactions_per_tick:type_name -> qubic.archiver.v2.pb.TransferTransactionsPerTick
-	39, // 20: qubic.archiver.v2.pb.ProcessedTickIntervalsPerEpoch.intervals:type_name -> qubic.archiver.v2.pb.ProcessedTickInterval
-	41, // 21: qubic.archiver.v2.pb.GetTickResponseV2.tick_Data:type_name -> qubic.archiver.v2.pb.Tick
-	50, // 22: qubic.archiver.v2.pb.PerTickIdentityTransfers.transactions:type_name -> qubic.archiver.v2.pb.TransactionData
-	58, // 23: qubic.archiver.v2.pb.GetIdentityTransfersInTickRangeResponseV2.pagination:type_name -> qubic.archiver.v2.pb.Pagination
-	43, // 24: qubic.archiver.v2.pb.GetIdentityTransfersInTickRangeResponseV2.transactions:type_name -> qubic.archiver.v2.pb.PerTickIdentityTransfers
-	45, // 25: qubic.archiver.v2.pb.SendManyTransaction.transfers:type_name -> qubic.archiver.v2.pb.SendManyTransfer
-	46, // 26: qubic.archiver.v2.pb.SendManyTransactionData.transaction:type_name -> qubic.archiver.v2.pb.SendManyTransaction
-	46, // 27: qubic.archiver.v2.pb.GetSendManyTransactionResponseV2.transaction:type_name -> qubic.archiver.v2.pb.SendManyTransaction
-	3,  // 28: qubic.archiver.v2.pb.TransactionData.transaction:type_name -> qubic.archiver.v2.pb.Transaction
-	50, // 29: qubic.archiver.v2.pb.GetTickTransactionsResponseV2.transactions:type_name -> qubic.archiver.v2.pb.TransactionData
-	3,  // 30: qubic.archiver.v2.pb.GetTransactionResponseV2.transaction:type_name -> qubic.archiver.v2.pb.Transaction
-	58, // 31: qubic.archiver.v2.pb.GetEmptyTickListResponseV2.pagination:type_name -> qubic.archiver.v2.pb.Pagination
-	58, // 32: qubic.archiver.v2.pb.GetEpochTickListResponseV2.pagination:type_name -> qubic.archiver.v2.pb.Pagination
-	61, // 33: qubic.archiver.v2.pb.GetEpochTickListResponseV2.ticks:type_name -> qubic.archiver.v2.pb.TickStatus
-	18, // 34: qubic.archiver.v2.pb.QuorumTickData.QuorumDiffPerComputorEntry.value:type_name -> qubic.archiver.v2.pb.QuorumDiff
-	20, // 35: qubic.archiver.v2.pb.QuorumTickDataStored.QuorumDiffPerComputorEntry.value:type_name -> qubic.archiver.v2.pb.QuorumDiffStored
-	16, // 36: qubic.archiver.v2.pb.LastTickQuorumDataPerEpochIntervals.QuorumDataPerIntervalEntry.value:type_name -> qubic.archiver.v2.pb.QuorumTickData
-	67, // 37: qubic.archiver.v2.pb.ArchiveService.GetStatus:input_type -> google.protobuf.Empty
-	56, // 38: qubic.archiver.v2.pb.ArchiveService.GetTickTransactionsV2:input_type -> qubic.archiver.v2.pb.GetTickTransactionsRequestV2
-	1,  // 39: qubic.archiver.v2.pb.ArchiveService.GetTickData:input_type -> qubic.archiver.v2.pb.GetTickDataRequest
-	28, // 40: qubic.archiver.v2.pb.ArchiveService.GetComputors:input_type -> qubic.archiver.v2.pb.GetComputorsRequest
-	54, // 41: qubic.archiver.v2.pb.ArchiveService.GetTransactionV2:input_type -> qubic.archiver.v2.pb.GetTransactionRequestV2
-	52, // 42: qubic.archiver.v2.pb.ArchiveService.GetTickQuorumDataV2:input_type -> qubic.archiver.v2.pb.GetTickRequestV2
-	67, // 43: qubic.archiver.v2.pb.ArchiveService.GetHealth:input_type -> google.protobuf.Empty
-	33, // 44: qubic.archiver.v2.pb.ArchiveService.GetStatus:output_type -> qubic.archiver.v2.pb.GetStatusResponse
-	53, // 45: qubic.archiver.v2.pb.ArchiveService.GetTickTransactionsV2:output_type -> qubic.archiver.v2.pb.GetTickTransactionsResponseV2
-	2,  // 46: qubic.archiver.v2.pb.ArchiveService.GetTickData:output_type -> qubic.archiver.v2.pb.GetTickDataResponse
-	29, // 47: qubic.archiver.v2.pb.ArchiveService.GetComputors:output_type -> qubic.archiver.v2.pb.GetComputorsResponse
-	55, // 48: qubic.archiver.v2.pb.ArchiveService.GetTransactionV2:output_type -> qubic.archiver.v2.pb.GetTransactionResponseV2
-	25, // 49: qubic.archiver.v2.pb.ArchiveService.GetTickQuorumDataV2:output_type -> qubic.archiver.v2.pb.GetQuorumTickDataResponse
-	34, // 50: qubic.archiver.v2.pb.ArchiveService.GetHealth:output_type -> qubic.archiver.v2.pb.GetHealthResponse
-	44, // [44:51] is the sub-list for method output_type
-	37, // [37:44] is the sub-list for method input_type
-	37, // [37:37] is the sub-list for extension type_name
-	37, // [37:37] is the sub-list for extension extendee
-	0,  // [0:37] is the sub-list for field type_name
+	7,  // 2: qubic.archiver.v2.pb.QuorumTickData.quorum_tick_structure:type_name -> qubic.archiver.v2.pb.QuorumTickStructure
+	31, // 3: qubic.archiver.v2.pb.QuorumTickData.quorum_diff_per_computor:type_name -> qubic.archiver.v2.pb.QuorumTickData.QuorumDiffPerComputorEntry
+	7,  // 4: qubic.archiver.v2.pb.QuorumTickDataStored.quorum_tick_structure:type_name -> qubic.archiver.v2.pb.QuorumTickStructure
+	32, // 5: qubic.archiver.v2.pb.QuorumTickDataStored.quorum_diff_per_computor:type_name -> qubic.archiver.v2.pb.QuorumTickDataStored.QuorumDiffPerComputorEntry
+	33, // 6: qubic.archiver.v2.pb.LastTickQuorumDataPerEpochIntervals.quorum_data_per_interval:type_name -> qubic.archiver.v2.pb.LastTickQuorumDataPerEpochIntervals.QuorumDataPerIntervalEntry
+	6,  // 7: qubic.archiver.v2.pb.GetQuorumTickDataResponse.quorum_tick_data:type_name -> qubic.archiver.v2.pb.QuorumTickData
+	9,  // 8: qubic.archiver.v2.pb.GetQuorumTickDataResponseStored.quorum_tick_data:type_name -> qubic.archiver.v2.pb.QuorumTickDataStored
+	15, // 9: qubic.archiver.v2.pb.GetComputorsResponse.computors:type_name -> qubic.archiver.v2.pb.Computors
+	15, // 10: qubic.archiver.v2.pb.ComputorsList.computors:type_name -> qubic.archiver.v2.pb.Computors
+	19, // 11: qubic.archiver.v2.pb.GetStatusResponse.last_processed_tick:type_name -> qubic.archiver.v2.pb.ProcessedTick
+	23, // 12: qubic.archiver.v2.pb.GetStatusResponse.processed_tick_intervals_per_epoch:type_name -> qubic.archiver.v2.pb.ProcessedTickIntervalsPerEpoch
+	22, // 13: qubic.archiver.v2.pb.ProcessedTickIntervalsPerEpoch.intervals:type_name -> qubic.archiver.v2.pb.ProcessedTickInterval
+	3,  // 14: qubic.archiver.v2.pb.TransactionData.transaction:type_name -> qubic.archiver.v2.pb.Transaction
+	24, // 15: qubic.archiver.v2.pb.GetTickTransactionsResponseV2.transactions:type_name -> qubic.archiver.v2.pb.TransactionData
+	3,  // 16: qubic.archiver.v2.pb.GetTransactionResponseV2.transaction:type_name -> qubic.archiver.v2.pb.Transaction
+	8,  // 17: qubic.archiver.v2.pb.QuorumTickData.QuorumDiffPerComputorEntry.value:type_name -> qubic.archiver.v2.pb.QuorumDiff
+	10, // 18: qubic.archiver.v2.pb.QuorumTickDataStored.QuorumDiffPerComputorEntry.value:type_name -> qubic.archiver.v2.pb.QuorumDiffStored
+	6,  // 19: qubic.archiver.v2.pb.LastTickQuorumDataPerEpochIntervals.QuorumDataPerIntervalEntry.value:type_name -> qubic.archiver.v2.pb.QuorumTickData
+	34, // 20: qubic.archiver.v2.pb.ArchiveService.GetStatus:input_type -> google.protobuf.Empty
+	27, // 21: qubic.archiver.v2.pb.ArchiveService.GetTickTransactionsV2:input_type -> qubic.archiver.v2.pb.GetTickTransactionsRequestV2
+	1,  // 22: qubic.archiver.v2.pb.ArchiveService.GetTickData:input_type -> qubic.archiver.v2.pb.GetTickDataRequest
+	16, // 23: qubic.archiver.v2.pb.ArchiveService.GetComputors:input_type -> qubic.archiver.v2.pb.GetComputorsRequest
+	29, // 24: qubic.archiver.v2.pb.ArchiveService.GetTransactionV2:input_type -> qubic.archiver.v2.pb.GetTransactionRequestV2
+	12, // 25: qubic.archiver.v2.pb.ArchiveService.GetTickQuorumDataV2:input_type -> qubic.archiver.v2.pb.GetQuorumTickDataRequest
+	34, // 26: qubic.archiver.v2.pb.ArchiveService.GetHealth:input_type -> google.protobuf.Empty
+	20, // 27: qubic.archiver.v2.pb.ArchiveService.GetStatus:output_type -> qubic.archiver.v2.pb.GetStatusResponse
+	28, // 28: qubic.archiver.v2.pb.ArchiveService.GetTickTransactionsV2:output_type -> qubic.archiver.v2.pb.GetTickTransactionsResponseV2
+	2,  // 29: qubic.archiver.v2.pb.ArchiveService.GetTickData:output_type -> qubic.archiver.v2.pb.GetTickDataResponse
+	17, // 30: qubic.archiver.v2.pb.ArchiveService.GetComputors:output_type -> qubic.archiver.v2.pb.GetComputorsResponse
+	30, // 31: qubic.archiver.v2.pb.ArchiveService.GetTransactionV2:output_type -> qubic.archiver.v2.pb.GetTransactionResponseV2
+	13, // 32: qubic.archiver.v2.pb.ArchiveService.GetTickQuorumDataV2:output_type -> qubic.archiver.v2.pb.GetQuorumTickDataResponse
+	21, // 33: qubic.archiver.v2.pb.ArchiveService.GetHealth:output_type -> qubic.archiver.v2.pb.GetHealthResponse
+	27, // [27:34] is the sub-list for method output_type
+	20, // [20:27] is the sub-list for method input_type
+	20, // [20:20] is the sub-list for extension type_name
+	20, // [20:20] is the sub-list for extension extendee
+	0,  // [0:20] is the sub-list for field type_name
 }
 
 func init() { file_archive_proto_init() }
@@ -4039,7 +2040,7 @@ func file_archive_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_archive_proto_rawDesc), len(file_archive_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   67,
+			NumMessages:   34,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

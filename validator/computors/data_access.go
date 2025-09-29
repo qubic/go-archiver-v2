@@ -19,7 +19,7 @@ func Get(ctx context.Context, store *db.PebbleStore, client network.QubicClient,
 	}
 
 	if len(compsList) == 0 {
-		comps, err := getFromNode(ctx, client, tickNumber)
+		comps, err := getFromNode(ctx, client, 0) // set not tick number for first entry (valid with initial tick of epoch)
 		if err != nil {
 			return nil, fmt.Errorf("getting computors from node: %w", err)
 		}

@@ -1,11 +1,12 @@
 module github.com/qubic/go-archiver-v2
 
-go 1.24.0
+go 1.25.0
 
 require (
 	github.com/ardanlabs/conf/v3 v3.9.0
 	github.com/cloudflare/circl v1.6.1
 	github.com/cockroachdb/pebble v1.1.5
+	// upgrade soon to github.com/cockroachdb/pebble/v2 v2.1.0
 	github.com/google/go-cmp v0.7.0
 	github.com/google/uuid v1.6.0
 	github.com/grpc-ecosystem/go-grpc-middleware/providers/prometheus v1.1.0

@@ -259,7 +259,7 @@ func local_request_ArchiveService_GetTransactionV2_0(ctx context.Context, marsha
 }
 
 func request_ArchiveService_GetTickQuorumDataV2_0(ctx context.Context, marshaler runtime.Marshaler, client ArchiveServiceClient, req *http.Request, pathParams map[string]string) (proto.Message, runtime.ServerMetadata, error) {
-	var protoReq GetTickRequestV2
+	var protoReq GetQuorumTickDataRequest
 	var metadata runtime.ServerMetadata
 
 	var (
@@ -285,7 +285,7 @@ func request_ArchiveService_GetTickQuorumDataV2_0(ctx context.Context, marshaler
 }
 
 func local_request_ArchiveService_GetTickQuorumDataV2_0(ctx context.Context, marshaler runtime.Marshaler, server ArchiveServiceServer, req *http.Request, pathParams map[string]string) (proto.Message, runtime.ServerMetadata, error) {
-	var protoReq GetTickRequestV2
+	var protoReq GetQuorumTickDataRequest
 	var metadata runtime.ServerMetadata
 
 	var (

@@ -44,7 +44,7 @@ type ArchiveServiceClient interface {
 	// Get the transaction by hash.
 	GetTransactionV2(ctx context.Context, in *GetTransactionRequestV2, opts ...grpc.CallOption) (*GetTransactionResponseV2, error)
 	// Get quorum votes for one tick.
-	GetTickQuorumDataV2(ctx context.Context, in *GetTickRequestV2, opts ...grpc.CallOption) (*GetQuorumTickDataResponse, error)
+	GetTickQuorumDataV2(ctx context.Context, in *GetQuorumTickDataRequest, opts ...grpc.CallOption) (*GetQuorumTickDataResponse, error)
 	// Basic health check
 	GetHealth(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*GetHealthResponse, error)
 }
@@ -107,7 +107,7 @@ func (c *archiveServiceClient) GetTransactionV2(ctx context.Context, in *GetTran
 	return out, nil
 }
 
-func (c *archiveServiceClient) GetTickQuorumDataV2(ctx context.Context, in *GetTickRequestV2, opts ...grpc.CallOption) (*GetQuorumTickDataResponse, error) {
+func (c *archiveServiceClient) GetTickQuorumDataV2(ctx context.Context, in *GetQuorumTickDataRequest, opts ...grpc.CallOption) (*GetQuorumTickDataResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(GetQuorumTickDataResponse)
 	err := c.cc.Invoke(ctx, ArchiveService_GetTickQuorumDataV2_FullMethodName, in, out, cOpts...)
@@ -142,7 +142,7 @@ type ArchiveServiceServer interface {
 	// Get the transaction by hash.
 	GetTransactionV2(context.Context, *GetTransactionRequestV2) (*GetTransactionResponseV2, error)
 	// Get quorum votes for one tick.
-	GetTickQuorumDataV2(context.Context, *GetTickRequestV2) (*GetQuorumTickDataResponse, error)
+	GetTickQuorumDataV2(context.Context, *GetQuorumTickDataRequest) (*GetQuorumTickDataResponse, error)
 	// Basic health check
 	GetHealth(context.Context, *emptypb.Empty) (*GetHealthResponse, error)
 	mustEmbedUnimplementedArchiveServiceServer()
@@ -170,7 +170,7 @@ func (UnimplementedArchiveServiceServer) GetComputors(context.Context, *GetCompu
 func (UnimplementedArchiveServiceServer) GetTransactionV2(context.Context, *GetTransactionRequestV2) (*GetTransactionResponseV2, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetTransactionV2 not implemented")
 }
-func (UnimplementedArchiveServiceServer) GetTickQuorumDataV2(context.Context, *GetTickRequestV2) (*GetQuorumTickDataResponse, error) {
+func (UnimplementedArchiveServiceServer) GetTickQuorumDataV2(context.Context, *GetQuorumTickDataRequest) (*GetQuorumTickDataResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetTickQuorumDataV2 not implemented")
 }
 func (UnimplementedArchiveServiceServer) GetHealth(context.Context, *emptypb.Empty) (*GetHealthResponse, error) {
@@ -288,7 +288,7 @@ func _ArchiveService_GetTransactionV2_Handler(srv interface{}, ctx context.Conte
 }
 
 func _ArchiveService_GetTickQuorumDataV2_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(GetTickRequestV2)
+	in := new(GetQuorumTickDataRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
@@ -300,7 +300,7 @@ func _ArchiveService_GetTickQuorumDataV2_Handler(srv interface{}, ctx context.Co
 		FullMethod: ArchiveService_GetTickQuorumDataV2_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(ArchiveServiceServer).GetTickQuorumDataV2(ctx, req.(*GetTickRequestV2))
+		return srv.(ArchiveServiceServer).GetTickQuorumDataV2(ctx, req.(*GetQuorumTickDataRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }

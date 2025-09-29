@@ -57,6 +57,7 @@ func run() error {
 			ProcessTickTimeout  time.Duration `conf:"default:5s"`
 			EnableTxStatusAddon bool          `conf:"default:true"`
 			ArbitratorIdentity  string        `conf:"default:AFZPUAIYVPNUYGJRQVLUKOPPVLHAZQTGLYAAUUNBXFTVTAMSBKQBLEIEPCVJ"`
+			ProcessingEnabled   bool          `conf:"default:true"`
 		}
 		Store struct {
 			StorageFolder   string `conf:"default:archive-data"`
@@ -111,10 +112,11 @@ func run() error {
 	}
 	tickValidator := validator.NewValidator(arbitratorPubKey, cfg.Qubic.EnableTxStatusAddon)
 	proc := processor.NewProcessor(clientPool, dbPool, tickValidator, cfg.Qubic.ProcessTickTimeout)
+
 	procErrors := make(chan error, 1)
-	go func() {
-		procErrors <- proc.Start()
-	}()
+	if cfg.Qubic.ProcessingEnabled {
+		go func() { procErrors <- proc.Start() }()
+	}
 
 	// start API endpoints
 	rpcServer := api.NewArchiveServer(dbPool, proc.GetTickStatus(), cfg.Server.GrpcHost, cfg.Server.HttpHost, cfg.Server.NodeSyncThreshold)

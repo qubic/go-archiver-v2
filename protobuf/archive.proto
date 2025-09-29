@@ -47,46 +47,6 @@ message TickTransactionsStatus {
   repeated TransactionStatus transactions = 1;
 }
 
-message NextAvailableTick {
-  uint32 next_tick_number = 1;
-}
-
-message LastProcessedTick {
-  uint32 last_processed_tick = 1;
-}
-
-message GetTransactionRequest {
-  string tx_id = 1;
-}
-
-message GetTransactionResponse{
-  Transaction transaction = 1;
-}
-
-message GetTransactionStatusRequest {
-  string tx_id = 1;
-}
-
-message GetTransactionStatusResponse {
-  TransactionStatus transaction_status = 1;
-}
-
-message GetTickTransactionsRequest {
-  uint32 tick_number = 1;
-}
-
-message GetTickTransactionsResponse {
-  repeated Transaction transactions = 1;
-}
-
-message GetTickApprovedTransactionsRequest {
-  uint32 tick_number = 1;
-}
-
-message GetTickApprovedTransactionsResponse {
-  repeated Transaction approved_transactions = 1;
-}
-
 message QuorumTickData {
   QuorumTickStructure quorum_tick_structure = 1;
   map<uint32, QuorumDiff> quorum_diff_per_computor = 2;
@@ -122,15 +82,6 @@ message QuorumTickDataStored {
 message QuorumDiffStored {
   string expected_next_tick_tx_digest_hex = 5;
   string signature_hex = 6;
-}
-
-message SkippedTicksInterval {
-  uint32 start_tick = 1;
-  uint32 end_tick = 2;
-}
-
-message SkippedTicksIntervalList {
-  repeated SkippedTicksInterval skipped_ticks = 1;
 }
 
 message LastTickQuorumDataPerEpochIntervals {
@@ -169,12 +120,6 @@ message ComputorsList {
   repeated Computors computors = 1;
 }
 
-message TransferTransactionsPerTick {
-  uint32 tick_number = 1;
-  string identity = 2;
-  repeated Transaction transactions = 3;
-}
-
 message ProcessedTick {
   uint32 tick_number = 1;
   uint32 epoch = 2;
@@ -193,24 +138,6 @@ message GetHealthResponse {
   uint32 live_tick = 5;
 }
 
-message GetTransferTransactionsPerTickRequest {
-  string identity = 1;
-  uint32 start_tick = 2;
-  uint32 end_tick = 3;
-}
-
-message GetTransferTransactionsPerTickResponse {
-  repeated TransferTransactionsPerTick transfer_transactions_per_tick = 1;
-}
-
-message GetChainHashRequest {
-  uint32 tick_number = 1;
-}
-
-message GetChainHashResponse {
-  string hex_digest = 1;
-}
-
 message ProcessedTickInterval {
   uint32 initial_processed_tick = 1;
   uint32 last_processed_tick = 2;
@@ -219,63 +146,6 @@ message ProcessedTickInterval {
 message ProcessedTickIntervalsPerEpoch {
   uint32 epoch = 1;
   repeated ProcessedTickInterval intervals = 2;
-}
-
-message Tick {
-  uint32 computor_index = 1;
-  uint32 epoch = 2;
-  uint32 tick_number = 3;
-  uint64 timestamp = 4;
-  bytes var_struct = 5; //Will change to return with unmarshalled info
-  bytes time_lock = 6;
-  repeated string transaction_ids = 7;
-  repeated int64 contract_fees = 8;
-  string signature_hex = 9;
-}
-
-message GetTickResponseV2 {
-  Tick tick_Data = 1;
-}
-
-message PerTickIdentityTransfers {
-  uint32 tick_number = 1;
-  string identity = 2;
-  repeated TransactionData transactions = 3;
-}
-
-message GetIdentityTransfersInTickRangeResponseV2 {
-  Pagination pagination = 1;
-  repeated PerTickIdentityTransfers transactions = 2;
-}
-
-message SendManyTransfer {
-  string dest_id = 1;
-  int64 amount = 2;
-}
-
-message SendManyTransaction {
-  string source_id = 1;
-  uint32 tick_number = 2;
-  repeated SendManyTransfer transfers = 3;
-  int64 total_amount = 4;
-  string signature_hex = 5;
-  string tx_id = 6;
-}
-
-message SendManyTransactionData {
-  SendManyTransaction transaction = 2;
-  uint64 timestamp = 3;
-  bool money_flew = 4;
-}
-
-message GetSendManyTransactionRequestV2 {
-  string tx_id = 1;
-}
-
-message GetSendManyTransactionResponseV2 {
-  SendManyTransaction transaction = 2;
-  uint64 timestamp = 3;
-  bool money_flew = 4;
 }
 
 message TransactionData {
@@ -288,9 +158,14 @@ message GetLatestTickResponse {
   uint32 latest_tick = 1;
 }
 
-message GetTickRequestV2 {
+message GetQuorumRequestV2 {
   uint32 tick_number = 1;
 }
+
+message GetTickTransactionsRequestV2 {
+  uint32 tick_number = 1;
+}
+
 message GetTickTransactionsResponseV2 {
   repeated TransactionData transactions = 1;
 }
@@ -302,57 +177,6 @@ message GetTransactionResponseV2 {
   Transaction transaction = 1;
   uint64 timestamp = 2;
   bool money_flew = 3;
-}
-
-message GetTickTransactionsRequestV2 {
-  uint32 tick_number = 1;
-}
-
-message GetTransferTransactionsPerTickRequestV2 {
-  string identity = 1;
-  uint32 start_tick = 2;
-  uint32 end_tick = 3;
-  bool sc_only = 4;
-  bool desc = 5;
-  uint32 page = 6;
-  uint32 page_size = 7;
-}
-
-message Pagination {
-  int32 total_records = 1;
-  int32 current_page = 2;
-  int32 total_pages = 3;
-  int32 page_size = 4;
-  int32 next_page = 5;
-  int32 previous_page = 6;
-}
-
-message GetEmptyTickListRequestV2 {
-  uint32 epoch = 1;
-  int32 page = 2;
-  int32 page_size = 3;
-}
-
-message GetEmptyTickListResponseV2 {
-  Pagination pagination = 1;
-  repeated uint32 emptyTicks = 2;
-}
-
-message TickStatus {
-  uint32 tick_number = 1;
-  bool is_empty = 2;
-}
-
-message GetEpochTickListRequestV2 {
-  uint32 epoch = 1;
-  int32 page = 2;
-  int32 page_size = 3;
-  bool desc = 4;
-}
-
-message GetEpochTickListResponseV2 {
-  Pagination pagination = 1;
-  repeated TickStatus ticks = 2;
 }
 
 service ArchiveService {
@@ -394,7 +218,7 @@ service ArchiveService {
   };
 
   // Get quorum votes for one tick.
-  rpc GetTickQuorumDataV2(GetTickRequestV2) returns (GetQuorumTickDataResponse) {
+  rpc GetTickQuorumDataV2(GetQuorumTickDataRequest) returns (GetQuorumTickDataResponse) {
     option (google.api.http) = {
       get: "/v2/ticks/{tick_number}/quorum-data"
     };

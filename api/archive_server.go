@@ -9,6 +9,7 @@ import (
 	"github.com/qubic/go-archiver-v2/db"
 	"github.com/qubic/go-archiver-v2/processor"
 	"github.com/qubic/go-archiver-v2/protobuf"
+	"github.com/qubic/go-archiver-v2/validator/quorum"
 	"github.com/qubic/go-node-connector/types"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
@@ -60,8 +61,9 @@ func (s *ArchiveServiceServer) GetStatus(ctx context.Context, _ *emptypb.Empty) 
 
 	epochs := s.dbPool.GetAvailableEpochsAscending() // oldest first. to stay compatible with v1 order.
 	if len(epochs) == 0 {
-		log.Printf("[WARN] no epoch databases found.")
-		return nil, status.Error(codes.NotFound, "no tick intervals found")
+		id := uuid.New()
+		log.Printf("[WARN] (%s) no epoch databases found.", id)
+		return nil, status.Errorf(codes.Internal, "error getting status (%s)", id)
 	}
 
 	intervalsPerEpoch := make([]*protobuf.ProcessedTickIntervalsPerEpoch, 0, len(epochs))
@@ -70,13 +72,13 @@ func (s *ArchiveServiceServer) GetStatus(ctx context.Context, _ *emptypb.Empty) 
 		if err != nil {
 			id := uuid.New()
 			log.Printf("[ERROR] (%s) getting database for epoch [%d]: %v", id.String(), epoch, err)
-			return nil, status.Errorf(codes.Internal, "error accessing data (%v)", id.String())
+			return nil, status.Errorf(codes.Internal, "error getting status (%s)", id.String())
 		}
 		intervalsForEpoch, err := database.GetProcessedTickIntervalsPerEpoch(ctx, uint32(epoch))
 		if err != nil {
 			id := uuid.New()
 			log.Printf("[ERROR] (%s) getting processed tick intervals for epoch [%d]: %v", id.String(), epoch, err)
-			return nil, status.Errorf(codes.Internal, "error accessing data (%v)", id.String())
+			return nil, status.Errorf(codes.Internal, "error getting status (%s)", id.String())
 		}
 		intervalsPerEpoch = append(intervalsPerEpoch, intervalsForEpoch)
 	}
@@ -102,33 +104,34 @@ func (s *ArchiveServiceServer) GetTickTransactionsV2(ctx context.Context, in *pr
 		if err != nil {
 			id := uuid.New()
 			log.Printf("[ERROR] (%s) getting database for epoch [%d]: %v", id.String(), epoch, err)
-			return nil, status.Errorf(codes.Internal, "error getting transactions (%v)", id.String())
+			return nil, status.Errorf(codes.Internal, "error getting transactions (%s)", id.String())
 		}
 
 		intervalsForEpoch, err := database.GetProcessedTickIntervalsPerEpoch(ctx, uint32(epoch))
 		if err != nil {
 			id := uuid.New()
 			log.Printf("[ERROR] (%s) getting processed tick intervals for epoch [%d]: %v", id.String(), epoch, err)
-			return nil, status.Errorf(codes.Internal, "error getting transactions (%v)", id.String())
+			return nil, status.Errorf(codes.Internal, "error getting transactions (%s)", id.String())
 		}
 
 		for _, interval := range intervalsForEpoch.GetIntervals() {
-			if tick > interval.InitialProcessedTick && tick < interval.LastProcessedTick {
-				response, err := s.getAllTickTransactionsV2(ctx, database, tick)
+			if tick >= interval.InitialProcessedTick && tick <= interval.LastProcessedTick {
+				response, err := getAllTickTransactionsV2(ctx, database, tick)
 				if err != nil { // shouldn't this be a server error because of missing data integrity?
 					if errors.Is(err, db.ErrNotFound) { // 404
-						return nil, status.Errorf(codes.NotFound, "no transactions found for tick [%d].", tick)
+						return nil, status.Errorf(codes.NotFound, "no transactions found for tick [%d]", tick)
 					}
 					id := uuid.New()
 					log.Printf("[ERROR] (%s) getting transactions for tick [%d]: %v", id.String(), tick, err)
-					return nil, status.Errorf(codes.Internal, "error getting transactions (%v)", err.Error())
+					return nil, status.Errorf(codes.Internal, "error getting transactions (%s)", id.String())
 				}
 				return response, nil
 			}
 		}
 	}
+
 	// out of stored tick range
-	return nil, status.Errorf(codes.NotFound, "no data available for tick [%d]", tick)
+	return nil, noDataAvailableForTick(tick, s.tickStatus.ProcessedTick)
 }
 
 // GetTickData returns the tick data or 404 if the requested tick is not available.
@@ -142,19 +145,18 @@ func (s *ArchiveServiceServer) GetTickData(ctx context.Context, in *protobuf.Get
 		if err != nil {
 			id := uuid.New()
 			log.Printf("[ERROR] (%s) getting database for epoch [%d]: %v", id.String(), epoch, err)
-			return nil, status.Errorf(codes.Internal, "error getting tick data (%v)", id.String())
+			return nil, status.Errorf(codes.Internal, "error getting tick data (%s)", id.String())
 		}
 
 		intervalsForEpoch, err := database.GetProcessedTickIntervalsPerEpoch(ctx, uint32(epoch))
 		if err != nil {
 			id := uuid.New()
 			log.Printf("[ERROR] (%s) getting processed tick intervals for epoch [%d]: %v", id.String(), epoch, err)
-			return nil, status.Errorf(codes.Internal, "error getting tick data (%v)", id.String())
+			return nil, status.Errorf(codes.Internal, "error getting tick data (%s)", id.String())
 		}
 
 		for _, interval := range intervalsForEpoch.GetIntervals() {
-			if tick > interval.InitialProcessedTick && tick < interval.LastProcessedTick {
-				// response, err := s.getAllTickTransactionsV2(ctx, database, tick)
+			if tick >= interval.InitialProcessedTick && tick <= interval.LastProcessedTick {
 
 				tickData, err := database.GetTickData(ctx, tick)
 				if err != nil {
@@ -163,7 +165,7 @@ func (s *ArchiveServiceServer) GetTickData(ctx context.Context, in *protobuf.Get
 					}
 					id := uuid.New()
 					log.Printf("[ERROR] (%s) getting tick data for tick [%d]: %v", id.String(), tick, err)
-					return nil, status.Errorf(codes.Internal, "error getting tick data (%v)", id.String())
+					return nil, status.Errorf(codes.Internal, "error getting tick data (%s)", id.String())
 				}
 
 				return &protobuf.GetTickDataResponse{
@@ -172,8 +174,9 @@ func (s *ArchiveServiceServer) GetTickData(ctx context.Context, in *protobuf.Get
 			}
 		}
 	}
+
 	// out of stored tick range
-	return nil, status.Errorf(codes.NotFound, "no data available for tick [%d]", tick)
+	return nil, noDataAvailableForTick(tick, s.tickStatus.ProcessedTick)
 }
 
 func (s *ArchiveServiceServer) GetComputors(ctx context.Context, in *protobuf.GetComputorsRequest) (*protobuf.GetComputorsResponse, error) {
@@ -184,13 +187,13 @@ func (s *ArchiveServiceServer) GetComputors(ctx context.Context, in *protobuf.Ge
 		if err != nil {
 			id := uuid.New()
 			log.Printf("[ERROR] (%s) getting database for epoch [%d]: %v", id.String(), epoch, err)
-			return nil, status.Errorf(codes.Internal, "error getting computors (%v)", id.String())
+			return nil, status.Errorf(codes.Internal, "error getting computors (%s)", id.String())
 		}
 		computors, err := database.GetComputors(ctx, uint32(epoch))
 		if err != nil && !errors.Is(err, db.ErrNotFound) {
 			id := uuid.New()
 			log.Printf("[ERROR] (%s) getting computors for epoch [%d]: %v", id.String(), epoch, err)
-			return nil, status.Errorf(codes.Internal, "error getting computors (%v)", id.String())
+			return nil, status.Errorf(codes.Internal, "error getting computors (%s)", id.String())
 		}
 
 		if computors == nil || len(computors.Computors) == 0 || errors.Is(err, db.ErrNotFound) {
@@ -221,7 +224,7 @@ func (s *ArchiveServiceServer) GetTransactionV2(ctx context.Context, req *protob
 		if err != nil {
 			id := uuid.New()
 			log.Printf("[ERROR] (%s) getting database for epoch [%d]: %v", id.String(), epoch, err)
-			return nil, status.Errorf(codes.Internal, "error getting transaction (%v)", id.String())
+			return nil, status.Errorf(codes.Internal, "error getting transaction (%s)", id.String())
 		}
 
 		tx, err := database.GetTransaction(ctx, req.TxId)
@@ -229,7 +232,7 @@ func (s *ArchiveServiceServer) GetTransactionV2(ctx context.Context, req *protob
 			id := uuid.New()
 			log.Printf("[ERROR] (%s) getting tx with hash [%s] in epoch [%d]: %v",
 				id.String(), req.GetTxId(), epoch, err)
-			return nil, status.Errorf(codes.Internal, "error getting transaction: %v", err)
+			return nil, status.Errorf(codes.Internal, "error getting transaction (%s)", id.String())
 		}
 
 		if tx != nil { // && err == nil
@@ -239,7 +242,7 @@ func (s *ArchiveServiceServer) GetTransactionV2(ctx context.Context, req *protob
 				id := uuid.New()
 				log.Printf("[ERROR] (%s) getting info for tx with hash [%s] in tick [%d] and epoch [%d]: %v",
 					id.String(), req.GetTxId(), tx.GetTickNumber(), epoch, err)
-				return nil, status.Errorf(codes.Internal, "error getting transaction: %v", err)
+				return nil, status.Errorf(codes.Internal, "error getting transaction (%s)", id.String())
 			}
 
 			return &protobuf.GetTransactionResponseV2{
@@ -252,49 +255,87 @@ func (s *ArchiveServiceServer) GetTransactionV2(ctx context.Context, req *protob
 
 	}
 
-	return nil, status.Errorf(codes.NotFound, "transaction not found")
+	return nil, status.Errorf(codes.NotFound, "transaction not found.")
 }
 
-func (s *ArchiveServiceServer) getAllTickTransactionsV2(ctx context.Context, database *db.PebbleStore, tickNumber uint32) (*protobuf.GetTickTransactionsResponseV2, error) {
-	txs, err := database.GetTickTransactions(ctx, tickNumber)
-	if err != nil {
-		if errors.Is(err, db.ErrNotFound) {
-			return nil, err // return raw for status code handling
-		}
-		return nil, fmt.Errorf("getting tick transactions: %w", err)
-	}
+func (s *ArchiveServiceServer) GetTickQuorumDataV2(ctx context.Context, req *protobuf.GetQuorumTickDataRequest) (*protobuf.GetQuorumTickDataResponse, error) {
+	tick := req.GetTickNumber()
 
-	var transactions []*protobuf.TransactionData
-	for _, transaction := range txs {
-		timestamp, moneyFlew, err := getMoreTransactionInformation(ctx, database, transaction.TxId, transaction.TickNumber)
+	epochs := s.dbPool.GetAvailableEpochsDescending() // first look in current epoch
+	for _, epoch := range epochs {
+
+		database, err := s.dbPool.GetDbForEpoch(epoch)
 		if err != nil {
-			return nil, fmt.Errorf("failed to get transaction info: %w", err)
+			id := uuid.New()
+			log.Printf("[ERROR] (%s) getting database for epoch [%d]: %v", id.String(), epoch, err)
+			return nil, status.Errorf(codes.Internal, "error getting quorum data (%s)", id.String())
 		}
 
-		transactions = append(transactions, &protobuf.TransactionData{
-			Transaction: transaction,
-			Timestamp:   timestamp,
-			MoneyFlew:   moneyFlew,
-		})
-	}
-
-	return &protobuf.GetTickTransactionsResponseV2{Transactions: transactions}, nil
-}
-
-func getMoreTransactionInformation(ctx context.Context, pebbleStore *db.PebbleStore, transactionHash string, tickNumber uint32) (uint64, bool, error) {
-	tickData, err := pebbleStore.GetTickData(ctx, tickNumber)
-	if err != nil {
-		return 0, false, fmt.Errorf("getting tick data for tick [%d]: %w", tickNumber, err)
-	}
-	txStatus, err := pebbleStore.GetTransactionStatus(ctx, transactionHash)
-	if err != nil {
-		if errors.Is(err, db.ErrNotFound) {
-			// default false
-			return tickData.Timestamp, false, nil
+		intervalsForEpoch, err := database.GetProcessedTickIntervalsPerEpoch(ctx, uint32(epoch))
+		if err != nil {
+			id := uuid.New()
+			log.Printf("[ERROR] (%s) getting processed tick intervals for epoch [%d]: %v", id.String(), epoch, err)
+			return nil, status.Errorf(codes.Internal, "error getting quorum data (%s)", id.String())
 		}
-		return 0, false, fmt.Errorf("getting transaction status for transaction [%s]: %w", transactionHash, err)
+
+		for intervalIndex, interval := range intervalsForEpoch.GetIntervals() {
+
+			if tick >= interval.InitialProcessedTick && tick < interval.LastProcessedTick {
+
+				quorumData, err := database.GetQuorumTickData(ctx, tick)
+				if err != nil {
+					if errors.Is(err, db.ErrNotFound) { // shouldn't this be a server error because of missing data integrity?
+						return nil, status.Errorf(codes.NotFound, "no quorum data found for tick [%d]", tick)
+					}
+					id := uuid.New()
+					log.Printf("[ERROR] (%s) getting quorum data for tick [%d]: %v", id.String(), tick, err)
+					return nil, status.Errorf(codes.Internal, "error getting quorum data (%s)", id.String())
+				}
+
+				nextQuorumData, err := database.GetQuorumTickData(ctx, tick+1)
+				if err != nil {
+					id := uuid.New()
+					log.Printf("[ERROR] (%s) getting quorum data for (next) tick [%d]: %v", id.String(), tick+1, err)
+					return nil, status.Errorf(codes.Internal, "error getting quorum data (%s)", id.String())
+				}
+
+				computors, err := getComputors(ctx, database, tick, epoch)
+				if err != nil {
+					id := uuid.New()
+					log.Printf("[ERROR] (%s) getting computors: %v", id.String(), err)
+					return nil, status.Errorf(codes.Internal, "error getting quorum data (%s)", id.String())
+				}
+
+				reconstructedQuorumData, err := quorum.ReconstructQuorumData(quorumData, nextQuorumData, computors)
+				if err != nil {
+					id := uuid.New()
+					log.Printf("[ERROR] (%s) reconstructing quorum data for tick [%d]: %v", id.String(), tick, err)
+					return nil, status.Errorf(codes.Internal, "error getting quorum data (%s)", id.String())
+				}
+
+				return &protobuf.GetQuorumTickDataResponse{
+					QuorumTickData: reconstructedQuorumData,
+				}, nil
+
+			} else if tick == interval.LastProcessedTick {
+
+				// try to get data for last tick in interval
+				lastQuorumData, err := tryToGetLastTickQuorumData(database, intervalIndex, tick, epoch)
+				if err != nil {
+					id := uuid.New()
+					if tick == s.tickStatus.ProcessedTick {
+						log.Printf("[WARN] requested tick is last processed tick. possible race condition.")
+					}
+					log.Printf("[ERROR] (%s) getting (last) quorum data for tick [%d]: %v", id.String(), tick, err)
+					return nil, status.Errorf(codes.Internal, "error getting quorum data (%s)", id.String())
+				}
+				return &protobuf.GetQuorumTickDataResponse{QuorumTickData: lastQuorumData}, nil
+
+			}
+		}
 	}
-	return tickData.Timestamp, txStatus.MoneyFlew, nil
+
+	return nil, noDataAvailableForTick(tick, s.tickStatus.ProcessedTick)
 }
 
 func (s *ArchiveServiceServer) Start(errChan chan error, interceptors ...grpc.UnaryServerInterceptor) error {
@@ -347,4 +388,8 @@ func (s *ArchiveServiceServer) Start(errChan chan error, interceptors ...grpc.Un
 	}()
 
 	return nil
+}
+
+func noDataAvailableForTick(tick, processedTick uint32) error {
+	return status.Errorf(codes.Internal, "no data available for requested tick [%d], last processed tick [%d]", tick, processedTick)
 }
