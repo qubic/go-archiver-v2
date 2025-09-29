@@ -4,11 +4,12 @@ import (
 	"context"
 	"encoding/binary"
 	"fmt"
+	"strconv"
+
 	"github.com/cockroachdb/pebble/v2"
 	"github.com/pkg/errors"
 	"github.com/qubic/go-archiver-v2/protobuf"
 	"google.golang.org/protobuf/proto"
-	"strconv"
 )
 
 const maxTickNumber = ^uint64(0)
@@ -949,6 +950,10 @@ func (s *PebbleStore) GetTargetTickVoteSignature(epoch uint32) (uint32, error) {
 	defer closer.Close()
 
 	return binary.LittleEndian.Uint32(value), nil
+}
+
+func (s *PebbleStore) GetDB() *pebble.DB {
+	return s.db
 }
 
 func (s *PebbleStore) Close() error {
