@@ -1,7 +1,7 @@
 package db
 
 import (
-	"github.com/cockroachdb/pebble"
+	"github.com/cockroachdb/pebble/v2"
 	"log"
 )
 
@@ -9,7 +9,7 @@ type PebbleEventListener struct {
 	pebble.EventListener
 }
 
-func NewPebbleEventListener() *pebble.EventListener {
+func NewPebbleEventListener() pebble.EventListener {
 
 	listener := pebble.EventListener{}
 	listener.BackgroundError = backgroundError
@@ -20,7 +20,7 @@ func NewPebbleEventListener() *pebble.EventListener {
 	listener.WriteStallBegin = writeStallBegin
 	listener.WriteStallEnd = writeStallEnd
 
-	return &listener
+	return listener
 }
 
 func backgroundError(err error) {
