@@ -17,6 +17,7 @@ import (
 	"google.golang.org/grpc/reflection"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/encoding/protojson"
+	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/emptypb"
 	"log"
 	"net"
@@ -134,6 +135,8 @@ func (s *ArchiveServiceServer) GetTickTransactionsV2(ctx context.Context, in *pr
 	return nil, noDataAvailableForTick(tick, s.tickStatus.ProcessedTick)
 }
 
+var emptyTickData = &protobuf.TickData{}
+
 // GetTickData returns the tick data or 404 if the requested tick is not available.
 func (s *ArchiveServiceServer) GetTickData(ctx context.Context, in *protobuf.GetTickDataRequest) (*protobuf.GetTickDataResponse, error) {
 	tick := in.GetTickNumber()
@@ -166,6 +169,13 @@ func (s *ArchiveServiceServer) GetTickData(ctx context.Context, in *protobuf.Get
 					id := uuid.New()
 					log.Printf("[ERROR] (%s) getting tick data for tick [%d]: %v", id.String(), tick, err)
 					return nil, status.Errorf(codes.Internal, "error getting tick data (%s)", id.String())
+				}
+
+				// we store ticks that are empty, but
+				// we don't want to return tick data information for empty ticks
+				// other services rely on that and do not want to check this information
+				if proto.Equal(tickData, emptyTickData) {
+					tickData = nil
 				}
 
 				return &protobuf.GetTickDataResponse{
