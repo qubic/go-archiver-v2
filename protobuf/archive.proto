@@ -171,7 +171,7 @@ message GetTickTransactionsResponseV2 {
 }
 
 message GetTransactionRequestV2 {
-  string tx_id = 1;
+  string transaction_hash = 1;
 }
 message GetTransactionResponseV2 {
   Transaction transaction = 1;
@@ -184,14 +184,14 @@ service ArchiveService {
   // Compatible with legacy v1 status but only returns last processed tick and tick intervals per epoch.
   rpc GetStatus(google.protobuf.Empty) returns (GetStatusResponse) {
     option (google.api.http) = {
-      get: "/v1/status"
+      get: "/status"
     };
   };
 
   // Get the transactions for one tick. Returns 404 if there is no data stored for the requested tick.
   rpc GetTickTransactionsV2(GetTickTransactionsRequestV2) returns (GetTickTransactionsResponseV2){
     option (google.api.http) = {
-      get: "/v2/ticks/{tick_number}/transactions"
+      get: "/ticks/{tick_number}/transactions"
     };
   };
 
@@ -199,28 +199,28 @@ service ArchiveService {
   // Get the tick data for one tick. Returns 404 if there is no data stored for the requested tick.
   rpc GetTickData(GetTickDataRequest) returns (GetTickDataResponse){
     option (google.api.http) = {
-      get: "/v1/ticks/{tick_number}/tick-data"
-    };
-  };
-
-  // Get the latest list of computors.
-  rpc GetComputors(GetComputorsRequest) returns (GetComputorsResponse) {
-    option (google.api.http) = {
-      get: "/v1/epochs/{epoch}/computors"
-    };
-  };
-
-  // Get the transaction by hash.
-  rpc GetTransactionV2(GetTransactionRequestV2) returns (GetTransactionResponseV2) {
-    option (google.api.http) = {
-      get: "/v2/transactions/{tx_id}"
+      get: "/ticks/{tick_number}/tick-data"
     };
   };
 
   // Get quorum votes for one tick.
   rpc GetTickQuorumDataV2(GetQuorumTickDataRequest) returns (GetQuorumTickDataResponse) {
     option (google.api.http) = {
-      get: "/v2/ticks/{tick_number}/quorum-data"
+      get: "/ticks/{tick_number}/quorum-data"
+    };
+  };
+
+  // Get the latest list of computors.
+  rpc GetComputors(GetComputorsRequest) returns (GetComputorsResponse) {
+    option (google.api.http) = {
+      get: "/epochs/{epoch}/computors"
+    };
+  };
+
+  // Get the transaction by hash.
+  rpc GetTransactionV2(GetTransactionRequestV2) returns (GetTransactionResponseV2) {
+    option (google.api.http) = {
+      get: "/transactions/{transaction_hash}"
     };
   };
 

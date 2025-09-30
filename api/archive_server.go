@@ -221,7 +221,7 @@ func (s *ArchiveServiceServer) GetComputors(ctx context.Context, in *protobuf.Ge
 
 func (s *ArchiveServiceServer) GetTransactionV2(ctx context.Context, req *protobuf.GetTransactionRequestV2) (*protobuf.GetTransactionResponseV2, error) {
 
-	hash := types.Identity(req.TxId)
+	hash := types.Identity(req.GetTransactionHash())
 	_, err := hash.ToPubKey(true)
 	if err != nil {
 		return nil, status.Error(codes.InvalidArgument, "invalid transaction hash")
@@ -237,21 +237,21 @@ func (s *ArchiveServiceServer) GetTransactionV2(ctx context.Context, req *protob
 			return nil, status.Errorf(codes.Internal, "error getting transaction (%s)", id.String())
 		}
 
-		tx, err := database.GetTransaction(ctx, req.TxId)
+		tx, err := database.GetTransaction(ctx, req.GetTransactionHash())
 		if err != nil && !errors.Is(err, db.ErrNotFound) {
 			id := uuid.New()
 			log.Printf("[ERROR] (%s) getting tx with hash [%s] in epoch [%d]: %v",
-				id.String(), req.GetTxId(), epoch, err)
+				id.String(), req.GetTransactionHash(), epoch, err)
 			return nil, status.Errorf(codes.Internal, "error getting transaction (%s)", id.String())
 		}
 
 		if tx != nil { // && err == nil
 
-			timestamp, moneyFlew, err := getMoreTransactionInformation(ctx, database, req.GetTxId(), tx.GetTickNumber())
+			timestamp, moneyFlew, err := getMoreTransactionInformation(ctx, database, req.GetTransactionHash(), tx.GetTickNumber())
 			if err != nil {
 				id := uuid.New()
 				log.Printf("[ERROR] (%s) getting info for tx with hash [%s] in tick [%d] and epoch [%d]: %v",
-					id.String(), req.GetTxId(), tx.GetTickNumber(), epoch, err)
+					id.String(), req.GetTransactionHash(), tx.GetTickNumber(), epoch, err)
 				return nil, status.Errorf(codes.Internal, "error getting transaction (%s)", id.String())
 			}
 

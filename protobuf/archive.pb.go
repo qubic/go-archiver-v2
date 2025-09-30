@@ -1677,10 +1677,10 @@ func (x *GetTickTransactionsResponseV2) GetTransactions() []*TransactionData {
 }
 
 type GetTransactionRequestV2 struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	TxId          string                 `protobuf:"bytes,1,opt,name=tx_id,json=txId,proto3" json:"tx_id,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state           protoimpl.MessageState `protogen:"open.v1"`
+	TransactionHash string                 `protobuf:"bytes,1,opt,name=transaction_hash,json=transactionHash,proto3" json:"transaction_hash,omitempty"`
+	unknownFields   protoimpl.UnknownFields
+	sizeCache       protoimpl.SizeCache
 }
 
 func (x *GetTransactionRequestV2) Reset() {
@@ -1713,9 +1713,9 @@ func (*GetTransactionRequestV2) Descriptor() ([]byte, []int) {
 	return file_archive_proto_rawDescGZIP(), []int{29}
 }
 
-func (x *GetTransactionRequestV2) GetTxId() string {
+func (x *GetTransactionRequestV2) GetTransactionHash() string {
 	if x != nil {
-		return x.TxId
+		return x.TransactionHash
 	}
 	return ""
 }
@@ -1918,22 +1918,21 @@ const file_archive_proto_rawDesc = "" +
 	"\vtick_number\x18\x01 \x01(\rR\n" +
 	"tickNumber\"j\n" +
 	"\x1dGetTickTransactionsResponseV2\x12I\n" +
-	"\ftransactions\x18\x01 \x03(\v2%.qubic.archiver.v2.pb.TransactionDataR\ftransactions\".\n" +
-	"\x17GetTransactionRequestV2\x12\x13\n" +
-	"\x05tx_id\x18\x01 \x01(\tR\x04txId\"\x9c\x01\n" +
+	"\ftransactions\x18\x01 \x03(\v2%.qubic.archiver.v2.pb.TransactionDataR\ftransactions\"D\n" +
+	"\x17GetTransactionRequestV2\x12)\n" +
+	"\x10transaction_hash\x18\x01 \x01(\tR\x0ftransactionHash\"\x9c\x01\n" +
 	"\x18GetTransactionResponseV2\x12C\n" +
 	"\vtransaction\x18\x01 \x01(\v2!.qubic.archiver.v2.pb.TransactionR\vtransaction\x12\x1c\n" +
 	"\ttimestamp\x18\x02 \x01(\x04R\ttimestamp\x12\x1d\n" +
 	"\n" +
-	"money_flew\x18\x03 \x01(\bR\tmoneyFlew2\xdf\a\n" +
-	"\x0eArchiveService\x12`\n" +
-	"\tGetStatus\x12\x16.google.protobuf.Empty\x1a'.qubic.archiver.v2.pb.GetStatusResponse\"\x12\x82\xd3\xe4\x93\x02\f\x12\n" +
-	"/v1/status\x12\xae\x01\n" +
-	"\x15GetTickTransactionsV2\x122.qubic.archiver.v2.pb.GetTickTransactionsRequestV2\x1a3.qubic.archiver.v2.pb.GetTickTransactionsResponseV2\",\x82\xd3\xe4\x93\x02&\x12$/v2/ticks/{tick_number}/transactions\x12\x8d\x01\n" +
-	"\vGetTickData\x12(.qubic.archiver.v2.pb.GetTickDataRequest\x1a).qubic.archiver.v2.pb.GetTickDataResponse\")\x82\xd3\xe4\x93\x02#\x12!/v1/ticks/{tick_number}/tick-data\x12\x8b\x01\n" +
-	"\fGetComputors\x12).qubic.archiver.v2.pb.GetComputorsRequest\x1a*.qubic.archiver.v2.pb.GetComputorsResponse\"$\x82\xd3\xe4\x93\x02\x1e\x12\x1c/v1/epochs/{epoch}/computors\x12\x93\x01\n" +
-	"\x10GetTransactionV2\x12-.qubic.archiver.v2.pb.GetTransactionRequestV2\x1a..qubic.archiver.v2.pb.GetTransactionResponseV2\" \x82\xd3\xe4\x93\x02\x1a\x12\x18/v2/transactions/{tx_id}\x12\xa3\x01\n" +
-	"\x13GetTickQuorumDataV2\x12..qubic.archiver.v2.pb.GetQuorumTickDataRequest\x1a/.qubic.archiver.v2.pb.GetQuorumTickDataResponse\"+\x82\xd3\xe4\x93\x02%\x12#/v2/ticks/{tick_number}/quorum-data\x12`\n" +
+	"money_flew\x18\x03 \x01(\bR\tmoneyFlew2\xd8\a\n" +
+	"\x0eArchiveService\x12]\n" +
+	"\tGetStatus\x12\x16.google.protobuf.Empty\x1a'.qubic.archiver.v2.pb.GetStatusResponse\"\x0f\x82\xd3\xe4\x93\x02\t\x12\a/status\x12\xab\x01\n" +
+	"\x15GetTickTransactionsV2\x122.qubic.archiver.v2.pb.GetTickTransactionsRequestV2\x1a3.qubic.archiver.v2.pb.GetTickTransactionsResponseV2\")\x82\xd3\xe4\x93\x02#\x12!/ticks/{tick_number}/transactions\x12\x8a\x01\n" +
+	"\vGetTickData\x12(.qubic.archiver.v2.pb.GetTickDataRequest\x1a).qubic.archiver.v2.pb.GetTickDataResponse\"&\x82\xd3\xe4\x93\x02 \x12\x1e/ticks/{tick_number}/tick-data\x12\xa0\x01\n" +
+	"\x13GetTickQuorumDataV2\x12..qubic.archiver.v2.pb.GetQuorumTickDataRequest\x1a/.qubic.archiver.v2.pb.GetQuorumTickDataResponse\"(\x82\xd3\xe4\x93\x02\"\x12 /ticks/{tick_number}/quorum-data\x12\x88\x01\n" +
+	"\fGetComputors\x12).qubic.archiver.v2.pb.GetComputorsRequest\x1a*.qubic.archiver.v2.pb.GetComputorsResponse\"!\x82\xd3\xe4\x93\x02\x1b\x12\x19/epochs/{epoch}/computors\x12\x9b\x01\n" +
+	"\x10GetTransactionV2\x12-.qubic.archiver.v2.pb.GetTransactionRequestV2\x1a..qubic.archiver.v2.pb.GetTransactionResponseV2\"(\x82\xd3\xe4\x93\x02\"\x12 /transactions/{transaction_hash}\x12`\n" +
 	"\tGetHealth\x12\x16.google.protobuf.Empty\x1a'.qubic.archiver.v2.pb.GetHealthResponse\"\x12\x82\xd3\xe4\x93\x02\f\x12\n" +
 	"/v1/healthB.Z,github.com/qubic/go-archiver-v2-v2/protobuf/b\x06proto3"
 
@@ -2011,16 +2010,16 @@ var file_archive_proto_depIdxs = []int32{
 	34, // 20: qubic.archiver.v2.pb.ArchiveService.GetStatus:input_type -> google.protobuf.Empty
 	27, // 21: qubic.archiver.v2.pb.ArchiveService.GetTickTransactionsV2:input_type -> qubic.archiver.v2.pb.GetTickTransactionsRequestV2
 	1,  // 22: qubic.archiver.v2.pb.ArchiveService.GetTickData:input_type -> qubic.archiver.v2.pb.GetTickDataRequest
-	16, // 23: qubic.archiver.v2.pb.ArchiveService.GetComputors:input_type -> qubic.archiver.v2.pb.GetComputorsRequest
-	29, // 24: qubic.archiver.v2.pb.ArchiveService.GetTransactionV2:input_type -> qubic.archiver.v2.pb.GetTransactionRequestV2
-	12, // 25: qubic.archiver.v2.pb.ArchiveService.GetTickQuorumDataV2:input_type -> qubic.archiver.v2.pb.GetQuorumTickDataRequest
+	12, // 23: qubic.archiver.v2.pb.ArchiveService.GetTickQuorumDataV2:input_type -> qubic.archiver.v2.pb.GetQuorumTickDataRequest
+	16, // 24: qubic.archiver.v2.pb.ArchiveService.GetComputors:input_type -> qubic.archiver.v2.pb.GetComputorsRequest
+	29, // 25: qubic.archiver.v2.pb.ArchiveService.GetTransactionV2:input_type -> qubic.archiver.v2.pb.GetTransactionRequestV2
 	34, // 26: qubic.archiver.v2.pb.ArchiveService.GetHealth:input_type -> google.protobuf.Empty
 	20, // 27: qubic.archiver.v2.pb.ArchiveService.GetStatus:output_type -> qubic.archiver.v2.pb.GetStatusResponse
 	28, // 28: qubic.archiver.v2.pb.ArchiveService.GetTickTransactionsV2:output_type -> qubic.archiver.v2.pb.GetTickTransactionsResponseV2
 	2,  // 29: qubic.archiver.v2.pb.ArchiveService.GetTickData:output_type -> qubic.archiver.v2.pb.GetTickDataResponse
-	17, // 30: qubic.archiver.v2.pb.ArchiveService.GetComputors:output_type -> qubic.archiver.v2.pb.GetComputorsResponse
-	30, // 31: qubic.archiver.v2.pb.ArchiveService.GetTransactionV2:output_type -> qubic.archiver.v2.pb.GetTransactionResponseV2
-	13, // 32: qubic.archiver.v2.pb.ArchiveService.GetTickQuorumDataV2:output_type -> qubic.archiver.v2.pb.GetQuorumTickDataResponse
+	13, // 30: qubic.archiver.v2.pb.ArchiveService.GetTickQuorumDataV2:output_type -> qubic.archiver.v2.pb.GetQuorumTickDataResponse
+	17, // 31: qubic.archiver.v2.pb.ArchiveService.GetComputors:output_type -> qubic.archiver.v2.pb.GetComputorsResponse
+	30, // 32: qubic.archiver.v2.pb.ArchiveService.GetTransactionV2:output_type -> qubic.archiver.v2.pb.GetTransactionResponseV2
 	21, // 33: qubic.archiver.v2.pb.ArchiveService.GetHealth:output_type -> qubic.archiver.v2.pb.GetHealthResponse
 	27, // [27:34] is the sub-list for method output_type
 	20, // [20:27] is the sub-list for method input_type
