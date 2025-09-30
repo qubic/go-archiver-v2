@@ -71,7 +71,9 @@ func (p *Processor) processOneByOne() error {
 	if err != nil {
 		return fmt.Errorf("getting client connection: %w", err)
 	}
-	defer p.releaseClient(err, client)
+	defer func() {
+		p.releaseClient(err, client)
+	}()
 
 	tickInfo, err := client.GetTickInfo(ctx)
 	if err != nil {
@@ -136,6 +138,7 @@ func (p *Processor) releaseClient(err error, client network.QubicClient) {
 			log.Printf("[ERROR] putting connection back to pool: %s", pErr.Error())
 		}
 	} else {
+		log.Printf("Closing connection because of error: %v", err)
 		cErr := p.clientPool.Close(client)
 		if cErr != nil {
 			log.Printf("[ERROR] closing connection: %s", cErr.Error())
