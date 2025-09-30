@@ -97,7 +97,7 @@ func run() error {
 			return fmt.Errorf("creating db for setting start tick: %w", err)
 		}
 		err = database.SetLastProcessedTick(context.Background(), &protobuf.ProcessedTick{
-			TickNumber: cfg.Qubic.StartTick,
+			TickNumber: cfg.Qubic.StartTick - 1,
 			Epoch:      uint32(cfg.Qubic.StartEpoch),
 		})
 		if err != nil {
