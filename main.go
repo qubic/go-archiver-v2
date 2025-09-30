@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"github.com/ardanlabs/conf/v3"
@@ -12,6 +13,7 @@ import (
 	"github.com/qubic/go-archiver-v2/db"
 	"github.com/qubic/go-archiver-v2/network"
 	"github.com/qubic/go-archiver-v2/processor"
+	"github.com/qubic/go-archiver-v2/protobuf"
 	"github.com/qubic/go-archiver-v2/validator"
 	qubic "github.com/qubic/go-node-connector"
 	"github.com/qubic/go-node-connector/types"
@@ -57,6 +59,9 @@ func run() error {
 			ProcessTickTimeout  time.Duration `conf:"default:5s"`
 			EnableTxStatusAddon bool          `conf:"default:true"`
 			ArbitratorIdentity  string        `conf:"default:AFZPUAIYVPNUYGJRQVLUKOPPVLHAZQTGLYAAUUNBXFTVTAMSBKQBLEIEPCVJ"`
+			OverrideTick        bool          `conf:"default:false"`
+			StartTick           uint32        `conf:"default:0"`
+			StartEpoch          uint16        `conf:"default:0"`
 			ProcessingEnabled   bool          `conf:"default:true"`
 		}
 		Store struct {
@@ -89,6 +94,19 @@ func run() error {
 	if err != nil {
 		return fmt.Errorf("creating db pool: %w", err)
 	}
+	if cfg.Qubic.OverrideTick && cfg.Qubic.StartEpoch > 0 && cfg.Qubic.StartTick > 0 {
+		database, err := dbPool.GetOrCreateDbForEpoch(cfg.Qubic.StartEpoch)
+		if err != nil {
+			return fmt.Errorf("creating db for setting start tick: %w", err)
+		}
+		err = database.SetLastProcessedTick(context.Background(), &protobuf.ProcessedTick{
+			TickNumber: cfg.Qubic.StartTick,
+			Epoch:      uint32(cfg.Qubic.StartEpoch),
+		})
+		if err != nil {
+			return fmt.Errorf("setting start tick: %w", err)
+		}
+	}
 	defer dbPool.Close()
 
 	clientPool, err := network.NewNodeConnectorPool(qubic.PoolConfig{
@@ -111,7 +129,9 @@ func run() error {
 		return fmt.Errorf("calculating arbitrator public key from [%s]: %w", cfg.Qubic.ArbitratorIdentity, err)
 	}
 	tickValidator := validator.NewValidator(arbitratorPubKey, cfg.Qubic.EnableTxStatusAddon)
-	proc := processor.NewProcessor(clientPool, dbPool, tickValidator, cfg.Qubic.ProcessTickTimeout)
+	proc := processor.NewProcessor(clientPool, dbPool, tickValidator, processor.Config{
+		ProcessTickTimeout: cfg.Qubic.ProcessTickTimeout,
+	})
 
 	procErrors := make(chan error, 1)
 	if cfg.Qubic.ProcessingEnabled {
