@@ -1,5 +1,5 @@
 services:
-  qubic-archiver:
+  qubic-archiver-v2:
     image: ghcr.io/qubic/qubic-archiver-v2:v0.1.0
     container_name: qubic-archiver-v2
     ports:
@@ -10,6 +10,7 @@ services:
       QUBIC_ARCHIVER_V2_POOL_NODE_FETCHER_URL: "http://qubic-nodes:8080/status" # needs qubic-nodes service
       QUBIC_ARCHIVER_V2_QUBIC_PROCESS_TICK_TIMEOUT: "30s"
       QUBIC_ARCHIVER_V2_QUBIC_ENABLE_TX_STATUS_ADDON: "false" # on by default
+      QUBIC_ARCHIVER_V2_STORE_OPEN_EPOCHS_COUNT: 5
     volumes:
       - ./docker/archive-data:/app/archive-data
     networks:
