@@ -61,9 +61,10 @@ func (t *TestClient) GetIdentity(_ context.Context, _ string) (types.AddressInfo
 
 func (t *TestClient) GetTickInfo(_ context.Context) (types.TickInfo, error) {
 	return types.TickInfo{
-		Epoch:       t.epoch,
-		Tick:        t.tick,
-		InitialTick: t.InitialTick,
+		Epoch:                t.epoch,
+		Tick:                 t.tick,
+		NumberOfAlignedVotes: 500,
+		InitialTick:          t.InitialTick,
 	}, nil
 }
 
@@ -141,7 +142,7 @@ func TestProcessor_processOneByOne(t *testing.T) {
 	dataPool, err := db.NewDatabasePool(testDir, 5)
 	require.NoError(t, err)
 
-	processor := NewProcessor(clientPool, dataPool, &TestValidator{}, time.Millisecond)
+	processor := NewProcessor(clientPool, dataPool, &TestValidator{}, Config{time.Millisecond})
 	err = processor.processOneByOne()
 	require.NoError(t, err)
 	err = processor.processOneByOne()
@@ -163,7 +164,7 @@ func TestProcessor_processOneByOne_epochChange(t *testing.T) {
 	dataPool, err := db.NewDatabasePool(testDir, 5)
 	require.NoError(t, err)
 
-	processor := NewProcessor(clientPool, dataPool, &TestValidator{}, time.Millisecond)
+	processor := NewProcessor(clientPool, dataPool, &TestValidator{}, Config{time.Millisecond})
 	err = processor.processOneByOne()
 	require.NoError(t, err)
 	err = processor.processOneByOne()

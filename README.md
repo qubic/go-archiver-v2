@@ -48,15 +48,14 @@ one subfolder per epoch with the corresponding epoch number.
     --qubic-enable-tx-status-addon=true
     --qubic-node-port=21841
     --qubic-process-tick-timeout=5s
-    --server-chain-tick-fetch-url=http://127.0.0.1:8080/max-tick
     --server-grpc-host=0.0.0.0:8001
     --server-http-host=0.0.0.0:8000
-    --server-node-sync-threshold=3
+    --server-node-sync-threshold=10
     --server-profiling-host=0.0.0.0:8002
     --server-read-timeout=5s
     --server-shutdown-timeout=5s
     --server-write-timeout=5s
-    --store-reset-empty-tick-keys=false
+    --store-open-epochs-count=10
     --store-storage-folder=archive-data
 ```
 

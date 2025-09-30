@@ -38,13 +38,10 @@ func run() error {
 	log.SetOutput(os.Stdout)
 	var cfg struct {
 		Server struct {
-			ReadTimeout       time.Duration `conf:"default:5s"`
-			WriteTimeout      time.Duration `conf:"default:5s"`
-			ShutdownTimeout   time.Duration `conf:"default:5s"`
-			HttpHost          string        `conf:"default:0.0.0.0:8000"`
-			GrpcHost          string        `conf:"default:0.0.0.0:8001"`
-			ProfilingHost     string        `conf:"default:0.0.0.0:8002"`
-			NodeSyncThreshold uint32        `conf:"default:10"`
+			HttpHost          string `conf:"default:0.0.0.0:8000"`
+			GrpcHost          string `conf:"default:0.0.0.0:8001"`
+			ProfilingHost     string `conf:"default:0.0.0.0:8002"`
+			NodeSyncThreshold uint32 `conf:"default:10"`
 		}
 		Pool struct {
 			NodeFetcherUrl     string        `conf:"default:http://127.0.0.1:8080/status"`
@@ -53,9 +50,9 @@ func run() error {
 			MaxIdle            int           `conf:"default:20"`
 			MaxCap             int           `conf:"default:30"`
 			IdleTimeout        time.Duration `conf:"default:15s"`
+			NodePort           string        `conf:"default:21841"`
 		}
 		Qubic struct {
-			NodePort            string        `conf:"default:21841"`
 			ProcessTickTimeout  time.Duration `conf:"default:5s"`
 			EnableTxStatusAddon bool          `conf:"default:true"`
 			ArbitratorIdentity  string        `conf:"default:AFZPUAIYVPNUYGJRQVLUKOPPVLHAZQTGLYAAUUNBXFTVTAMSBKQBLEIEPCVJ"`
@@ -116,7 +113,7 @@ func run() error {
 		IdleTimeout:        cfg.Pool.IdleTimeout,
 		NodeFetcherUrl:     cfg.Pool.NodeFetcherUrl,
 		NodeFetcherTimeout: cfg.Pool.NodeFetcherTimeout,
-		NodePort:           cfg.Qubic.NodePort,
+		NodePort:           cfg.Pool.NodePort,
 	})
 	if err != nil {
 		return fmt.Errorf("creating node pool: %w", err)
