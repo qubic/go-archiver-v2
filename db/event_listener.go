@@ -25,39 +25,34 @@ func NewPebbleEventListener() pebble.EventListener {
 
 func backgroundError(err error) {
 
-	log.Printf("[PEBBLE]: Encountered background error: %v\n", err)
+	log.Printf("[PEBBLE]: Encountered background error: %v", err)
 
 }
 
 func compactionBegin(info pebble.CompactionInfo) {
 
-	log.Printf("[PEBBLE]: Compaction triggered:\n")
-	log.Printf("  JobID: %d\n", info.JobID)
-	log.Printf("  Reason: %s\n", info.Reason)
+	log.Printf("[PEBBLE]: Compaction triggered. JobID: %d. Reason: %s. ", info.JobID, info.Reason)
 	for _, level := range info.Input {
-		log.Printf("  From Level %d - %s\n", level.Level, level.String())
+		log.Printf("  From Level %d - %s", level.Level, level.String())
 	}
-	log.Printf("  To level %d %ss\n", info.Output.Level, info.Output.String())
+	log.Printf("  To level %d %ss", info.Output.Level, info.Output.String())
 
 }
 
 func compactionEnd(info pebble.CompactionInfo) {
-	log.Printf("[PEBBLE]: Compaction with JobID %d ended. Took %v\n", info.JobID, info.TotalDuration)
+	log.Printf("[PEBBLE]: Compaction with JobID %d ended. Took %v.", info.JobID, info.TotalDuration)
 }
 
 func flushBegin(info pebble.FlushInfo) {
-	log.Printf("[PEBBLE]: Flush triggered:\n")
-	log.Printf("  JobID: %d\n", info.JobID)
-	log.Printf("  Reason: %s\n", info.Reason)
-
+	log.Printf("[PEBBLE]: Flush triggered. JobID: %d. Reason: %s.", info.JobID, info.Reason)
 }
 
 func flushEnd(info pebble.FlushInfo) {
-	log.Printf("[PEBBLE]: Flush with JobID %d ended. Took %v\n", info.JobID, info.TotalDuration)
+	log.Printf("[PEBBLE]: Flush with JobID %d ended. Took %v.", info.JobID, info.TotalDuration)
 }
 
 func writeStallBegin(info pebble.WriteStallBeginInfo) {
-	log.Printf("[PEBBLE]: Writes stalled. Reason: %s\n", info.Reason)
+	log.Printf("[PEBBLE]: Writes stalled. Reason: %s.", info.Reason)
 }
 
 func writeStallEnd() {

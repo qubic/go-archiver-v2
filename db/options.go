@@ -13,21 +13,21 @@ func getDefaultPebbleOptions() *pebble.Options {
 	options.WithFSDefaults()
 	options.TargetFileSizes = [7]int64{
 		size256mb,
-		size256mb * 10,  // 2.5 GB
-		size256mb * 20,  // 5 GB
-		size256mb * 40,  // 10 GB
-		size256mb * 100, // 25 GB
-		size256mb * 200, // 50 GB
-		size256mb * 400, // 100 GB
+		size256mb * 4,   // 1 GB
+		size256mb * 8,   // 2 GB
+		size256mb * 16,  // 4 GB
+		size256mb * 32,  // 8 GB
+		size256mb * 64,  // 16 GB
+		size256mb * 128, // 32 GB
 	}
 	options.ApplyCompressionSettings(func() pebble.DBCompressionSettings {
 		cs := pebble.DBCompressionSettings{Name: "QubicEpochData"}
 		cs.Levels[0] = block.NoCompression
 		cs.Levels[1] = block.FastestCompression
 		cs.Levels[2] = block.FastestCompression
-		cs.Levels[3] = block.FastCompression
-		cs.Levels[4] = block.FastCompression
-		cs.Levels[5] = block.BalancedCompression
+		cs.Levels[3] = block.FastestCompression
+		cs.Levels[4] = block.FastestCompression
+		cs.Levels[5] = block.FastCompression
 		cs.Levels[6] = block.BalancedCompression
 		return cs
 	})

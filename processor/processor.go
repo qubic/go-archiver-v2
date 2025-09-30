@@ -24,20 +24,24 @@ type TickStatus struct {
 }
 
 type Processor struct {
-	clientPool         network.QubicClientPool
-	databasePool       *db.DatabasePool
-	tickValidator      Validator
-	arbitratorPubKey   [32]byte
-	processTickTimeout time.Duration
-	enableStatusAddon  bool
-	tickStatus         *TickStatus
+	clientPool           network.QubicClientPool
+	databasePool         *db.DatabasePool
+	tickValidator        Validator
+	arbitratorPubKey     [32]byte
+	processTickTimeout   time.Duration
+	tickStatus           *TickStatus
+	startFromCurrentTick bool
 }
 
-func NewProcessor(clientPool network.QubicClientPool, dbPool *db.DatabasePool, tickValidator Validator, processTickTimeout time.Duration) *Processor {
+type Config struct {
+	ProcessTickTimeout time.Duration
+}
+
+func NewProcessor(clientPool network.QubicClientPool, dbPool *db.DatabasePool, tickValidator Validator, config Config) *Processor {
 	return &Processor{
 		clientPool:         clientPool,
 		databasePool:       dbPool,
-		processTickTimeout: processTickTimeout,
+		processTickTimeout: config.ProcessTickTimeout,
 		tickValidator:      tickValidator,
 		tickStatus:         &TickStatus{},
 	}
@@ -85,18 +89,23 @@ func (p *Processor) processOneByOne() error {
 	if err != nil {
 		return fmt.Errorf("getting last processed tick: %w", err)
 	}
-	p.tickStatus.ProcessedTick = tickInfo.Tick
-	p.tickStatus.ProcessingEpoch = tickInfo.Epoch
+	p.tickStatus.ProcessedTick = lastProcessedTick.TickNumber
+	p.tickStatus.ProcessingEpoch = uint16(lastProcessedTick.Epoch)
 
 	nextTick, err := p.getNextProcessingTick(ctx, lastProcessedTick, tickInfo)
 	if err != nil {
 		return fmt.Errorf("getting next tick to process: %w", err)
 	}
-	log.Printf("Next tick to process: [%d].", nextTick.TickNumber)
+	log.Printf("Next tick to process: [%d]. Current tick: [%d]. Delta [%d]", nextTick.TickNumber, tickInfo.Tick, tickInfo.Tick-nextTick.TickNumber)
 
 	if nextTick.TickNumber > tickInfo.Tick {
 		return fmt.Errorf("next tick is in the future. processed: %d, next %d, available %d",
 			lastProcessedTick.TickNumber, nextTick.TickNumber, tickInfo.Tick)
+	}
+
+	// not sure if this helps because we will often be aligned at time of processing
+	if nextTick.TickNumber == tickInfo.Tick && tickInfo.NumberOfAlignedVotes < 451 {
+		return fmt.Errorf("current tick not ready for processing yet. Aligned votes: %d", tickInfo.NumberOfAlignedVotes)
 	}
 
 	err = p.tickValidator.Validate(ctx, dataStore, client, tickInfo.Epoch, nextTick.TickNumber)
