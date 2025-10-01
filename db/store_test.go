@@ -37,11 +37,26 @@ func TestPebbleStore_SetAndGetComputors(t *testing.T) {
 	require.Emptyf(t, diff, "unexpected diff result (-got +want):\n%s", diff)
 }
 
+func TestPebbleStore_GetProcessedTickIntervalsPerEpoch_GivenNewEpoch_ThenReturnEmpty(t *testing.T) {
+	store, err := createTestDataStoreWithEpoch(t, 666)
+	require.NoError(t, err)
+	defer closeDb(store)
+
+	epochIntervals, err := store.GetProcessedTickIntervalsPerEpoch(context.Background(), 666)
+	require.NoError(t, err)
+	require.NotNil(t, epochIntervals)
+	require.Empty(t, epochIntervals.Intervals)
+}
+
 func createTestDataStore(t *testing.T) (*PebbleStore, error) {
+	return createTestDataStoreWithEpoch(t, 42)
+}
+
+func createTestDataStoreWithEpoch(t *testing.T, epoch uint16) (*PebbleStore, error) {
 	testDir := t.TempDir()
 	err := os.Mkdir(fmt.Sprintf("%s/%s", testDir, "42"), 0755)
 	require.NoError(t, err)
-	return CreateStore(testDir, 42)
+	return CreateStore(testDir, epoch)
 }
 
 func closeDb(database *PebbleStore) {

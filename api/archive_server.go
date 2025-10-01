@@ -62,9 +62,8 @@ func (s *ArchiveServiceServer) GetStatus(ctx context.Context, _ *emptypb.Empty) 
 
 	epochs := s.dbPool.GetAvailableEpochsAscending() // oldest first. to stay compatible with v1 order.
 	if len(epochs) == 0 {
-		id := uuid.New()
-		log.Printf("[WARN] (%s) no epoch databases found.", id)
-		return nil, status.Errorf(codes.Internal, "error getting status (%s)", id)
+		log.Println("[WARN] no epoch databases found.")
+		return &protobuf.GetStatusResponse{}, nil
 	}
 
 	intervalsPerEpoch := make([]*protobuf.ProcessedTickIntervalsPerEpoch, 0, len(epochs))
@@ -81,13 +80,20 @@ func (s *ArchiveServiceServer) GetStatus(ctx context.Context, _ *emptypb.Empty) 
 			log.Printf("[ERROR] (%s) getting processed tick intervals for epoch [%d]: %v", id.String(), epoch, err)
 			return nil, status.Errorf(codes.Internal, "error getting status (%s)", id.String())
 		}
-		intervalsPerEpoch = append(intervalsPerEpoch, intervalsForEpoch)
+		if intervalsForEpoch != nil && len(intervalsForEpoch.GetIntervals()) > 0 { // can be empty for new epoch
+			intervalsPerEpoch = append(intervalsPerEpoch, intervalsForEpoch)
+		}
+	}
+
+	if len(intervalsPerEpoch) == 0 {
+		log.Println("[WARN] there are no tick intervals yet.")
+		return &protobuf.GetStatusResponse{}, nil
 	}
 
 	latest := intervalsPerEpoch[len(intervalsPerEpoch)-1]
 	return &protobuf.GetStatusResponse{
 		LastProcessedTick: &protobuf.ProcessedTick{
-			TickNumber: latest.GetIntervals()[len(latest.GetIntervals())-1].GetLastProcessedTick(),
+			TickNumber: latest.GetIntervals()[len(latest.GetIntervals())-1].GetLastProcessedTick(), // len(intervals) > 0
 			Epoch:      latest.GetEpoch(),
 		},
 		ProcessedTickIntervalsPerEpoch: intervalsPerEpoch,
