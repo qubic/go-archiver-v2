@@ -107,7 +107,7 @@ func (p *Processor) processOneByOne() error {
 
 	// not sure if this helps because we will often be aligned at time of processing
 	if nextTick.TickNumber == tickInfo.Tick && tickInfo.NumberOfAlignedVotes < 451 {
-		return fmt.Errorf("current tick not ready for processing yet. Aligned votes: %d", tickInfo.NumberOfAlignedVotes)
+		return fmt.Errorf("tick not ready ([%d] aligned votes)", tickInfo.NumberOfAlignedVotes)
 	}
 
 	err = p.tickValidator.Validate(ctx, dataStore, client, tickInfo.Epoch, nextTick.TickNumber)
