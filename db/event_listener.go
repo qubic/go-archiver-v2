@@ -1,8 +1,9 @@
 package db
 
 import (
-	"github.com/cockroachdb/pebble/v2"
 	"log"
+
+	"github.com/cockroachdb/pebble/v2"
 )
 
 type PebbleEventListener struct {

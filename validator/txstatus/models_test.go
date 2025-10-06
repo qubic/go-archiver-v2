@@ -1,9 +1,10 @@
 package txstatus
 
 import (
-	"github.com/qubic/go-node-connector/types"
 	"log"
 	"testing"
+
+	"github.com/qubic/go-node-connector/types"
 )
 
 func TestQubicToProto(t *testing.T) {

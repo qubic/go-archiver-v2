@@ -4,6 +4,14 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log"
+	"net/http"
+	_ "net/http/pprof"
+	"os"
+	"os/signal"
+	"syscall"
+	"time"
+
 	"github.com/ardanlabs/conf/v3"
 	grpcProm "github.com/grpc-ecosystem/go-grpc-middleware/providers/prometheus"
 	"github.com/prometheus/client_golang/prometheus"
@@ -17,13 +25,6 @@ import (
 	"github.com/qubic/go-archiver-v2/validator"
 	qubic "github.com/qubic/go-node-connector"
 	"github.com/qubic/go-node-connector/types"
-	"log"
-	"net/http"
-	_ "net/http/pprof"
-	"os"
-	"os/signal"
-	"syscall"
-	"time"
 )
 
 const prefix = "QUBIC_ARCHIVER_V2"

@@ -5,10 +5,11 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
-	"github.com/qubic/go-archiver-v2/db"
-	"github.com/qubic/go-archiver-v2/network"
 	"log"
 	"math/rand/v2"
+
+	"github.com/qubic/go-archiver-v2/db"
+	"github.com/qubic/go-archiver-v2/network"
 )
 
 // Get computors list

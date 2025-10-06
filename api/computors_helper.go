@@ -4,9 +4,10 @@ import (
 	"cmp"
 	"context"
 	"fmt"
+	"slices"
+
 	"github.com/qubic/go-archiver-v2/db"
 	"github.com/qubic/go-archiver-v2/protobuf"
-	"slices"
 )
 
 func getComputors(ctx context.Context, database *db.PebbleStore, tick uint32, epoch uint16) (*protobuf.Computors, error) {

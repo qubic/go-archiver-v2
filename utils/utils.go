@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/binary"
 	"fmt"
+
 	"github.com/cloudflare/circl/xof/k12"
 	"github.com/qubic/go-schnorrq"
 )

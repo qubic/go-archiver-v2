@@ -2,10 +2,11 @@ package quorum
 
 import (
 	"context"
+	"testing"
+
 	"github.com/qubic/go-archiver-v2/validator/computors"
 	"github.com/qubic/go-node-connector/types"
 	"github.com/stretchr/testify/require"
-	"testing"
 )
 
 // Sufficient quorum votes.

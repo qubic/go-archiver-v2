@@ -3,9 +3,10 @@ package tick
 import (
 	"encoding/hex"
 	"fmt"
+	"time"
+
 	"github.com/qubic/go-archiver-v2/protobuf"
 	"github.com/qubic/go-node-connector/types"
-	"time"
 )
 
 func qubicToProto(tickData types.TickData) (*protobuf.TickData, error) {

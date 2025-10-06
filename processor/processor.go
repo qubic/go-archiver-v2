@@ -4,12 +4,13 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log"
+	"time"
+
 	"github.com/qubic/go-archiver-v2/db"
 	"github.com/qubic/go-archiver-v2/network"
 	"github.com/qubic/go-archiver-v2/protobuf"
 	"github.com/qubic/go-node-connector/types"
-	"log"
-	"time"
 )
 
 type Validator interface {

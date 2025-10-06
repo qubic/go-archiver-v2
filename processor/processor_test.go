@@ -2,14 +2,15 @@ package processor
 
 import (
 	"context"
+	"log"
+	"testing"
+	"time"
+
 	"github.com/qubic/go-archiver-v2/db"
 	"github.com/qubic/go-archiver-v2/network"
 	qubic "github.com/qubic/go-node-connector"
 	"github.com/qubic/go-node-connector/types"
 	"github.com/stretchr/testify/require"
-	"log"
-	"testing"
-	"time"
 )
 
 type TestPool struct {

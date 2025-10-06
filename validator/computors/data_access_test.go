@@ -3,13 +3,14 @@ package computors
 import (
 	"context"
 	"fmt"
+	"os"
+	"testing"
+
 	"github.com/google/go-cmp/cmp"
 	"github.com/qubic/go-archiver-v2/db"
 	qubic "github.com/qubic/go-node-connector"
 	"github.com/qubic/go-node-connector/types"
 	"github.com/stretchr/testify/require"
-	"os"
-	"testing"
 )
 
 func TestComputorsDataAccess_WhenGet_GivenStoredInDb_ThenLoadFromDb(t *testing.T) {

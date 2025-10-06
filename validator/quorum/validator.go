@@ -4,6 +4,9 @@ import (
 	"context"
 	"encoding/binary"
 	"fmt"
+	"log"
+	"slices"
+
 	"github.com/pkg/errors"
 	"github.com/qubic/go-archiver-v2/db"
 	"github.com/qubic/go-archiver-v2/network"
@@ -11,8 +14,6 @@ import (
 	"github.com/qubic/go-archiver-v2/validator/computors"
 	"github.com/qubic/go-node-connector/types"
 	"golang.org/x/sync/errgroup"
-	"log"
-	"slices"
 )
 
 // Validate validates the quorum votes and if success returns the aligned votes back

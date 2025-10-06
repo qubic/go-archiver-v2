@@ -1,10 +1,11 @@
 package computors
 
 import (
+	"testing"
+
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/qubic/go-archiver-v2/protobuf"
-	"testing"
 )
 
 func TestComputorsModel_QubicToProtoAndBackToQubic(t *testing.T) {

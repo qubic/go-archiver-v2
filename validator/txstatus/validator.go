@@ -4,10 +4,11 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"sort"
+
 	"github.com/qubic/go-archiver-v2/db"
 	"github.com/qubic/go-archiver-v2/protobuf"
 	"github.com/qubic/go-node-connector/types"
-	"sort"
 )
 
 func Validate(_ context.Context, tickTxStatus types.TransactionStatus, tickTxs types.Transactions) (*protobuf.TickTransactionsStatus, error) {

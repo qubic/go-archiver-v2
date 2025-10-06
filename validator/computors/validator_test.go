@@ -4,10 +4,11 @@ import (
 	"bufio"
 	"context"
 	"encoding/base64"
-	"github.com/qubic/go-node-connector/types"
-	"github.com/stretchr/testify/assert"
 	"os"
 	"testing"
+
+	"github.com/qubic/go-node-connector/types"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestValidator_Validate(t *testing.T) {

@@ -2,10 +2,11 @@ package db
 
 import (
 	"fmt"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 	"os"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestDatabasePool_NewDatabasePool_GivenEmptyDir_DoNotFail(t *testing.T) {

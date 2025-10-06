@@ -3,12 +3,13 @@ package db
 import (
 	"context"
 	"fmt"
+	"os"
+	"testing"
+
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/qubic/go-archiver-v2/protobuf"
 	"github.com/stretchr/testify/require"
-	"os"
-	"testing"
 )
 
 func TestPebbleStore_SetAndGetComputors(t *testing.T) {

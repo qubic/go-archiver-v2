@@ -2,6 +2,7 @@ package network
 
 import (
 	"fmt"
+
 	qubic "github.com/qubic/go-node-connector"
 )
 

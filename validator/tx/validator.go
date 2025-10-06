@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/hex"
 	"fmt"
+
 	"github.com/pkg/errors"
 	"github.com/qubic/go-archiver-v2/db"
 	"github.com/qubic/go-archiver-v2/utils"

@@ -20,7 +20,7 @@ GO = $(PB:.proto=.pb.go)
 PWD = $(pwd)
 
 
-all: $(GO)
+all: $(GO) openapi
 
 %.pb.go: %.proto
 		protoc -I=. --go-grpc_out=paths=source_relative:. \
@@ -30,9 +30,9 @@ all: $(GO)
     --grpc-gateway_opt generate_unbound_methods=true $(OPT_ARGS) \
 	--go_out=paths=source_relative:. *.proto
 
-openapi: archive.proto
+openapi: archive-v2.proto
 		protoc --openapiv2_out=logtostderr=true:. $(OPT_ARGS) \
-			   archive.proto
+			   archive-v2.proto
 
 clean:
 		rm -f *.pb.go

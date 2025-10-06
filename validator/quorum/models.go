@@ -4,10 +4,11 @@ import (
 	"encoding/binary"
 	"encoding/hex"
 	"fmt"
+	"time"
+
 	"github.com/qubic/go-archiver-v2/protobuf"
 	"github.com/qubic/go-archiver-v2/utils"
 	"github.com/qubic/go-node-connector/types"
-	"time"
 )
 
 func qubicToProto(votes types.QuorumVotes) *protobuf.QuorumTickData {

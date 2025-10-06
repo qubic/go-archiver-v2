@@ -5,6 +5,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log"
+
 	"github.com/qubic/go-archiver-v2/db"
 	"github.com/qubic/go-archiver-v2/network"
 	"github.com/qubic/go-archiver-v2/protobuf"
@@ -14,7 +16,6 @@ import (
 	"github.com/qubic/go-archiver-v2/validator/tx"
 	"github.com/qubic/go-archiver-v2/validator/txstatus"
 	"github.com/qubic/go-node-connector/types"
-	"log"
 )
 
 type Validator struct {

@@ -2,6 +2,7 @@ package network
 
 import (
 	"context"
+
 	"github.com/qubic/go-node-connector"
 	"github.com/qubic/go-node-connector/types"
 )

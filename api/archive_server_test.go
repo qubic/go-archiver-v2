@@ -2,12 +2,13 @@ package api
 
 import (
 	"context"
+	"testing"
+
 	"github.com/qubic/go-archiver-v2/db"
 	"github.com/qubic/go-archiver-v2/processor"
 	"github.com/qubic/go-archiver-v2/protobuf"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/protobuf/types/known/emptypb"
-	"testing"
 )
 
 func TestArchiveServer_GetStatus(t *testing.T) {

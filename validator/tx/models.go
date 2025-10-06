@@ -3,6 +3,7 @@ package tx
 import (
 	"encoding/hex"
 	"fmt"
+
 	"github.com/qubic/go-archiver-v2/protobuf"
 	"github.com/qubic/go-node-connector/types"
 )
