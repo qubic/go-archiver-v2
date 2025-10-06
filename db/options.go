@@ -1,9 +1,10 @@
 package db
 
 import (
+	"runtime"
+
 	"github.com/cockroachdb/pebble/v2"
 	"github.com/cockroachdb/pebble/v2/sstable/block"
-	"runtime"
 )
 
 const size256mb = 268435456 // 256MB
@@ -13,12 +14,12 @@ func getDefaultPebbleOptions() *pebble.Options {
 	options.WithFSDefaults()
 	options.TargetFileSizes = [7]int64{
 		size256mb,
-		size256mb * 4,   // 1 GB
-		size256mb * 8,   // 2 GB
-		size256mb * 16,  // 4 GB
-		size256mb * 32,  // 8 GB
-		size256mb * 64,  // 16 GB
-		size256mb * 128, // 32 GB
+		size256mb * 2,  // 512 MB
+		size256mb * 4,  // 1 GB
+		size256mb * 8,  // 2 GB
+		size256mb * 16, // 4 GB
+		size256mb * 32, // 8 GB
+		size256mb * 64, // 16 GB
 	}
 	options.ApplyCompressionSettings(func() pebble.DBCompressionSettings {
 		cs := pebble.DBCompressionSettings{Name: "QubicEpochData"}
