@@ -1,0 +1,579 @@
+{
+  "swagger": "2.0",
+  "info": {
+    "title": "archive-v2.proto",
+    "version": "version not set"
+  },
+  "tags": [
+    {
+      "name": "ArchiveService"
+    }
+  ],
+  "consumes": [
+    "application/json"
+  ],
+  "produces": [
+    "application/json"
+  ],
+  "paths": {
+    "/epochs/{epoch}/computors": {
+      "get": {
+        "summary": "Get the latest list of computors.",
+        "operationId": "ArchiveService_GetComputors",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/pbGetComputorsResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "epoch",
+            "in": "path",
+            "required": true,
+            "type": "integer",
+            "format": "int64"
+          }
+        ],
+        "tags": [
+          "ArchiveService"
+        ]
+      }
+    },
+    "/status": {
+      "get": {
+        "summary": "Compatible with legacy v1 status but only returns last processed tick and tick intervals per epoch.",
+        "operationId": "ArchiveService_GetStatus",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/pbGetStatusResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "tags": [
+          "ArchiveService"
+        ]
+      }
+    },
+    "/ticks/{tickNumber}/quorum-data": {
+      "get": {
+        "summary": "Get quorum votes for one tick.",
+        "operationId": "ArchiveService_GetTickQuorumDataV2",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/pbGetQuorumTickDataResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "tickNumber",
+            "in": "path",
+            "required": true,
+            "type": "integer",
+            "format": "int64"
+          }
+        ],
+        "tags": [
+          "ArchiveService"
+        ]
+      }
+    },
+    "/ticks/{tickNumber}/tick-data": {
+      "get": {
+        "summary": "Get the tick data for one tick. Returns 404 if there is no data stored for the requested tick.",
+        "operationId": "ArchiveService_GetTickData",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/pbGetTickDataResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "tickNumber",
+            "in": "path",
+            "required": true,
+            "type": "integer",
+            "format": "int64"
+          }
+        ],
+        "tags": [
+          "ArchiveService"
+        ]
+      }
+    },
+    "/ticks/{tickNumber}/transactions": {
+      "get": {
+        "summary": "Get the transactions for one tick. Returns 404 if there is no data stored for the requested tick.",
+        "operationId": "ArchiveService_GetTickTransactionsV2",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/pbGetTickTransactionsResponseV2"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "tickNumber",
+            "in": "path",
+            "required": true,
+            "type": "integer",
+            "format": "int64"
+          }
+        ],
+        "tags": [
+          "ArchiveService"
+        ]
+      }
+    },
+    "/transactions/{transactionHash}": {
+      "get": {
+        "summary": "Get the transaction by hash.",
+        "operationId": "ArchiveService_GetTransactionV2",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/pbGetTransactionResponseV2"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "transactionHash",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "ArchiveService"
+        ]
+      }
+    },
+    "/v1/health": {
+      "get": {
+        "summary": "Basic health check",
+        "operationId": "ArchiveService_GetHealth",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/pbGetHealthResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "tags": [
+          "ArchiveService"
+        ]
+      }
+    }
+  },
+  "definitions": {
+    "pbComputors": {
+      "type": "object",
+      "properties": {
+        "epoch": {
+          "type": "integer",
+          "format": "int64"
+        },
+        "tickNumber": {
+          "type": "integer",
+          "format": "int64"
+        },
+        "identities": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "signatureHex": {
+          "type": "string"
+        }
+      }
+    },
+    "pbGetComputorsResponse": {
+      "type": "object",
+      "properties": {
+        "computors": {
+          "$ref": "#/definitions/pbComputors"
+        }
+      }
+    },
+    "pbGetHealthResponse": {
+      "type": "object",
+      "properties": {
+        "status": {
+          "type": "string"
+        },
+        "upToDate": {
+          "type": "boolean"
+        },
+        "processedTick": {
+          "type": "integer",
+          "format": "int64"
+        },
+        "liveEpoch": {
+          "type": "integer",
+          "format": "int64"
+        },
+        "liveTick": {
+          "type": "integer",
+          "format": "int64"
+        }
+      }
+    },
+    "pbGetQuorumTickDataResponse": {
+      "type": "object",
+      "properties": {
+        "quorumTickData": {
+          "$ref": "#/definitions/pbQuorumTickData"
+        }
+      }
+    },
+    "pbGetStatusResponse": {
+      "type": "object",
+      "properties": {
+        "lastProcessedTick": {
+          "$ref": "#/definitions/pbProcessedTick"
+        },
+        "processedTickIntervalsPerEpoch": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/pbProcessedTickIntervalsPerEpoch"
+          }
+        }
+      }
+    },
+    "pbGetTickDataResponse": {
+      "type": "object",
+      "properties": {
+        "tickData": {
+          "$ref": "#/definitions/pbTickData"
+        }
+      }
+    },
+    "pbGetTickTransactionsResponseV2": {
+      "type": "object",
+      "properties": {
+        "transactions": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/pbTransactionData"
+          }
+        }
+      }
+    },
+    "pbGetTransactionResponseV2": {
+      "type": "object",
+      "properties": {
+        "transaction": {
+          "$ref": "#/definitions/pbTransaction"
+        },
+        "timestamp": {
+          "type": "string",
+          "format": "uint64"
+        },
+        "moneyFlew": {
+          "type": "boolean"
+        }
+      }
+    },
+    "pbProcessedTick": {
+      "type": "object",
+      "properties": {
+        "tickNumber": {
+          "type": "integer",
+          "format": "int64"
+        },
+        "epoch": {
+          "type": "integer",
+          "format": "int64"
+        }
+      }
+    },
+    "pbProcessedTickInterval": {
+      "type": "object",
+      "properties": {
+        "initialProcessedTick": {
+          "type": "integer",
+          "format": "int64"
+        },
+        "lastProcessedTick": {
+          "type": "integer",
+          "format": "int64"
+        }
+      }
+    },
+    "pbProcessedTickIntervalsPerEpoch": {
+      "type": "object",
+      "properties": {
+        "epoch": {
+          "type": "integer",
+          "format": "int64"
+        },
+        "intervals": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/pbProcessedTickInterval"
+          }
+        }
+      }
+    },
+    "pbQuorumDiff": {
+      "type": "object",
+      "properties": {
+        "saltedResourceTestingDigestHex": {
+          "type": "string"
+        },
+        "saltedSpectrumDigestHex": {
+          "type": "string"
+        },
+        "saltedUniverseDigestHex": {
+          "type": "string"
+        },
+        "saltedComputerDigestHex": {
+          "type": "string"
+        },
+        "expectedNextTickTxDigestHex": {
+          "type": "string"
+        },
+        "signatureHex": {
+          "type": "string"
+        },
+        "saltedTransactionBodyHex": {
+          "type": "string"
+        }
+      }
+    },
+    "pbQuorumTickData": {
+      "type": "object",
+      "properties": {
+        "quorumTickStructure": {
+          "$ref": "#/definitions/pbQuorumTickStructure"
+        },
+        "quorumDiffPerComputor": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/definitions/pbQuorumDiff"
+          }
+        }
+      }
+    },
+    "pbQuorumTickStructure": {
+      "type": "object",
+      "properties": {
+        "epoch": {
+          "type": "integer",
+          "format": "int64"
+        },
+        "tickNumber": {
+          "type": "integer",
+          "format": "int64"
+        },
+        "timestamp": {
+          "type": "string",
+          "format": "uint64"
+        },
+        "prevResourceTestingDigestHex": {
+          "type": "string"
+        },
+        "prevSpectrumDigestHex": {
+          "type": "string"
+        },
+        "prevUniverseDigestHex": {
+          "type": "string"
+        },
+        "prevComputerDigestHex": {
+          "type": "string"
+        },
+        "txDigestHex": {
+          "type": "string"
+        },
+        "prevTransactionBodyHex": {
+          "type": "string"
+        }
+      }
+    },
+    "pbTickData": {
+      "type": "object",
+      "properties": {
+        "computorIndex": {
+          "type": "integer",
+          "format": "int64"
+        },
+        "epoch": {
+          "type": "integer",
+          "format": "int64"
+        },
+        "tickNumber": {
+          "type": "integer",
+          "format": "int64"
+        },
+        "timestamp": {
+          "type": "string",
+          "format": "uint64"
+        },
+        "varStruct": {
+          "type": "string",
+          "format": "byte"
+        },
+        "timeLock": {
+          "type": "string",
+          "format": "byte"
+        },
+        "transactionIds": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "contractFees": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "format": "int64"
+          }
+        },
+        "signatureHex": {
+          "type": "string"
+        }
+      }
+    },
+    "pbTransaction": {
+      "type": "object",
+      "properties": {
+        "sourceId": {
+          "type": "string"
+        },
+        "destId": {
+          "type": "string"
+        },
+        "amount": {
+          "type": "string",
+          "format": "int64"
+        },
+        "tickNumber": {
+          "type": "integer",
+          "format": "int64"
+        },
+        "inputType": {
+          "type": "integer",
+          "format": "int64"
+        },
+        "inputSize": {
+          "type": "integer",
+          "format": "int64"
+        },
+        "inputHex": {
+          "type": "string"
+        },
+        "signatureHex": {
+          "type": "string"
+        },
+        "txId": {
+          "type": "string"
+        }
+      }
+    },
+    "pbTransactionData": {
+      "type": "object",
+      "properties": {
+        "transaction": {
+          "$ref": "#/definitions/pbTransaction"
+        },
+        "timestamp": {
+          "type": "string",
+          "format": "uint64"
+        },
+        "moneyFlew": {
+          "type": "boolean"
+        }
+      }
+    },
+    "protobufAny": {
+      "type": "object",
+      "properties": {
+        "@type": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": {}
+    },
+    "rpcStatus": {
+      "type": "object",
+      "properties": {
+        "code": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "message": {
+          "type": "string"
+        },
+        "details": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/protobufAny"
+          }
+        }
+      }
+    }
+  }
+}
