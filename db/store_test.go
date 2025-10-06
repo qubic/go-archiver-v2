@@ -57,7 +57,7 @@ func createTestDataStoreWithEpoch(t *testing.T, epoch uint16) (*PebbleStore, err
 	testDir := t.TempDir()
 	err := os.Mkdir(fmt.Sprintf("%s/%s", testDir, "42"), 0755)
 	require.NoError(t, err)
-	return CreateStore(testDir, epoch)
+	return CreateStore(testDir, epoch, false)
 }
 
 func closeDb(database *PebbleStore) {

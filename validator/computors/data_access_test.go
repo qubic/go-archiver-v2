@@ -88,7 +88,7 @@ func createTestDataStore(t *testing.T) (*db.PebbleStore, error) {
 	testDir := t.TempDir()
 	err := os.Mkdir(fmt.Sprintf("%s/%s", testDir, "42"), 0755)
 	require.NoError(t, err)
-	return db.CreateStore(testDir, 42)
+	return db.CreateStore(testDir, 42, false)
 }
 
 func closeDb(database *db.PebbleStore) {

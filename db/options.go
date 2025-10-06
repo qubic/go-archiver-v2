@@ -9,7 +9,7 @@ import (
 
 const size256mb = 268435456 // 256MB
 
-func getDefaultPebbleOptions() *pebble.Options {
+func getDefaultPebbleOptions(enableListener bool) *pebble.Options {
 	options := pebble.DefaultOptions()
 	options.WithFSDefaults()
 	options.TargetFileSizes = [7]int64{
@@ -35,6 +35,8 @@ func getDefaultPebbleOptions() *pebble.Options {
 	options.CompactionConcurrencyRange = func() (lower, upper int) {
 		return 1, runtime.NumCPU() - 1
 	}
-	options.AddEventListener(NewPebbleEventListener())
+	if enableListener {
+		options.AddEventListener(NewPebbleEventListener())
+	}
 	return options
 }

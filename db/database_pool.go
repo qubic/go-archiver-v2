@@ -50,7 +50,7 @@ func (dp *DatabasePool) GetOrCreateDbForEpoch(epoch uint16) (*PebbleStore, error
 	store := dp.stores[epoch]
 	if store == nil {
 		log.Printf("Creating database for epoch [%d].", epoch)
-		newStore, err := CreateStore(dp.storeDir, epoch)
+		newStore, err := CreateStore(dp.storeDir, epoch, true)
 		if err != nil {
 			return nil, fmt.Errorf("creating data store for epoch [%d]: %w", epoch, err)
 		}
@@ -144,7 +144,7 @@ func loadFromDisk(storageDirectory string, maxEpochs int) (map[uint16]*PebbleSto
 	slices.Sort(epochs) // sort in ascending order
 	for i, epoch := range epochs {
 		if i < maxEpochs { // only open x newest epochs
-			store, err := CreateStore(storageDirectory, epoch)
+			store, err := CreateStore(storageDirectory, epoch, true)
 			if err != nil {
 				return nil, fmt.Errorf("creating data store for epoch [%d]: %w", epoch, err)
 			}
@@ -155,37 +155,24 @@ func loadFromDisk(storageDirectory string, maxEpochs int) (map[uint16]*PebbleSto
 	return databases, nil
 }
 
-func CreateStore(directory string, epoch uint16) (*PebbleStore, error) {
-	db, err := openDatabase(directory, epoch)
+func CreateStore(directory string, epoch uint16, enableListener bool) (*PebbleStore, error) {
+	db, err := openDatabase(directory, epoch, enableListener)
 	if err != nil {
 		return nil, err
 	}
 	return NewPebbleStore(db), nil
 }
 
-func openDatabase(directory string, name uint16) (*pebble.DB, error) {
+func openDatabase(directory string, name uint16, enableListener bool) (*pebble.DB, error) {
 	dbDir := filepath.Join(directory, fmt.Sprintf("%d", name))
 	log.Printf("Opening database [%s].", dbDir)
-	db, err := pebble.Open(dbDir, getDefaultPebbleOptions())
+	options := getDefaultPebbleOptions(enableListener)
+	db, err := pebble.Open(dbDir, options)
 	if err != nil {
 		return nil, fmt.Errorf("opening database [%s]: %w", dbDir, err)
 	}
 	return db, nil
 }
-
-//func (dp *DatabasePool) getDbKeys() []uint16 {
-//	keys := make([]uint16, len(dp.stores))
-//	i := 0
-//	for k, v := range dp.stores {
-//		if v == nil {
-//			log.Printf("[WARN] database for epoch [%d] not found.", k)
-//		}
-//		keys[i] = k
-//		i++
-//	}
-//
-//	return keys
-//}
 
 func createDirIfNotExists(path string) error {
 	_, err := os.Stat(path)
