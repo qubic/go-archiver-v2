@@ -130,25 +130,26 @@ func loadFromDisk(storageDirectory string, maxEpochs int) (map[uint16]*PebbleSto
 	for _, f := range files {
 
 		if f.IsDir() && libRegEx.MatchString(f.Name()) && !strings.HasPrefix(f.Name(), "0") {
-
-			log.Printf("Loading database for epoch [%s]", f.Name())
+			log.Printf("Detected database for epoch [%s].", f.Name())
 			epoch, err := strconv.ParseUint(f.Name(), 10, 16)
 			if err != nil {
 				return nil, fmt.Errorf("parsing epoch: %w", err)
 			}
 			epochs = append(epochs, uint16(epoch))
-
 		}
 	}
 
 	slices.Sort(epochs) // sort in ascending order
 	for i, epoch := range epochs {
 		if i < maxEpochs { // only open x newest epochs
+			log.Printf("Loading database for epoch [%d].", epoch)
 			store, err := CreateStore(storageDirectory, epoch, true)
 			if err != nil {
 				return nil, fmt.Errorf("creating data store for epoch [%d]: %w", epoch, err)
 			}
 			databases[epoch] = store
+		} else {
+			log.Printf("Skipping database for epoch [%d].", epoch)
 		}
 	}
 
