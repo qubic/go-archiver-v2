@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/qubic/go-archiver-v2/db"
+	"github.com/qubic/go-archiver-v2/metrics"
 	"github.com/qubic/go-archiver-v2/network"
 	"github.com/qubic/go-archiver-v2/protobuf"
 	"github.com/qubic/go-node-connector/types"
@@ -32,19 +33,21 @@ type Processor struct {
 	processTickTimeout   time.Duration
 	tickStatus           *TickStatus
 	startFromCurrentTick bool
+	metrics              *metrics.ProcessingMetrics
 }
 
 type Config struct {
 	ProcessTickTimeout time.Duration
 }
 
-func NewProcessor(clientPool network.QubicClientPool, dbPool *db.DatabasePool, tickValidator Validator, config Config) *Processor {
+func NewProcessor(clientPool network.QubicClientPool, dbPool *db.DatabasePool, tickValidator Validator, config Config, metrics *metrics.ProcessingMetrics) *Processor {
 	return &Processor{
 		clientPool:         clientPool,
 		databasePool:       dbPool,
 		processTickTimeout: config.ProcessTickTimeout,
 		tickValidator:      tickValidator,
 		tickStatus:         &TickStatus{},
+		metrics:            metrics,
 	}
 }
 
@@ -127,6 +130,9 @@ func (p *Processor) processOneByOne() error {
 	if err != nil {
 		return fmt.Errorf("storing processed tick: %w", err)
 	}
+
+	p.metrics.SetLastProcessedTick(nextTick.TickNumber)
+	p.metrics.SetCurrentEpoch(nextTick.Epoch)
 
 	log.Printf("Successfully processed tick [%d] in %dms.", nextTick.TickNumber, time.Since(start).Milliseconds())
 	return nil

@@ -19,6 +19,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/qubic/go-archiver-v2/api"
 	"github.com/qubic/go-archiver-v2/db"
+	metrics "github.com/qubic/go-archiver-v2/metrics"
 	"github.com/qubic/go-archiver-v2/network"
 	"github.com/qubic/go-archiver-v2/processor"
 	"github.com/qubic/go-archiver-v2/protobuf"
@@ -66,6 +67,9 @@ func run() error {
 			StorageFolder   string `conf:"default:archive-data"`
 			OpenEpochsCount int    `conf:"default:10"`
 		}
+		Metrics struct {
+			Namespace string `conf:"default:qubic-archiver-v2"`
+		}
 	}
 
 	help, err := conf.Parse(prefix, &cfg)
@@ -82,6 +86,9 @@ func run() error {
 		return fmt.Errorf("generating config for output: %w", err)
 	}
 	log.Printf("main: Config :\n%v\n", out)
+
+	prometheusRegistry := prometheus.NewRegistry()
+	m := metrics.NewProcessingMetrics(prometheusRegistry, cfg.Metrics.Namespace)
 
 	// handle shutdowns
 	shutdown := make(chan os.Signal, 1)
@@ -129,7 +136,7 @@ func run() error {
 	tickValidator := validator.NewValidator(arbitratorPubKey, cfg.Qubic.EnableTxStatusAddon)
 	proc := processor.NewProcessor(clientPool, dbPool, tickValidator, processor.Config{
 		ProcessTickTimeout: cfg.Qubic.ProcessTickTimeout,
-	})
+	}, m)
 
 	procErrors := make(chan error, 1)
 	if cfg.Qubic.ProcessingEnabled {
@@ -144,9 +151,9 @@ func run() error {
 	srvMetrics := grpcProm.NewServerMetrics(
 		grpcProm.WithServerCounterOptions(grpcProm.WithConstLabels(prometheus.Labels{"namespace": "archiver"})),
 	)
-	reg := prometheus.NewRegistry()
-	reg.MustRegister(srvMetrics)
-	reg.MustRegister(collectors.NewGoCollector())
+
+	prometheusRegistry.MustRegister(srvMetrics)
+	prometheusRegistry.MustRegister(collectors.NewGoCollector())
 	err = rpcServer.Start(serverError, srvMetrics.UnaryServerInterceptor())
 	if err != nil {
 		return fmt.Errorf("starting server: %w", err)
@@ -154,7 +161,7 @@ func run() error {
 	metricsError := make(chan error, 1)
 	go func() {
 		log.Printf("main: Starting metrics server listening at [%s].", cfg.Server.ProfilingHost)
-		http.Handle("/metrics", promhttp.HandlerFor(reg, promhttp.HandlerOpts{EnableOpenMetrics: true}))
+		http.Handle("/metrics", promhttp.HandlerFor(prometheusRegistry, promhttp.HandlerOpts{EnableOpenMetrics: true}))
 		metricsError <- http.ListenAndServe(cfg.Server.ProfilingHost, nil)
 	}()
 
