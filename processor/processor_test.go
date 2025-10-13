@@ -6,7 +6,9 @@ import (
 	"testing"
 	"time"
 
+	"github.com/prometheus/client_golang/prometheus"
 	"github.com/qubic/go-archiver-v2/db"
+	"github.com/qubic/go-archiver-v2/metrics"
 	"github.com/qubic/go-archiver-v2/network"
 	qubic "github.com/qubic/go-node-connector"
 	"github.com/qubic/go-node-connector/types"
@@ -130,6 +132,10 @@ func (t *TestClient) Close() error {
 	return nil
 }
 
+var (
+	dummyMetrics = metrics.NewProcessingMetrics(prometheus.DefaultRegisterer.(*prometheus.Registry), "")
+)
+
 func TestProcessor_processOneByOne(t *testing.T) {
 	client := &TestClient{
 		epoch:       42,
@@ -143,7 +149,7 @@ func TestProcessor_processOneByOne(t *testing.T) {
 	dataPool, err := db.NewDatabasePool(testDir, 5)
 	require.NoError(t, err)
 
-	processor := NewProcessor(clientPool, dataPool, &TestValidator{}, Config{time.Millisecond})
+	processor := NewProcessor(clientPool, dataPool, &TestValidator{}, Config{time.Millisecond}, dummyMetrics)
 	err = processor.processOneByOne()
 	require.NoError(t, err)
 	err = processor.processOneByOne()
@@ -165,7 +171,7 @@ func TestProcessor_processOneByOne_epochChange(t *testing.T) {
 	dataPool, err := db.NewDatabasePool(testDir, 5)
 	require.NoError(t, err)
 
-	processor := NewProcessor(clientPool, dataPool, &TestValidator{}, Config{time.Millisecond})
+	processor := NewProcessor(clientPool, dataPool, &TestValidator{}, Config{time.Millisecond}, dummyMetrics)
 	err = processor.processOneByOne()
 	require.NoError(t, err)
 	err = processor.processOneByOne()
