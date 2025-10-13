@@ -149,7 +149,7 @@ func run() error {
 
 	// start metrics
 	srvMetrics := grpcProm.NewServerMetrics(
-		grpcProm.WithServerCounterOptions(grpcProm.WithConstLabels(prometheus.Labels{"namespace": "archiver"})),
+		grpcProm.WithServerCounterOptions(grpcProm.WithConstLabels(prometheus.Labels{"namespace": cfg.Metrics.Namespace})),
 	)
 
 	prometheusRegistry.MustRegister(srvMetrics)
