@@ -68,7 +68,7 @@ func run() error {
 			OpenEpochsCount int    `conf:"default:10"`
 		}
 		Metrics struct {
-			Namespace string `conf:"default:qubic-archiver-v2"`
+			Namespace string `conf:"default:qubic_archiver_v2"`
 		}
 	}
 
