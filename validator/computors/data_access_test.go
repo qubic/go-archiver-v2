@@ -24,10 +24,20 @@ func TestComputorsDataAccess_WhenGet_GivenStoredInDb_ThenLoadFromDb(t *testing.T
 		Signature: [64]byte{},
 	}}
 
+	computors := types.Computors{
+		Epoch:     123,
+		PubKeys:   [NumberOfComputors][32]byte{{1}, {2}, {3}},
+		Signature: [64]byte{},
+	}
+
+	client := TestClient{
+		computors: computors,
+	}
+
 	err = Save(context.Background(), dataStore, 42, computorsList)
 	require.NoError(t, err)
 
-	loaded, err := Get(context.Background(), dataStore, nil, 0, 42)
+	loaded, err := Get(context.Background(), dataStore, &client, 0, 42)
 	require.NoError(t, err)
 
 	diff := cmp.Diff(loaded, computorsList)
