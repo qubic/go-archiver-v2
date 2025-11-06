@@ -16,10 +16,10 @@ import (
 )
 
 type DatabasePool struct {
-	storeDir        string
-	stores          map[uint16]*PebbleStore
-	maxEpochs       int
-	createStoreLock sync.Mutex
+	storeDir  string
+	stores    map[uint16]*PebbleStore
+	maxEpochs int
+	mu        sync.RWMutex
 }
 
 func NewDatabasePool(storageFolder string, epochCount int) (*DatabasePool, error) {
@@ -36,58 +36,102 @@ func NewDatabasePool(storageFolder string, epochCount int) (*DatabasePool, error
 }
 
 func (dp *DatabasePool) HasDbForEpoch(epoch uint16) bool {
-	store := dp.stores[epoch]
-	return store != nil
+	dp.mu.RLock()
+	defer dp.mu.RUnlock()
+	_, ok := dp.stores[epoch]
+
+	return ok
 }
 
 func (dp *DatabasePool) GetDbForEpoch(epoch uint16) (*PebbleStore, error) {
-	store := dp.stores[epoch]
-	if store == nil {
-		return nil, fmt.Errorf("getting data store for epoch [%d]", epoch)
+	dp.mu.RLock()
+	defer dp.mu.RUnlock()
+
+	store, ok := dp.stores[epoch]
+	if !ok {
+		return nil, fmt.Errorf("db for epoch %d not found", epoch)
 	}
+
 	return store, nil
 }
 
-// GetOrCreateDbForEpoch gets or creates the database for the specified epoch.
-// It creates a new database, if necessary and closes old databases, if the maximum number of open dbs is exceeded.
-func (dp *DatabasePool) GetOrCreateDbForEpoch(epoch uint16) (*PebbleStore, error) {
-	dp.createStoreLock.Lock()
-	defer dp.createStoreLock.Unlock()
-	store := dp.stores[epoch]
-	if store == nil { // attention: this is not thread safe
-		log.Printf("Creating database for epoch [%d].", epoch)
-		newStore, err := CreateStore(dp.storeDir, epoch, true)
-		if err != nil {
-			return nil, fmt.Errorf("creating data store for epoch [%d]: %w", epoch, err)
-		}
-		dp.stores[epoch] = newStore
-		defer dp.closeOldEpochStores() // keep only a certain number of stores open
-		return newStore, nil
-	}
-	return store, nil
-}
+// getEpochs returns a slice of epoch numbers for which databases are available.
+func (dp *DatabasePool) getEpochs() []uint16 {
+	dp.mu.RLock()
+	defer dp.mu.RUnlock()
 
-func (dp *DatabasePool) closeOldEpochStores() {
-	if len(dp.stores) > dp.maxEpochs {
-		epochs := dp.GetAvailableEpochsDescending() // close oldest one
-		for i, epoch := range epochs {
-			if i >= dp.maxEpochs {
-				closeEpochStore(dp.stores[epoch], epoch)
-				delete(dp.stores, epoch)
-			}
-		}
-	}
-}
-
-func (dp *DatabasePool) GetAvailableEpochsAscending() []uint16 {
 	keys := make([]uint16, len(dp.stores))
 	pos := 0
 	for key := range dp.stores {
 		keys[pos] = key
 		pos++
 	}
-	slices.Sort(keys)
+
 	return keys
+}
+
+func (dp *DatabasePool) setDbForEpoch(epoch uint16, store *PebbleStore) {
+	dp.mu.Lock()
+	defer dp.mu.Unlock()
+
+	dp.stores[epoch] = store
+}
+
+func (dp *DatabasePool) getDbCount() int {
+	dp.mu.RLock()
+	defer dp.mu.RUnlock()
+
+	return len(dp.stores)
+}
+
+func (dp *DatabasePool) deleteDbForEpoch(epoch uint16) {
+	dp.mu.Lock()
+	defer dp.mu.Unlock()
+
+	store, ok := dp.stores[epoch]
+	if !ok {
+		return
+	}
+	closeEpochStore(store, epoch)
+	delete(dp.stores, epoch)
+}
+
+// GetOrCreateDbForEpoch gets or creates the database for the specified epoch.
+// It creates a new database, if necessary and closes old databases, if the maximum number of open dbs is exceeded.
+func (dp *DatabasePool) GetOrCreateDbForEpoch(epoch uint16) (*PebbleStore, error) {
+	db, err := dp.GetDbForEpoch(epoch)
+	if err == nil {
+		return db, nil
+	}
+
+	log.Printf("Creating database for epoch [%d].", epoch)
+	newStore, err := CreateStore(dp.storeDir, epoch, true)
+	if err != nil {
+		return nil, fmt.Errorf("creating data store for epoch [%d]: %w", epoch, err)
+	}
+	dp.setDbForEpoch(epoch, newStore)
+
+	dp.closeOldEpochStoresIfNecessary() // keep only a certain number of stores open
+	return newStore, nil
+}
+
+func (dp *DatabasePool) closeOldEpochStoresIfNecessary() {
+	if dp.getDbCount() <= dp.maxEpochs {
+		return
+	}
+
+	epochs := dp.GetAvailableEpochsDescending() // close oldest one
+	for i, epoch := range epochs {
+		if i >= dp.maxEpochs {
+			dp.deleteDbForEpoch(epoch)
+		}
+	}
+}
+
+func (dp *DatabasePool) GetAvailableEpochsAscending() []uint16 {
+	epochs := dp.getEpochs()
+	slices.Sort(epochs)
+	return epochs
 }
 
 func (dp *DatabasePool) GetAvailableEpochsDescending() []uint16 {
