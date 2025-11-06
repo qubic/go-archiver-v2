@@ -109,3 +109,33 @@ func TestDatabasePool_GetOrCreateDbForEpoch_ReturnsDbForEpoch(t *testing.T) {
 
 	require.NotEqual(t, db1, db2)
 }
+
+func TestDatabasePool_GivenPurgeEpoch_ThenRemoveKeyFromPool(t *testing.T) {
+	testDir := t.TempDir()
+	databases, err := NewDatabasePool(testDir, 2)
+	require.NoError(t, err)
+	assert.Len(t, databases.stores, 0)
+
+	db42, err := databases.GetOrCreateDbForEpoch(42)
+	require.NoError(t, err)
+	require.NotNil(t, db42)
+
+	db43, err := databases.GetOrCreateDbForEpoch(43)
+	require.NoError(t, err)
+	require.NotNil(t, db43)
+
+	db42, err = databases.GetDbForEpoch(42)
+	require.NoError(t, err)
+	require.NotNil(t, db42)
+
+	db44, err := databases.GetOrCreateDbForEpoch(44) // should purge 42
+	require.NoError(t, err)
+	require.NotNil(t, db44)
+
+	db42, err = databases.GetDbForEpoch(42)
+	require.Error(t, err) // 42 is not available anymore
+	require.Nil(t, db42)  // 42 is not returned anymore
+
+	// key must not be returned here
+	require.NotContains(t, databases.GetAvailableEpochsAscending(), uint16(42))
+}

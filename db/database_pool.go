@@ -66,7 +66,7 @@ func (dp *DatabasePool) closeOldEpochStores() {
 	for i, epoch := range epochs {
 		if i >= dp.maxEpochs {
 			closeEpochStore(dp.stores[epoch], epoch)
-			dp.stores[epoch] = nil
+			delete(dp.stores, epoch)
 		}
 	}
 }
