@@ -10,14 +10,16 @@ import (
 	"slices"
 	"strconv"
 	"strings"
+	"sync"
 
 	"github.com/cockroachdb/pebble/v2"
 )
 
 type DatabasePool struct {
-	storeDir  string
-	stores    map[uint16]*PebbleStore
-	maxEpochs int
+	storeDir        string
+	stores          map[uint16]*PebbleStore
+	maxEpochs       int
+	createStoreLock sync.Mutex
 }
 
 func NewDatabasePool(storageFolder string, epochCount int) (*DatabasePool, error) {
@@ -46,9 +48,13 @@ func (dp *DatabasePool) GetDbForEpoch(epoch uint16) (*PebbleStore, error) {
 	return store, nil
 }
 
+// GetOrCreateDbForEpoch gets or creates the database for the specified epoch.
+// It creates a new database, if necessary and closes old databases, if the maximum number of open dbs is exceeded.
 func (dp *DatabasePool) GetOrCreateDbForEpoch(epoch uint16) (*PebbleStore, error) {
+	dp.createStoreLock.Lock()
+	defer dp.createStoreLock.Unlock()
 	store := dp.stores[epoch]
-	if store == nil {
+	if store == nil { // attention: this is not thread safe
 		log.Printf("Creating database for epoch [%d].", epoch)
 		newStore, err := CreateStore(dp.storeDir, epoch, true)
 		if err != nil {
@@ -62,11 +68,13 @@ func (dp *DatabasePool) GetOrCreateDbForEpoch(epoch uint16) (*PebbleStore, error
 }
 
 func (dp *DatabasePool) closeOldEpochStores() {
-	epochs := dp.GetAvailableEpochsDescending()
-	for i, epoch := range epochs {
-		if i >= dp.maxEpochs {
-			closeEpochStore(dp.stores[epoch], epoch)
-			delete(dp.stores, epoch)
+	if len(dp.stores) > dp.maxEpochs {
+		epochs := dp.GetAvailableEpochsDescending() // close oldest one
+		for i, epoch := range epochs {
+			if i >= dp.maxEpochs {
+				closeEpochStore(dp.stores[epoch], epoch)
+				delete(dp.stores, epoch)
+			}
 		}
 	}
 }
@@ -102,7 +110,7 @@ func closeEpochStore(store *PebbleStore, epoch uint16) {
 		if err != nil {
 			log.Printf("[ERROR] closing data store for epoch [%d]: %v", epoch, err)
 		} else {
-			log.Printf("[INFO] closed data store for epoch [%d]", epoch)
+			log.Printf("[INFO] Closed data store for epoch [%d].", epoch)
 		}
 	}
 }
