@@ -100,6 +100,7 @@ func run() error {
 		return fmt.Errorf("creating db pool: %w", err)
 	}
 	if cfg.Qubic.OverrideTick && cfg.Qubic.StartEpoch > 0 && cfg.Qubic.StartTick > 0 {
+		log.Printf("[WARN] Overriding last processed tick: epoch [%d], tick number [%d].", cfg.Qubic.StartEpoch, cfg.Qubic.StartTick)
 		database, err := dbPool.GetOrCreateDbForEpoch(cfg.Qubic.StartEpoch)
 		if err != nil {
 			return fmt.Errorf("creating db for setting start tick: %w", err)

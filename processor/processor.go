@@ -126,7 +126,7 @@ func (p *Processor) processOneByOne() error {
 		}
 	}
 
-	err = p.storeProcessedTick(ctx, dataStore, nextTick)
+	err = p.updateProcessedTick(ctx, dataStore, nextTick)
 	if err != nil {
 		return fmt.Errorf("storing processed tick: %w", err)
 	}
@@ -178,8 +178,8 @@ func (p *Processor) getNextProcessingTick(_ context.Context, lastTick *protobuf.
 	return &protobuf.ProcessedTick{TickNumber: lastTick.TickNumber + 1, Epoch: lastTick.Epoch}, nil
 }
 
-func (p *Processor) storeProcessedTick(ctx context.Context, dataStore *db.PebbleStore, tick *protobuf.ProcessedTick) error {
-	err := dataStore.SetLastProcessedTick(ctx, tick)
+func (p *Processor) updateProcessedTick(ctx context.Context, dataStore *db.PebbleStore, tick *protobuf.ProcessedTick) error {
+	err := dataStore.SetLastProcessedTickAndUpdateTickIntervals(ctx, tick)
 	if err != nil {
 		return fmt.Errorf("setting last processed tick [%d]: %w", tick.TickNumber, err)
 	}

@@ -237,7 +237,32 @@ func (s *PebbleStore) GetTransaction(_ context.Context, txID string) (*protobuf.
 	return &tx, nil
 }
 
-func (s *PebbleStore) SetLastProcessedTick(ctx context.Context, lastProcessedTick *protobuf.ProcessedTick) error {
+func (s *PebbleStore) SetLastProcessedTickAndUpdateTickIntervals(ctx context.Context, lastProcessedTick *protobuf.ProcessedTick) error {
+	err := s.SetLastProcessedTick(ctx, lastProcessedTick)
+	if err != nil {
+		return fmt.Errorf("setting last processed tick: %w", err)
+	}
+
+	ptie, err := s.GetProcessedTickIntervalsPerEpoch(ctx, lastProcessedTick.Epoch)
+	if err != nil {
+		return fmt.Errorf("getting ptie: %w", err)
+	}
+
+	if len(ptie.Intervals) == 0 {
+		ptie = &protobuf.ProcessedTickIntervalsPerEpoch{Epoch: lastProcessedTick.Epoch, Intervals: []*protobuf.ProcessedTickInterval{{InitialProcessedTick: lastProcessedTick.TickNumber, LastProcessedTick: lastProcessedTick.TickNumber}}}
+	} else {
+		ptie.Intervals[len(ptie.Intervals)-1].LastProcessedTick = lastProcessedTick.TickNumber
+	}
+
+	err = s.SetProcessedTickIntervalPerEpoch(ctx, lastProcessedTick.Epoch, ptie)
+	if err != nil {
+		return fmt.Errorf("setting ptie: %w", err)
+	}
+
+	return nil
+}
+
+func (s *PebbleStore) SetLastProcessedTick(_ context.Context, lastProcessedTick *protobuf.ProcessedTick) error {
 	batch := s.db.NewBatch()
 	defer batch.Close()
 
@@ -264,22 +289,6 @@ func (s *PebbleStore) SetLastProcessedTick(ctx context.Context, lastProcessedTic
 	err = batch.Commit(pebble.Sync)
 	if err != nil {
 		return fmt.Errorf("committing batch: %w", err)
-	}
-
-	ptie, err := s.GetProcessedTickIntervalsPerEpoch(ctx, lastProcessedTick.Epoch)
-	if err != nil {
-		return fmt.Errorf("getting ptie: %w", err)
-	}
-
-	if len(ptie.Intervals) == 0 {
-		ptie = &protobuf.ProcessedTickIntervalsPerEpoch{Epoch: lastProcessedTick.Epoch, Intervals: []*protobuf.ProcessedTickInterval{{InitialProcessedTick: lastProcessedTick.TickNumber, LastProcessedTick: lastProcessedTick.TickNumber}}}
-	} else {
-		ptie.Intervals[len(ptie.Intervals)-1].LastProcessedTick = lastProcessedTick.TickNumber
-	}
-
-	err = s.SetProcessedTickIntervalPerEpoch(ctx, lastProcessedTick.Epoch, ptie)
-	if err != nil {
-		return fmt.Errorf("setting ptie: %w", err)
 	}
 
 	return nil
