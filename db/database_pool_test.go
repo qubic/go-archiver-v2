@@ -43,15 +43,20 @@ func TestDatabasePool_loadFromDisk_GivenDatabases_LoadDatabases(t *testing.T) {
 	require.NoError(t, err)
 	err = os.Mkdir(fmt.Sprintf("%s/%s", testDir, "47110815"), 0755) // will be ignored (number too big)
 	require.NoError(t, err)
-	err = os.Mkdir(fmt.Sprintf("%s/%s", testDir, "1"), 0755) // will be ignored because it's the fourth db
+	err = os.Mkdir(fmt.Sprintf("%s/%s", testDir, "1"), 0755) // will be ignored because it's older than 3rd db
+	require.NoError(t, err)
+	err = os.Mkdir(fmt.Sprintf("%s/%s", testDir, "10"), 0755) // will be ignored because it's older than 3rd db
 	require.NoError(t, err)
 
-	databases, err := loadFromDisk(testDir, 3)
+	databases, err := loadFromDisk(testDir, 3) // max 3
 	require.NoError(t, err)
 	assert.Len(t, databases, 3)
-	require.DirExists(t, fmt.Sprintf("%s/%s", testDir, "4711"))
-	require.DirExists(t, fmt.Sprintf("%s/%s", testDir, "42"))
-	require.DirExists(t, fmt.Sprintf("%s/%s", testDir, "65535"))
+	assert.Contains(t, databases, uint16(42))
+	assert.Contains(t, databases, uint16(4711))
+	assert.Contains(t, databases, uint16(65535))
+	assert.NotContainsf(t, databases, uint16(815), "0815 should be ignored (starting with zero)")
+	assert.NotContainsf(t, databases, uint16(1), "1 is the oldest db and should not have been loaded")
+	assert.NotContainsf(t, databases, uint16(10), "10 is older than the 3rd db and should not have been loaded")
 }
 
 func TestDatabasePool_GetAvailableEpochs(t *testing.T) {
