@@ -84,7 +84,7 @@ func (dp *DatabasePool) getDbCount() int {
 	return len(dp.stores)
 }
 
-func (dp *DatabasePool) deleteDbForEpoch(epoch uint16) {
+func (dp *DatabasePool) removeDbForEpoch(epoch uint16) {
 	dp.mu.Lock()
 	defer dp.mu.Unlock()
 
@@ -123,7 +123,7 @@ func (dp *DatabasePool) closeOldEpochStoresIfNecessary() {
 	epochs := dp.GetAvailableEpochsDescending() // close oldest one
 	for i, epoch := range epochs {
 		if i >= dp.maxEpochs {
-			dp.deleteDbForEpoch(epoch)
+			dp.removeDbForEpoch(epoch)
 		}
 	}
 }
