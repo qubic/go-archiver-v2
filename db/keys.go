@@ -22,6 +22,7 @@ const (
 	LastTickQuorumDataPerEpochInterval = 0x14
 	EmptyTickListPerEpoch              = 0x15
 	TargetTickVoteSignature            = 0x16
+	ComputorPacketSignature            = 0x17
 )
 
 func emptyTickListPerEpochKey(epoch uint32) []byte {
@@ -137,6 +138,13 @@ func tickTxStatusKey(tickNumber uint64) []byte {
 
 func targetTickVoteSignatureKey(epoch uint32) []byte {
 	key := []byte{TargetTickVoteSignature}
+	key = binary.BigEndian.AppendUint32(key, epoch)
+
+	return key
+}
+
+func computorPacketSignatureKey(epoch uint32) []byte {
+	key := []byte{ComputorPacketSignature}
 	key = binary.BigEndian.AppendUint32(key, epoch)
 
 	return key

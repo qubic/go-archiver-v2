@@ -961,6 +961,34 @@ func (s *PebbleStore) GetTargetTickVoteSignature(epoch uint32) (uint32, error) {
 	return binary.LittleEndian.Uint32(value), nil
 }
 
+func (s *PebbleStore) SetComputorPacketSignature(epoch uint32, value uint64) error {
+	key := computorPacketSignatureKey(epoch)
+
+	data := make([]byte, 8)
+	binary.LittleEndian.PutUint64(data, value)
+
+	err := s.db.Set(key, data, pebble.Sync)
+	if err != nil {
+		return fmt.Errorf("saving computor packet signature for epoch %d: %w", epoch, err)
+	}
+	return nil
+}
+
+func (s *PebbleStore) GetComputorPacketSignature(epoch uint32) (uint64, error) {
+	key := computorPacketSignatureKey(epoch)
+
+	value, closer, err := s.db.Get(key)
+	if err != nil {
+		if errors.Is(err, pebble.ErrNotFound) {
+			return 0, ErrNotFound
+		}
+		return 0, fmt.Errorf("getting computor packet signature for epoch %d: %w", epoch, err)
+	}
+	defer closer.Close()
+
+	return binary.LittleEndian.Uint64(value), nil
+}
+
 func (s *PebbleStore) GetDB() *pebble.DB {
 	return s.db
 }

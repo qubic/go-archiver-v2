@@ -31,9 +31,12 @@ func NewValidator(arbitratorPubKey [32]byte, enableStatusAddon bool) *Validator 
 }
 
 func (v *Validator) Validate(ctx context.Context, store *db.PebbleStore, client network.QubicClient, epoch uint16, tickNumber uint32) error {
+	systemInfo, err := client.GetSystemInfo(ctx)
+	if err != nil {
+		return fmt.Errorf("getting system info: %w", err)
+	}
 
 	// validate quorum
-
 	quorumVotes, err := client.GetQuorumVotes(ctx, tickNumber) // this takes long
 	if err != nil {
 		return fmt.Errorf("getting quorum votes: %w", err)
@@ -46,12 +49,12 @@ func (v *Validator) Validate(ctx context.Context, store *db.PebbleStore, client 
 	}
 
 	// takes long if node is called. otherwise fast.
-	comps, err := v.validateComputors(ctx, store, client, tickNumber, epoch)
+	comps, err := v.validateComputors(ctx, store, client, tickNumber, systemInfo, epoch)
 	if err != nil {
 		return fmt.Errorf("validating computors: %w", err)
 	}
 
-	alignedVotes, err := quorum.Validate(ctx, store, client, quorumVotes, comps, epoch) // fast
+	alignedVotes, err := quorum.Validate(ctx, store, quorumVotes, comps, systemInfo, epoch) // fast
 	if err != nil {
 		return fmt.Errorf("validating quorum votes: %w", err)
 	}
@@ -96,9 +99,17 @@ func (v *Validator) Validate(ctx context.Context, store *db.PebbleStore, client 
 	return nil
 }
 
-func (v *Validator) validateComputors(ctx context.Context, store *db.PebbleStore, client network.QubicClient, tickNumber uint32, epoch uint16) (computors.Computors, error) {
+func (v *Validator) validateComputors(ctx context.Context, store *db.PebbleStore, client network.QubicClient, tickNumber uint32, systemInfo types.SystemInfo, epoch uint16) (computors.Computors, error) {
 
-	comps, err := computors.Get(ctx, store, client, tickNumber, epoch)
+	storedComputorPacketSignature, err := store.GetComputorPacketSignature(uint32(epoch))
+	if err != nil {
+		if !errors.Is(err, db.ErrNotFound) {
+			return computors.Computors{}, fmt.Errorf("getting computor packet signature: %w", err)
+		}
+	}
+	computorListSignatureChanged := storedComputorPacketSignature != systemInfo.ComputorPacketSignature
+
+	comps, err := computors.Get(ctx, store, client, tickNumber, computorListSignatureChanged, systemInfo.InitialTick, epoch)
 	if err != nil {
 		return computors.Computors{}, fmt.Errorf("getting computors: %w", err)
 	}
@@ -118,6 +129,14 @@ func (v *Validator) validateComputors(ctx context.Context, store *db.PebbleStore
 		err = computors.Save(ctx, store, epoch, comps)
 		if err != nil {
 			return computors.Computors{}, fmt.Errorf("saving computors: %w", err)
+		}
+	}
+
+	// The updated computor packet signature must be saved only after a new computor list has been saved
+	if computorListSignatureChanged {
+		err := store.SetComputorPacketSignature(uint32(epoch), systemInfo.ComputorPacketSignature)
+		if err != nil {
+			return computors.Computors{}, fmt.Errorf("saving computor packet signature: %w", err)
 		}
 	}
 

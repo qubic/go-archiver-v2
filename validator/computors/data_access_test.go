@@ -37,7 +37,7 @@ func TestComputorsDataAccess_WhenGet_GivenStoredInDb_ThenLoadFromDb(t *testing.T
 	err = Save(context.Background(), dataStore, 42, computorsList)
 	require.NoError(t, err)
 
-	loaded, err := Get(context.Background(), dataStore, &client, 0, 42)
+	loaded, err := Get(context.Background(), dataStore, &client, 0, false, 0, 42)
 	require.NoError(t, err)
 
 	diff := cmp.Diff(loaded, computorsList)
@@ -59,7 +59,7 @@ func TestComputorsDataAccess_WhenGet_GiveNotStored_ThenLoadClient(t *testing.T) 
 		computors: computors,
 	}
 
-	loaded, err := Get(context.Background(), dataStore, &client, 0, 42)
+	loaded, err := Get(context.Background(), dataStore, &client, 0, false, 0, 42)
 	require.NoError(t, err)
 	diff := cmp.Diff(loaded, []*Computors{{
 		Epoch:     123,
