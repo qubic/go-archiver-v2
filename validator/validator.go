@@ -45,13 +45,18 @@ func (v *Validator) Validate(ctx context.Context, store *db.PebbleStore, client 
 		return fmt.Errorf("not enough quorum votes yet: [%d]", len(quorumVotes))
 	}
 
+	systemInfo, err := client.GetSystemInfo(ctx)
+	if err != nil {
+		return fmt.Errorf("getting system info: %w", err)
+	}
+
 	// takes long if node is called. otherwise fast.
-	comps, err := v.validateComputors(ctx, store, client, tickNumber, epoch)
+	comps, err := v.validateComputors(ctx, store, client, tickNumber, systemInfo.InitialTick, epoch, systemInfo.ComputorPacketSignature)
 	if err != nil {
 		return fmt.Errorf("validating computors: %w", err)
 	}
 
-	alignedVotes, err := quorum.Validate(ctx, store, client, quorumVotes, comps, epoch) // fast
+	alignedVotes, err := quorum.Validate(ctx, store, quorumVotes, comps, epoch, systemInfo.TargetTickVoteSignature) // fast
 	if err != nil {
 		return fmt.Errorf("validating quorum votes: %w", err)
 	}
@@ -96,9 +101,9 @@ func (v *Validator) Validate(ctx context.Context, store *db.PebbleStore, client 
 	return nil
 }
 
-func (v *Validator) validateComputors(ctx context.Context, store *db.PebbleStore, client network.QubicClient, tickNumber uint32, epoch uint16) (computors.Computors, error) {
+func (v *Validator) validateComputors(ctx context.Context, store *db.PebbleStore, client network.QubicClient, tickNumber, initialTick uint32, epoch uint16, computorPacketSignature uint64) (computors.Computors, error) {
 
-	comps, err := computors.Get(ctx, store, client, tickNumber, epoch)
+	comps, err := computors.Get(ctx, store, client, tickNumber, initialTick, epoch, computorPacketSignature)
 	if err != nil {
 		return computors.Computors{}, fmt.Errorf("getting computors: %w", err)
 	}
