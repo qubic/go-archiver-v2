@@ -2,42 +2,48 @@ package computors
 
 import (
 	"context"
+	"encoding/binary"
 	"encoding/hex"
 	"errors"
 	"fmt"
 	"log"
-	"math/rand/v2"
 
 	"github.com/qubic/go-archiver-v2/db"
 	"github.com/qubic/go-archiver-v2/network"
 )
 
 // Get computors list
-func Get(ctx context.Context, store *db.PebbleStore, client network.QubicClient, tickNumber uint32, epoch uint16) ([]*Computors, error) {
+func Get(ctx context.Context, store *db.PebbleStore, client network.QubicClient, tickNumber, initialTick uint32, epoch uint16, computorSignaturePackage uint64) ([]*Computors, error) {
 	compsList, err := load(ctx, store, uint32(epoch))
 	if err != nil {
 		return nil, fmt.Errorf("loading computors from data store: %w", err)
 	}
 
-	if len(compsList) == 0 {
-		comps, err := getFromNode(ctx, client, 0) // set not tick number for first entry (valid with initial tick of epoch)
+	//Start of epoch
+	if compsList == nil || len(compsList) == 0 {
+		computors, err := getFromNode(ctx, client, initialTick)
 		if err != nil {
 			return nil, fmt.Errorf("getting computors from node: %w", err)
 		}
-		log.Printf("[INFO] New computors list. Signature: [%s]", hex.EncodeToString(comps.Signature[:]))
-		return []*Computors{comps}, nil
-	} else if rand.IntN(100) < 10 { // don't update computors every time. Call costs some time.
-		log.Printf("[INFO] checking for new computors...")
-		comps, err := getFromNode(ctx, client, tickNumber)
-		if err != nil {
-			return nil, fmt.Errorf("getting computors from node: %w", err)
+		if binary.LittleEndian.Uint64(computors.Signature[:8]) != computorSignaturePackage {
+			log.Printf("[WARN] Initial computors signature mismatch")
+			return nil, fmt.Errorf("initial computor list signature does not match expected system info signature")
 		}
-		if compsList[len(compsList)-1].Signature != comps.Signature {
-			log.Printf("[INFO] Computors list changed in tick [%d]. Signature: [%s]", tickNumber, hex.EncodeToString(comps.Signature[:]))
-			compsList = append(compsList, comps)
-		}
+		log.Printf("[INFO] Initial computors list. Signature: [%s]", hex.EncodeToString(computors.Signature[:]))
+		return []*Computors{computors}, nil
 	}
 
+	lastComputorList := compsList[len(compsList)-1]
+	lastComputorSignaturePackage := binary.LittleEndian.Uint64(lastComputorList.Signature[:8])
+	if computorSignaturePackage != lastComputorSignaturePackage {
+		computors, err := getFromNode(ctx, client, tickNumber)
+		if err != nil {
+			return nil, fmt.Errorf("getting computors from node: %w", err)
+		}
+		log.Printf("[INFO] Computors list changed in tick [%d]. Signature: [%s]", tickNumber, hex.EncodeToString(computors.Signature[:]))
+		compsList = append(compsList, computors)
+
+	}
 	return compsList, nil
 }
 

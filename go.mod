@@ -12,7 +12,7 @@ require (
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.27.3
 	github.com/pkg/errors v0.9.1
 	github.com/prometheus/client_golang v1.23.2
-	github.com/qubic/go-node-connector v0.14.1
+	github.com/qubic/go-node-connector v0.16.0
 	github.com/qubic/go-schnorrq v1.0.1
 	github.com/stretchr/testify v1.11.1
 	golang.org/x/sync v0.18.0

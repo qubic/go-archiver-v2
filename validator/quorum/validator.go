@@ -9,7 +9,6 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/qubic/go-archiver-v2/db"
-	"github.com/qubic/go-archiver-v2/network"
 	"github.com/qubic/go-archiver-v2/utils"
 	"github.com/qubic/go-archiver-v2/validator/computors"
 	"github.com/qubic/go-node-connector/types"
@@ -17,23 +16,23 @@ import (
 )
 
 // Validate validates the quorum votes and if success returns the aligned votes back
-func Validate(ctx context.Context, store *db.PebbleStore, client network.QubicClient, quorumVotes types.QuorumVotes, computors computors.Computors, epoch uint16) (types.QuorumVotes, error) {
-	targetTickVoteSignature, err := store.GetTargetTickVoteSignature(uint32(epoch))
+func Validate(ctx context.Context, store *db.PebbleStore, quorumVotes types.QuorumVotes, computors computors.Computors, epoch uint16, targetTickVoteSignature uint32) (types.QuorumVotes, error) {
+	storedTargetTickVoteSignature, err := store.GetTargetTickVoteSignature(uint32(epoch))
 	if err != nil {
 		if !errors.Is(err, db.ErrNotFound) {
 			return types.QuorumVotes{}, fmt.Errorf("getting target tick vote signature: %w", err)
 		}
-		systemInfo, err := client.GetSystemInfo(ctx)
+
 		if err != nil {
 			return types.QuorumVotes{}, fmt.Errorf("getting system info: %w", err)
 		}
-		err = store.SetTargetTickVoteSignature(uint32(systemInfo.Epoch), systemInfo.TargetTickVoteSignature)
+		err = store.SetTargetTickVoteSignature(uint32(epoch), targetTickVoteSignature)
 		if err != nil {
 			return types.QuorumVotes{}, fmt.Errorf("saving target tick vote signature: %w", err)
 		}
-		targetTickVoteSignature = systemInfo.TargetTickVoteSignature
+		storedTargetTickVoteSignature = targetTickVoteSignature
 	}
-	return validateVotes(ctx, quorumVotes, computors, targetTickVoteSignature)
+	return validateVotes(ctx, quorumVotes, computors, storedTargetTickVoteSignature)
 
 }
 
