@@ -179,6 +179,15 @@ message GetTransactionResponseV2 {
   bool money_flew = 3;
 }
 
+message TargetTickVoteSignature {
+  uint32 value = 1;
+  uint32 tick_number = 2;
+}
+
+message EpochTargetTickVoteSignatures {
+  repeated TargetTickVoteSignature signatures = 1;
+}
+
 service ArchiveService {
 
   // Compatible with legacy v1 status but only returns last processed tick and tick intervals per epoch.

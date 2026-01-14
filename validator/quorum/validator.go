@@ -9,6 +9,7 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/qubic/go-archiver-v2/db"
+	"github.com/qubic/go-archiver-v2/protobuf"
 	"github.com/qubic/go-archiver-v2/utils"
 	"github.com/qubic/go-archiver-v2/validator/computors"
 	"github.com/qubic/go-node-connector/types"
@@ -16,24 +17,8 @@ import (
 )
 
 // Validate validates the quorum votes and if success returns the aligned votes back
-func Validate(ctx context.Context, store *db.PebbleStore, quorumVotes types.QuorumVotes, computors computors.Computors, epoch uint16, targetTickVoteSignature uint32) (types.QuorumVotes, error) {
-	storedTargetTickVoteSignature, err := store.GetTargetTickVoteSignature(uint32(epoch))
-	if err != nil {
-		if !errors.Is(err, db.ErrNotFound) {
-			return types.QuorumVotes{}, fmt.Errorf("getting target tick vote signature: %w", err)
-		}
-
-		if err != nil {
-			return types.QuorumVotes{}, fmt.Errorf("getting system info: %w", err)
-		}
-		err = store.SetTargetTickVoteSignature(uint32(epoch), targetTickVoteSignature)
-		if err != nil {
-			return types.QuorumVotes{}, fmt.Errorf("saving target tick vote signature: %w", err)
-		}
-		storedTargetTickVoteSignature = targetTickVoteSignature
-	}
-	return validateVotes(ctx, quorumVotes, computors, storedTargetTickVoteSignature)
-
+func Validate(ctx context.Context, quorumVotes types.QuorumVotes, computors computors.Computors, targetTickVoteSignature uint32) (types.QuorumVotes, error) {
+	return validateVotes(ctx, quorumVotes, computors, targetTickVoteSignature)
 }
 
 func validateVotes(ctx context.Context, quorumVotes types.QuorumVotes, computors computors.Computors, targetTickVoteSignature uint32) (types.QuorumVotes, error) {
@@ -227,5 +212,51 @@ func Store(ctx context.Context, store *db.PebbleStore, tickNumber uint32, quorum
 		return fmt.Errorf("setting last quorum tick votes data: %w", err)
 	}
 
+	return nil
+}
+
+func StoreTargetTickVoteSignature(store *db.PebbleStore, epoch, tickNumber, initialTick, targetTickVoteSignature uint32) error {
+	epochTargetTickVoteSignatures, err := store.GetTargetTickVoteSignatureList(epoch)
+
+	if err != nil {
+		if !errors.Is(err, db.ErrNotFound) {
+			return fmt.Errorf("getting target tick for signature list: %w", err)
+		}
+		return initTargetTickVoteSignatureList(store, epoch, initialTick, targetTickVoteSignature)
+	}
+
+	if len(epochTargetTickVoteSignatures.Signatures) == 0 {
+		return initTargetTickVoteSignatureList(store, epoch, initialTick, targetTickVoteSignature)
+	}
+
+	lastValue := epochTargetTickVoteSignatures.Signatures[len(epochTargetTickVoteSignatures.Signatures)-1].Value
+	if lastValue != targetTickVoteSignature {
+		epochTargetTickVoteSignatures.Signatures = append(epochTargetTickVoteSignatures.Signatures, &protobuf.TargetTickVoteSignature{
+			Value:      targetTickVoteSignature,
+			TickNumber: tickNumber,
+		})
+		if err := store.SetTargetTickVoteSignatureList(epoch, epochTargetTickVoteSignatures); err != nil {
+			return fmt.Errorf("appending to target vote tick signature list: %w", err)
+		}
+		log.Printf("New target tick vote signature for epoch %d: %d\n", epoch, targetTickVoteSignature)
+		return nil
+	}
+
+	return nil
+}
+
+func initTargetTickVoteSignatureList(store *db.PebbleStore, epoch, initialTick, targetTickVoteSignature uint32) error {
+	list := protobuf.EpochTargetTickVoteSignatures{
+		Signatures: []*protobuf.TargetTickVoteSignature{
+			{
+				Value:      targetTickVoteSignature,
+				TickNumber: initialTick,
+			},
+		},
+	}
+	if err := store.SetTargetTickVoteSignatureList(epoch, &list); err != nil {
+		return fmt.Errorf("saving initial target vote tick signature list: %w", err)
+	}
+	log.Printf("Initialized target vote tick signature list for epoch %d: %d\n", epoch, targetTickVoteSignature)
 	return nil
 }
