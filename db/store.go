@@ -933,32 +933,43 @@ func (s *PebbleStore) GetEmptyTickListPerEpoch(epoch uint32) ([]uint32, error) {
 //	return nil
 //}
 
-func (s *PebbleStore) SetTargetTickVoteSignature(epoch, value uint32) error {
+func (s *PebbleStore) SetTargetTickVoteSignatureList(epoch uint32, targetTickVoteSignatureList *protobuf.EpochTargetTickVoteSignatures) error {
+
 	key := targetTickVoteSignatureKey(epoch)
 
-	data := make([]byte, 4)
-	binary.LittleEndian.PutUint32(data, value)
-
-	err := s.db.Set(key, data, pebble.Sync)
+	data, err := proto.Marshal(targetTickVoteSignatureList)
 	if err != nil {
-		return fmt.Errorf("saving target tick vote signature for epoch %d: %w", epoch, err)
+		return fmt.Errorf("marshalling target tick vote signature list for epoch %d: %w", epoch, err)
 	}
+
+	err = s.db.Set(key, data, pebble.Sync)
+	if err != nil {
+		return fmt.Errorf("saving target tick vote signature list for epoch %d: %w", epoch, err)
+	}
+
 	return nil
 }
 
-func (s *PebbleStore) GetTargetTickVoteSignature(epoch uint32) (uint32, error) {
+func (s *PebbleStore) GetTargetTickVoteSignatureList(epoch uint32) (*protobuf.EpochTargetTickVoteSignatures, error) {
+
 	key := targetTickVoteSignatureKey(epoch)
 
-	value, closer, err := s.db.Get(key)
+	data, closer, err := s.db.Get(key)
 	if err != nil {
 		if errors.Is(err, pebble.ErrNotFound) {
-			return 0, ErrNotFound
+			return nil, ErrNotFound
 		}
-		return 0, fmt.Errorf("getting target tick vote signature: %w", err)
+		return nil, fmt.Errorf("getting target tick vote signature list for epoch %d: %w", epoch, err)
 	}
 	defer closer.Close()
 
-	return binary.LittleEndian.Uint32(value), nil
+	var targetTickVoteSignatureList protobuf.EpochTargetTickVoteSignatures
+	err = proto.Unmarshal(data, &targetTickVoteSignatureList)
+	if err != nil {
+		return nil, fmt.Errorf("unmarshalling target tick vote signature for epoch %d: %w", epoch, err)
+	}
+
+	return &targetTickVoteSignatureList, nil
 }
 
 func (s *PebbleStore) GetDB() *pebble.DB {

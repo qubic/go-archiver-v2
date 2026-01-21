@@ -56,7 +56,7 @@ func (v *Validator) Validate(ctx context.Context, store *db.PebbleStore, client 
 		return fmt.Errorf("validating computors: %w", err)
 	}
 
-	alignedVotes, err := quorum.Validate(ctx, store, quorumVotes, comps, epoch, systemInfo.TargetTickVoteSignature) // fast
+	alignedVotes, err := quorum.Validate(ctx, quorumVotes, comps, systemInfo.TargetTickVoteSignature) // fast
 	if err != nil {
 		return fmt.Errorf("validating quorum votes: %w", err)
 	}
@@ -81,6 +81,11 @@ func (v *Validator) Validate(ctx context.Context, store *db.PebbleStore, client 
 	err = quorum.Store(ctx, store, tickNumber, alignedVotes)
 	if err != nil {
 		return fmt.Errorf("storing aligned quorum votes: %w", err)
+	}
+
+	err = quorum.StoreTargetTickVoteSignature(store, uint32(epoch), tickNumber, systemInfo.InitialTick, systemInfo.TargetTickVoteSignature)
+	if err != nil {
+		return fmt.Errorf("storing target tick signature: %w", err)
 	}
 
 	err = tick.Store(ctx, store, tickNumber, tickData)
