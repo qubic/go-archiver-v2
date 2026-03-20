@@ -16,6 +16,7 @@ import (
 	"github.com/qubic/go-archiver-v2/validator/tx"
 	"github.com/qubic/go-archiver-v2/validator/txstatus"
 	"github.com/qubic/go-node-connector/types"
+	"golang.org/x/sync/errgroup"
 )
 
 type Validator struct {
@@ -30,24 +31,48 @@ func NewValidator(arbitratorPubKey [32]byte, enableStatusAddon bool) *Validator 
 	}
 }
 
-func (v *Validator) Validate(ctx context.Context, store *db.PebbleStore, client network.QubicClient, epoch uint16, tickNumber uint32) error {
+type Clients struct {
+	MainClient network.QubicClient
+	AltClient  network.QubicClient
+}
 
-	// validate quorum
+func (v *Validator) Validate(ctx context.Context, store *db.PebbleStore, clients Clients, epoch uint16, tickNumber uint32) error {
 
-	quorumVotes, err := client.GetQuorumVotes(ctx, tickNumber) // this takes long
+	client := clients.MainClient
+	altClient := clients.AltClient
+
+	var quorumVotes types.QuorumVotes
+
+	errorGroup, egCtx := errgroup.WithContext(ctx)
+	errorGroup.Go(func() error {
+		// validate quorum
+		var err error
+		quorumVotes, err = client.GetQuorumVotes(egCtx, tickNumber)
+		if err != nil {
+			return fmt.Errorf("getting quorum votes: %w", err)
+		}
+		if len(quorumVotes) <= 0 {
+			return errors.New("no quorum votes fetched")
+		}
+		if len(quorumVotes) < 451 {
+			return fmt.Errorf("not enough quorum votes yet: [%d]", len(quorumVotes))
+		}
+		return nil
+	})
+
+	var systemInfo types.SystemInfo
+	errorGroup.Go(func() error {
+		var err error
+		systemInfo, err = altClient.GetSystemInfo(egCtx)
+		if err != nil {
+			return fmt.Errorf("getting system info: %w", err)
+		}
+		return nil
+	})
+
+	err := errorGroup.Wait()
 	if err != nil {
-		return fmt.Errorf("getting quorum votes: %w", err)
-	}
-	if len(quorumVotes) <= 0 {
-		return errors.New("no quorum votes fetched")
-	}
-	if len(quorumVotes) < 451 {
-		return fmt.Errorf("not enough quorum votes yet: [%d]", len(quorumVotes))
-	}
-
-	systemInfo, err := client.GetSystemInfo(ctx)
-	if err != nil {
-		return fmt.Errorf("getting system info: %w", err)
+		return fmt.Errorf("getting quorum votes and/or system info: %w", err)
 	}
 
 	// takes long if node is called. otherwise fast.
