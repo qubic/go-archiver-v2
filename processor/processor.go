@@ -123,7 +123,7 @@ func (p *Processor) processOneByOne() error {
 		return fmt.Errorf("tick not ready ([%d] aligned votes)", tickInfo.NumberOfAlignedVotes)
 	}
 
-	clients := validator.Clients{MainClient: client, AltClient: alternativeClient}
+	clients := validator.Clients{Main: client, Alt: alternativeClient}
 	err = p.tickValidator.Validate(ctx, dataStore, clients, tickInfo.Epoch, nextTick.TickNumber)
 	if err != nil {
 		return fmt.Errorf("validating tick %d: %w", nextTick.TickNumber, err)
