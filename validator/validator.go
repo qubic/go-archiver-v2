@@ -152,7 +152,7 @@ func (v *Validator) validateTickDataAndTransactions(ctx context.Context, aligned
 		return tickData, nil, nil, fmt.Errorf("getting tick data and/or transactions: %w", err)
 	}
 
-	validTxs, txStatus, err = v.validateTransactions(egCtx, clients.Main, transactions, tickData, tickNumber)
+	validTxs, txStatus, err = v.validateTransactions(ctx, clients.Main, transactions, tickData, tickNumber)
 	if err != nil {
 		return tickData, nil, nil, fmt.Errorf("validating transactions: %w", err)
 	}
