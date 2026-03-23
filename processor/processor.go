@@ -11,11 +11,12 @@ import (
 	"github.com/qubic/go-archiver-v2/metrics"
 	"github.com/qubic/go-archiver-v2/network"
 	"github.com/qubic/go-archiver-v2/protobuf"
+	"github.com/qubic/go-archiver-v2/validator"
 	"github.com/qubic/go-node-connector/types"
 )
 
 type Validator interface {
-	Validate(ctx context.Context, store *db.PebbleStore, client network.QubicClient, epoch uint16, tickNumber uint32) error
+	Validate(ctx context.Context, store *db.PebbleStore, client validator.Clients, epoch uint16, tickNumber uint32) error
 }
 
 type TickStatus struct {
@@ -73,10 +74,18 @@ func (p *Processor) processOneByOne() error {
 	var err error
 	client, err := p.clientPool.Get()
 	if err != nil {
-		return fmt.Errorf("getting client connection: %w", err)
+		return fmt.Errorf("getting 1st client connection: %w", err)
 	}
 	defer func() {
 		p.releaseClient(err, client)
+	}()
+
+	alternativeClient, err := p.clientPool.Get()
+	if err != nil {
+		return fmt.Errorf("getting 2nd client connection: %w", err)
+	}
+	defer func() {
+		p.releaseClient(err, alternativeClient)
 	}()
 
 	tickInfo, err := client.GetTickInfo(ctx)
@@ -114,7 +123,8 @@ func (p *Processor) processOneByOne() error {
 		return fmt.Errorf("tick not ready ([%d] aligned votes)", tickInfo.NumberOfAlignedVotes)
 	}
 
-	err = p.tickValidator.Validate(ctx, dataStore, client, tickInfo.Epoch, nextTick.TickNumber)
+	clients := validator.Clients{Main: client, Alt: alternativeClient}
+	err = p.tickValidator.Validate(ctx, dataStore, clients, tickInfo.Epoch, nextTick.TickNumber)
 	if err != nil {
 		return fmt.Errorf("validating tick %d: %w", nextTick.TickNumber, err)
 	}

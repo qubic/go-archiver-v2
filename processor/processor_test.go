@@ -10,6 +10,7 @@ import (
 	"github.com/qubic/go-archiver-v2/db"
 	"github.com/qubic/go-archiver-v2/metrics"
 	"github.com/qubic/go-archiver-v2/network"
+	"github.com/qubic/go-archiver-v2/validator"
 	qubic "github.com/qubic/go-node-connector"
 	"github.com/qubic/go-node-connector/types"
 	"github.com/stretchr/testify/require"
@@ -35,7 +36,7 @@ func (t *TestPool) Close(_ network.QubicClient) error {
 
 type TestValidator struct{}
 
-func (t TestValidator) Validate(_ context.Context, _ *db.PebbleStore, _ network.QubicClient, epoch uint16, tickNumber uint32) error {
+func (t TestValidator) Validate(_ context.Context, _ *db.PebbleStore, _ validator.Clients, epoch uint16, tickNumber uint32) error {
 	log.Printf("Mock validated tick [%d] in epoch [%d].", tickNumber, epoch)
 	return nil
 }

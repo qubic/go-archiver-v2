@@ -3,7 +3,7 @@ name: Deploy prod images to GHCR
 on:
   push:
     branches:
-      - 'bugfix/custom-start-tick-interval'
+      - 'feature/parallel-calls'
 
 jobs:
   push-store-image:
