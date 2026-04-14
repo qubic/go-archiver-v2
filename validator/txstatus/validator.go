@@ -12,12 +12,37 @@ import (
 )
 
 func Validate(_ context.Context, tickTxStatus types.TransactionStatus, tickTxs types.Transactions) (*protobuf.TickTransactionsStatus, error) {
+	if tickTxStatus.TxCount != uint32(len(tickTxs)) {
+		return nil, fmt.Errorf("mismatched tx count: node reported %d, have %d transactions", tickTxStatus.TxCount, len(tickTxs))
+	}
+
+	tickTxDigests, err := getTickTxDigests(tickTxs)
+	if err != nil {
+		return nil, fmt.Errorf("getting tick tx digests: %w", err)
+	}
+
+	if !equalDigests(tickTxDigests, tickTxStatus.TransactionDigests) {
+		return nil, fmt.Errorf("transaction digests do not match")
+	}
+
 	proto, err := qubicToProto(tickTxs, tickTxStatus)
 	if err != nil {
 		return nil, fmt.Errorf("converting tx status to proto: %w", err)
 	}
 
 	return proto, nil
+}
+
+func getTickTxDigests(tickTxs types.Transactions) ([][32]byte, error) {
+	tickTxDigests := make([][32]byte, 0, len(tickTxs))
+	for index, tx := range tickTxs {
+		digest, err := tx.Digest()
+		if err != nil {
+			return nil, fmt.Errorf("creating digest for tx on index %d: %w", index, err)
+		}
+		tickTxDigests = append(tickTxDigests, digest)
+	}
+	return tickTxDigests, nil
 }
 
 func copySlice(slice [][32]byte) [][32]byte {
