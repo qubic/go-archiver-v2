@@ -111,7 +111,7 @@ func (p *Processor) processOneByOne() error {
 	if err != nil {
 		return fmt.Errorf("getting next tick to process: %w", err)
 	}
-	log.Printf("Next tick to process: [%d]. Current tick: [%d]. Delta [%d]", nextTick.TickNumber, tickInfo.Tick, tickInfo.Tick-nextTick.TickNumber)
+	log.Printf("Next tick to process: [%d]. Current tick: [%d]. Delta [%d]", nextTick.TickNumber, tickInfo.Tick, int64(tickInfo.Tick)-int64(nextTick.TickNumber))
 
 	if nextTick.TickNumber > tickInfo.Tick {
 		return fmt.Errorf("next tick is in the future. processed: %d, next %d, available %d",

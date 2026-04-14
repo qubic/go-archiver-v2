@@ -3,7 +3,7 @@ name: Deploy prod images to GHCR
 on:
   push:
     branches:
-      - 'feature/parallel-calls'
+      - 'fix/tx-status-validation'
 
 jobs:
   push-store-image:
