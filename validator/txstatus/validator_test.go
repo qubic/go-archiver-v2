@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/qubic/go-node-connector/types"
+	"github.com/stretchr/testify/require"
 )
 
 // helper to build a minimal transaction with known source/dest public keys
@@ -22,9 +23,7 @@ func TestValidate_HappyPath(t *testing.T) {
 	txs := types.Transactions{tx}
 
 	digest, err := tx.Digest()
-	if err != nil {
-		t.Fatalf("computing digest: %v", err)
-	}
+	require.NoError(t, err)
 
 	txStatus := types.TransactionStatus{
 		CurrentTickOfNode:  1000,
@@ -34,18 +33,10 @@ func TestValidate_HappyPath(t *testing.T) {
 		TransactionDigests: [][32]byte{digest},
 	}
 
-	result, err := Validate(context.Background(), txStatus, txs)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-
-	if len(result.Transactions) != 1 {
-		t.Fatalf("expected 1 transaction status, got %d", len(result.Transactions))
-	}
-
-	if !result.Transactions[0].MoneyFlew {
-		t.Error("expected moneyFlew to be true")
-	}
+	result, err := ValidateAndConvert(context.Background(), txStatus, txs, false)
+	require.NoError(t, err)
+	require.Len(t, result.Transactions, 1)
+	require.True(t, result.Transactions[0].MoneyFlew)
 }
 
 func TestValidate_TxCountMismatch(t *testing.T) {
@@ -61,10 +52,8 @@ func TestValidate_TxCountMismatch(t *testing.T) {
 		TransactionDigests: nil,
 	}
 
-	_, err := Validate(context.Background(), txStatus, txs)
-	if err == nil {
-		t.Fatal("expected error for TxCount mismatch, got nil")
-	}
+	_, err := ValidateAndConvert(context.Background(), txStatus, txs, true)
+	require.Error(t, err)
 }
 
 func TestValidate_DigestMismatch(t *testing.T) {
@@ -80,10 +69,8 @@ func TestValidate_DigestMismatch(t *testing.T) {
 		TransactionDigests: [][32]byte{{99, 99, 99}}, // wrong digest
 	}
 
-	_, err := Validate(context.Background(), txStatus, txs)
-	if err == nil {
-		t.Fatal("expected error for digest mismatch, got nil")
-	}
+	_, err := ValidateAndConvert(context.Background(), txStatus, txs, true)
+	require.Error(t, err)
 }
 
 func TestValidate_EmptyTick(t *testing.T) {
@@ -97,12 +84,26 @@ func TestValidate_EmptyTick(t *testing.T) {
 		TransactionDigests: nil,
 	}
 
-	result, err := Validate(context.Background(), txStatus, txs)
-	if err != nil {
-		t.Fatalf("unexpected error for empty tick: %v", err)
+	result, err := ValidateAndConvert(context.Background(), txStatus, txs, false)
+	require.NoError(t, err)
+	require.Empty(t, result.Transactions)
+}
+
+func TestValidateAndConvert_NoValidation(t *testing.T) {
+	tx := makeTransaction([32]byte{1}, [32]byte{2}, 100, 1000)
+	txs := types.Transactions{tx}
+
+	// data that would fail validation
+	txStatus := types.TransactionStatus{
+		CurrentTickOfNode:  12345,
+		Tick:               12345,
+		TxCount:            1,           // any count
+		MoneyFlew:          [128]byte{}, // no tx status data
+		TransactionDigests: nil,         // no tx status digests
 	}
 
-	if len(result.Transactions) != 0 {
-		t.Fatalf("expected 0 transaction statuses, got %d", len(result.Transactions))
-	}
+	// should pass because validate=false
+	result, err := ValidateAndConvert(t.Context(), txStatus, txs, false)
+	require.NoError(t, err)
+	require.Empty(t, result.Transactions)
 }

@@ -11,18 +11,21 @@ import (
 	"github.com/qubic/go-node-connector/types"
 )
 
-func Validate(_ context.Context, tickTxStatus types.TransactionStatus, tickTxs types.Transactions) (*protobuf.TickTransactionsStatus, error) {
-	if tickTxStatus.TxCount != uint32(len(tickTxs)) {
-		return nil, fmt.Errorf("mismatched tx count: node reported %d, have %d transactions", tickTxStatus.TxCount, len(tickTxs))
-	}
+func ValidateAndConvert(_ context.Context, tickTxStatus types.TransactionStatus, tickTxs types.Transactions, validate bool) (*protobuf.TickTransactionsStatus, error) {
 
-	tickTxDigests, err := getTickTxDigests(tickTxs)
-	if err != nil {
-		return nil, fmt.Errorf("getting tick tx digests: %w", err)
-	}
+	if validate { // needs tx status addon to be enabled
+		if tickTxStatus.TxCount != uint32(len(tickTxs)) {
+			return nil, fmt.Errorf("mismatched tx count: node reported %d, have %d transactions", tickTxStatus.TxCount, len(tickTxs))
+		}
 
-	if !equalDigests(tickTxDigests, tickTxStatus.TransactionDigests) {
-		return nil, fmt.Errorf("transaction digests do not match")
+		tickTxDigests, err := getTickTxDigests(tickTxs)
+		if err != nil {
+			return nil, fmt.Errorf("getting tick tx digests: %w", err)
+		}
+
+		if !equalDigests(tickTxDigests, tickTxStatus.TransactionDigests) {
+			return nil, fmt.Errorf("transaction digests do not match")
+		}
 	}
 
 	proto, err := qubicToProto(tickTxs, tickTxStatus)

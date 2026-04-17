@@ -224,7 +224,7 @@ func (v *Validator) validateTransactions(ctx context.Context, client network.Qub
 	}
 
 	// combine valid transactions with money flew status
-	transactionsWithTxStatus, err := txstatus.Validate(ctx, tickTxStatus, validTxs)
+	transactionsWithTxStatus, err := txstatus.ValidateAndConvert(ctx, tickTxStatus, validTxs, v.statusAddonEnabled)
 	if err != nil {
 		return nil, nil, fmt.Errorf("validating tx status: %w", err)
 	}
