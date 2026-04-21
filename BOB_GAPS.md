@@ -55,14 +55,10 @@ response.
 **What**: Bob has per-transaction `executed` status from log events, but does NOT
 expose the `MoneyFlew` bit array that the node connector provides.
 
-**Resolution**: Implemented moneyFlew computation from bob's log events. The archiver
-fetches all logs for a tick via `GET /log/{epoch}/{logIdStart}/{logIdEnd}`, groups
-QU_TRANSFER events by transaction hash, and applies the algorithm:
-```
-moneyFlew = (tx.amount == first_event.amount) && (tx.src == first_event.src)
-         && (tx.dst == first_event.dst) && (tx.tick == first_event.tick)
-```
-Only transactions with `amount > 0` are candidates; others default to false.
+**Resolution**: The archiver queries bob's `GET /tx/{hash}` endpoint for each
+transaction in a tick and reads the authoritative `executed` flag, mapping it
+directly to `moneyFlew`. This matches bob's own `computeTxExecutionDetails`
+logic exactly, including edge cases (protocol txs, non-QU_TRANSFER first events).
 
 See: `network/bob/moneyflew.go`
 

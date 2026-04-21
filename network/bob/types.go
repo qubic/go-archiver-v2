@@ -95,29 +95,6 @@ type bobComputorsResponse struct {
 	Computors  []string `json:"computors"` // 60-char uppercase identity strings
 }
 
-// bobLogEvent represents a single log event from bob's GET /log/{epoch}/{from}/{to} endpoint.
-type bobLogEvent struct {
-	OK          bool       `json:"ok"`
-	Epoch       uint16     `json:"epoch"`
-	Tick        uint32     `json:"tick"`
-	Type        uint32     `json:"type"`
-	LogID       uint64     `json:"logId"`
-	LogDigest   string     `json:"logDigest"`
-	BodySize    uint32     `json:"bodySize"`
-	LogTypename string     `json:"logTypename"`
-	Body        bobLogBody `json:"body"`
-	TxHash      string     `json:"txHash"`
-	Timestamp   uint64     `json:"timestamp"`
-}
-
-// bobLogBody represents the body of a log event. Fields vary by log type.
-// For QU_TRANSFER (type 0): From, To, Amount are populated.
-type bobLogBody struct {
-	From   string `json:"from,omitempty"`   // uppercase identity
-	To     string `json:"to,omitempty"`     // uppercase identity
-	Amount int64  `json:"amount,omitempty"` // QU amount
-}
-
 // bobRPCTransaction represents a transaction from qubic_getTickByNumber (RPC format).
 // This format includes the signature, unlike the REST /tx/{hash} endpoint.
 type bobRPCTransaction struct {

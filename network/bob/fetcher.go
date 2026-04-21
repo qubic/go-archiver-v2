@@ -20,10 +20,6 @@ type BobDataFetcher struct {
 	cachedTick     uint32
 	cachedTickResp *bobTickResponse
 
-	// Per-cycle cache for transactions (from GetTickTransactions).
-	// Used by GetTxStatus to compute moneyFlew without re-fetching.
-	cachedTxsTick uint32
-	cachedTxs     types.Transactions
 }
 
 // NewBobDataFetcher creates a new BobDataFetcher.
@@ -113,12 +109,6 @@ func (b *BobDataFetcher) GetTickTransactions(ctx context.Context, tickNumber uin
 		txs = append(txs, tx)
 	}
 
-	// Cache for use by GetTxStatus
-	b.mu.Lock()
-	b.cachedTxsTick = tickNumber
-	b.cachedTxs = txs
-	b.mu.Unlock()
-
 	return txs, nil
 }
 
@@ -142,17 +132,7 @@ func (b *BobDataFetcher) GetTxStatus(ctx context.Context, tick uint32) (types.Tr
 		return types.TransactionStatus{}, false, fmt.Errorf("getting tick response for tx status: %w", err)
 	}
 
-	// Get cached transactions (populated by GetTickTransactions which runs before GetTxStatus)
-	b.mu.Lock()
-	txs := b.cachedTxs
-	txsTick := b.cachedTxsTick
-	b.mu.Unlock()
-
-	if txsTick != tick || txs == nil {
-		return types.TransactionStatus{}, false, fmt.Errorf("transactions for tick %d not cached (have tick %d)", tick, txsTick)
-	}
-
-	status, err := computeMoneyFlew(ctx, b.client, tickResp, txs, tick)
+	status, err := computeMoneyFlew(ctx, b.client, tickResp, tick)
 	if err != nil {
 		return types.TransactionStatus{}, false, fmt.Errorf("computing moneyFlew: %w", err)
 	}
@@ -161,12 +141,10 @@ func (b *BobDataFetcher) GetTxStatus(ctx context.Context, tick uint32) (types.Tr
 }
 
 func (b *BobDataFetcher) Release(_ error) {
-	// Clear per-cycle caches
+	// Clear per-cycle cache
 	b.mu.Lock()
 	b.cachedTick = 0
 	b.cachedTickResp = nil
-	b.cachedTxsTick = 0
-	b.cachedTxs = nil
 	b.mu.Unlock()
 }
 
