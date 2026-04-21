@@ -257,6 +257,33 @@ func deepCopy(votes types.QuorumVotes) types.QuorumVotes {
 	return cp
 }
 
+func TestValidateVotes_EmptyTick_LowerThreshold(t *testing.T) {
+	// Empty tick votes have zero TxDigest. With minVotes=2, two empty votes should pass.
+	emptyVotes := types.QuorumVotes{
+		{ComputorIndex: 0, Epoch: 1, Tick: 100, TxDigest: [32]byte{}},
+		{ComputorIndex: 1, Epoch: 1, Tick: 100, TxDigest: [32]byte{}},
+	}
+
+	// With minVotes=451, should fail
+	_, err := validateVotes(context.Background(), emptyVotes, computors.Computors{}, 0, true, 451)
+	require.ErrorContains(t, err, "not enough quorum votes")
+
+	// With minVotes=2, should pass (aligned votes are 2, sig verify skipped via skipScoreCheck)
+	alignedVotes, err := validateVotes(context.Background(), emptyVotes, computors.Computors{}, 0, true, 2)
+	require.NoError(t, err)
+	require.Equal(t, 2, len(alignedVotes))
+}
+
+func TestValidateVotes_EmptyTick_NotEnoughEvenForLowerThreshold(t *testing.T) {
+	emptyVotes := types.QuorumVotes{
+		{ComputorIndex: 0, Epoch: 1, Tick: 100, TxDigest: [32]byte{}},
+	}
+
+	// Even with lower threshold of 2, 1 vote is not enough
+	_, err := validateVotes(context.Background(), emptyVotes, computors.Computors{}, 0, true, 2)
+	require.ErrorContains(t, err, "not enough quorum votes")
+}
+
 func TestByteSwap(t *testing.T) {
 
 	testData := []struct {

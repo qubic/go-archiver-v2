@@ -129,3 +129,33 @@ func TestValidateTransactions_StatusAddonEnabled_GetTxStatusError(t *testing.T) 
 	_, _, err := v.validateTransactions(context.Background(), fetcher, nil, types.TickData{}, 100)
 	require.ErrorIs(t, err, wantErr)
 }
+
+func TestAllVotesEmpty_AllZero(t *testing.T) {
+	votes := types.QuorumVotes{
+		{TxDigest: [32]byte{}},
+		{TxDigest: [32]byte{}},
+		{TxDigest: [32]byte{}},
+	}
+	require.True(t, allVotesEmpty(votes))
+}
+
+func TestAllVotesEmpty_OneNonZero(t *testing.T) {
+	votes := types.QuorumVotes{
+		{TxDigest: [32]byte{}},
+		{TxDigest: [32]byte{1}},
+		{TxDigest: [32]byte{}},
+	}
+	require.False(t, allVotesEmpty(votes))
+}
+
+func TestAllVotesEmpty_AllNonZero(t *testing.T) {
+	votes := types.QuorumVotes{
+		{TxDigest: [32]byte{1}},
+		{TxDigest: [32]byte{2}},
+	}
+	require.False(t, allVotesEmpty(votes))
+}
+
+func TestAllVotesEmpty_EmptySlice(t *testing.T) {
+	require.True(t, allVotesEmpty(types.QuorumVotes{}))
+}
