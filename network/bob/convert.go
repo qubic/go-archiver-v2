@@ -3,9 +3,15 @@ package bob
 import (
 	"encoding/hex"
 	"fmt"
+	"strings"
 
 	"github.com/qubic/go-node-connector/types"
 )
+
+// stripHexPrefix removes a "0x" or "0X" prefix if present.
+func stripHexPrefix(s string) string {
+	return strings.TrimPrefix(strings.TrimPrefix(s, "0x"), "0X")
+}
 
 // qubicHashToBytes32 converts a Qubic hash (60-char lowercase identity encoding)
 // to a [32]byte public key.
@@ -34,13 +40,13 @@ func identityToBytes32(identity string) ([32]byte, error) {
 	return pubKey, nil
 }
 
-// hexToBytes32 converts a hex-encoded string to [32]byte.
+// hexToBytes32 converts a hex-encoded string (with optional 0x prefix) to [32]byte.
 func hexToBytes32(hexStr string) ([32]byte, error) {
 	var result [32]byte
 	if len(hexStr) == 0 {
 		return result, nil
 	}
-	decoded, err := hex.DecodeString(hexStr)
+	decoded, err := hex.DecodeString(stripHexPrefix(hexStr))
 	if err != nil {
 		return result, fmt.Errorf("decoding hex: %w", err)
 	}
@@ -51,13 +57,13 @@ func hexToBytes32(hexStr string) ([32]byte, error) {
 	return result, nil
 }
 
-// hexToBytes64 converts a hex-encoded string to [64]byte (for signatures).
+// hexToBytes64 converts a hex-encoded string (with optional 0x prefix) to [64]byte (for signatures).
 func hexToBytes64(hexStr string) ([64]byte, error) {
 	var result [64]byte
 	if len(hexStr) == 0 {
 		return result, nil
 	}
-	decoded, err := hex.DecodeString(hexStr)
+	decoded, err := hex.DecodeString(stripHexPrefix(hexStr))
 	if err != nil {
 		return result, fmt.Errorf("decoding hex: %w", err)
 	}
@@ -68,12 +74,12 @@ func hexToBytes64(hexStr string) ([64]byte, error) {
 	return result, nil
 }
 
-// hexToBytes converts a hex-encoded string to a byte slice.
+// hexToBytes converts a hex-encoded string (with optional 0x prefix) to a byte slice.
 func hexToBytes(hexStr string) ([]byte, error) {
 	if len(hexStr) == 0 {
 		return nil, nil
 	}
-	return hex.DecodeString(hexStr)
+	return hex.DecodeString(stripHexPrefix(hexStr))
 }
 
 // convertVote converts a bob vote JSON to types.QuorumTickVote.
