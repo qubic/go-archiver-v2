@@ -20,13 +20,13 @@ import (
 // When skipScoreCheck is true, the TargetTickVoteSignature score filter is skipped
 // but cryptographic signature verification still runs. This is used when the data
 // source (e.g. bob) does not provide the target vote signature.
-func Validate(ctx context.Context, quorumVotes types.QuorumVotes, computors computors.Computors, targetTickVoteSignature uint32, skipScoreCheck bool) (types.QuorumVotes, error) {
-	return validateVotes(ctx, quorumVotes, computors, targetTickVoteSignature, skipScoreCheck)
+func Validate(ctx context.Context, quorumVotes types.QuorumVotes, computors computors.Computors, targetTickVoteSignature uint32, skipScoreCheck bool, minVotes int) (types.QuorumVotes, error) {
+	return validateVotes(ctx, quorumVotes, computors, targetTickVoteSignature, skipScoreCheck, minVotes)
 }
 
-func validateVotes(ctx context.Context, quorumVotes types.QuorumVotes, computors computors.Computors, targetTickVoteSignature uint32, skipScoreCheck bool) (types.QuorumVotes, error) {
-	if len(quorumVotes) < types.MinimumQuorumVotes {
-		return nil, errors.New("not enough quorum votes")
+func validateVotes(ctx context.Context, quorumVotes types.QuorumVotes, computors computors.Computors, targetTickVoteSignature uint32, skipScoreCheck bool, minVotes int) (types.QuorumVotes, error) {
+	if len(quorumVotes) < minVotes {
+		return nil, fmt.Errorf("not enough quorum votes: have %d, need %d", len(quorumVotes), minVotes)
 	}
 
 	alignedVotes, err := getAlignedVotes(quorumVotes)
@@ -34,11 +34,11 @@ func validateVotes(ctx context.Context, quorumVotes types.QuorumVotes, computors
 		return nil, fmt.Errorf("getting aligned votes: %w", err)
 	}
 
-	if len(alignedVotes) < types.MinimumQuorumVotes {
-		return nil, fmt.Errorf("not enough aligned votes [%d]", len(alignedVotes))
+	if len(alignedVotes) < minVotes {
+		return nil, fmt.Errorf("not enough aligned votes [%d], need %d", len(alignedVotes), minVotes)
 	}
 
-	err = quorumTickSigVerify(ctx, alignedVotes, computors, targetTickVoteSignature, skipScoreCheck)
+	err = quorumTickSigVerify(ctx, alignedVotes, computors, targetTickVoteSignature, skipScoreCheck, minVotes)
 	if err != nil {
 		return nil, fmt.Errorf("verifying tick signature: %w", err)
 	}
@@ -116,7 +116,7 @@ func (v *vote) digest() ([32]byte, error) {
 	return digest, nil
 }
 
-func quorumTickSigVerify(ctx context.Context, quorumVotes types.QuorumVotes, computors computors.Computors, targetTickVoteSignature uint32, skipScoreCheck bool) error {
+func quorumTickSigVerify(ctx context.Context, quorumVotes types.QuorumVotes, computors computors.Computors, targetTickVoteSignature uint32, skipScoreCheck bool, minVotes int) error {
 	var errorGroup errgroup.Group
 	verifyChannel := make(chan int, len(quorumVotes)) // second argument is buffer capacity
 	defer close(verifyChannel)
@@ -137,8 +137,8 @@ func quorumTickSigVerify(ctx context.Context, quorumVotes types.QuorumVotes, com
 	}
 
 	var successVotes = len(verifyChannel)
-	if successVotes < types.MinimumQuorumVotes {
-		return fmt.Errorf("not enough verified quorum votes: %d", successVotes)
+	if successVotes < minVotes {
+		return fmt.Errorf("not enough verified quorum votes: have %d, need %d", successVotes, minVotes)
 	}
 	return nil
 }

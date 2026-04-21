@@ -46,8 +46,15 @@ func (v *Validator) Validate(ctx context.Context, store *db.PebbleStore, fetcher
 		if len(quorumVotes) <= 0 {
 			return errors.New("no quorum votes fetched")
 		}
-		if len(quorumVotes) < 451 {
-			return fmt.Errorf("not enough quorum votes yet: [%d]", len(quorumVotes))
+		// For empty ticks (all votes have zero TxDigest), a lower threshold is
+		// acceptable — during catchup bob may only receive partial votes for
+		// empty ticks. One-third of computors is sufficient for empty consensus.
+		minRequired := types.MinimumQuorumVotes // 451
+		if allVotesEmpty(quorumVotes) {
+			minRequired = types.NumberOfComputors / 3 // 225
+		}
+		if len(quorumVotes) < minRequired {
+			return fmt.Errorf("not enough quorum votes yet: [%d] (min: %d)", len(quorumVotes), minRequired)
 		}
 		return nil
 	})
@@ -74,7 +81,11 @@ func (v *Validator) Validate(ctx context.Context, store *db.PebbleStore, fetcher
 	}
 
 	skipScoreCheck := !systemMeta.VoteSignatureAvailable
-	alignedVotes, err := quorum.Validate(ctx, quorumVotes, comps, systemMeta.TargetTickVoteSignature, skipScoreCheck) // fast
+	minVotes := types.MinimumQuorumVotes
+	if allVotesEmpty(quorumVotes) {
+		minVotes = types.NumberOfComputors / 3
+	}
+	alignedVotes, err := quorum.Validate(ctx, quorumVotes, comps, systemMeta.TargetTickVoteSignature, skipScoreCheck, minVotes)
 	if err != nil {
 		return fmt.Errorf("validating quorum votes: %w", err)
 	}
@@ -247,4 +258,14 @@ func (v *Validator) validateTransactions(ctx context.Context, fetcher network.Da
 
 func isEmptyTick(quorumVotes types.QuorumVotes) bool {
 	return quorumVotes[0].TxDigest == [32]byte{}
+}
+
+// allVotesEmpty returns true if every vote has a zero TxDigest, indicating an empty tick.
+func allVotesEmpty(votes types.QuorumVotes) bool {
+	for _, v := range votes {
+		if v.TxDigest != [32]byte{} {
+			return false
+		}
+	}
+	return true
 }
