@@ -20,6 +20,10 @@ type BobDataFetcher struct {
 	cachedTick     uint32
 	cachedTickResp *bobTickResponse
 
+	// Per-cycle cache for executed status (from qubic_getTickByNumber response).
+	// Populated by GetTickTransactions, consumed by GetTxStatus.
+	cachedExecuted     map[string]bool // txHash -> executed
+	cachedExecutedTick uint32
 }
 
 // NewBobDataFetcher creates a new BobDataFetcher.
@@ -99,15 +103,25 @@ func (b *BobDataFetcher) GetTickTransactions(ctx context.Context, tickNumber uin
 	}
 
 	txs := make(types.Transactions, 0, len(rpcTick.Transactions))
+	executedMap := make(map[string]bool, len(rpcTick.Transactions))
 	for i, rpcTx := range rpcTick.Transactions {
 		tx, err := convertRPCTransaction(rpcTx)
 		if err != nil {
 			return nil, fmt.Errorf("converting transaction[%d]: %w", i, err)
 		}
-		// Set the tick number since it's not included per-tx in the RPC response
 		tx.Tick = tickNumber
 		txs = append(txs, tx)
+
+		// Cache the executed status (nil/pending → not in map → treated as false)
+		if rpcTx.Executed != nil {
+			executedMap[rpcTx.Hash] = *rpcTx.Executed
+		}
 	}
+
+	b.mu.Lock()
+	b.cachedExecuted = executedMap
+	b.cachedExecutedTick = tickNumber
+	b.mu.Unlock()
 
 	return txs, nil
 }
@@ -132,7 +146,15 @@ func (b *BobDataFetcher) GetTxStatus(ctx context.Context, tick uint32) (types.Tr
 		return types.TransactionStatus{}, false, fmt.Errorf("getting tick response for tx status: %w", err)
 	}
 
-	status, err := computeMoneyFlew(ctx, b.client, tickResp, tick)
+	b.mu.Lock()
+	executedMap := b.cachedExecuted
+	b.mu.Unlock()
+
+	if executedMap == nil {
+		executedMap = make(map[string]bool)
+	}
+
+	status, err := computeMoneyFlew(tickResp, executedMap, tick)
 	if err != nil {
 		return types.TransactionStatus{}, false, fmt.Errorf("computing moneyFlew: %w", err)
 	}
@@ -141,10 +163,12 @@ func (b *BobDataFetcher) GetTxStatus(ctx context.Context, tick uint32) (types.Tr
 }
 
 func (b *BobDataFetcher) Release(_ error) {
-	// Clear per-cycle cache
+	// Clear per-cycle caches
 	b.mu.Lock()
 	b.cachedTick = 0
 	b.cachedTickResp = nil
+	b.cachedExecuted = nil
+	b.cachedExecutedTick = 0
 	b.mu.Unlock()
 }
 

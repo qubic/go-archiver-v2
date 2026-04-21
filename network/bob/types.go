@@ -96,7 +96,7 @@ type bobComputorsResponse struct {
 }
 
 // bobRPCTransaction represents a transaction from qubic_getTickByNumber (RPC format).
-// This format includes the signature, unlike the REST /tx/{hash} endpoint.
+// As of bob 1.4.0, includes the executed field (tri-state: true/false/null for pending).
 type bobRPCTransaction struct {
 	Hash      string `json:"hash"`      // 60-char lowercase
 	From      string `json:"from"`      // 60-char uppercase identity
@@ -106,6 +106,7 @@ type bobRPCTransaction struct {
 	InputSize uint16 `json:"inputSize"`
 	InputData string `json:"inputData"` // hex encoded
 	Signature string `json:"signature"` // hex encoded (128 chars)
+	Executed  *bool  `json:"executed"`  // nil = pending, true = success, false = failed
 }
 
 // bobRPCTickResponse represents the response from qubic_getTickByNumber with includeTransactions=true.
