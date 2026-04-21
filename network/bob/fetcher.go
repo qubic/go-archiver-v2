@@ -19,6 +19,11 @@ type BobDataFetcher struct {
 	mu             sync.Mutex
 	cachedTick     uint32
 	cachedTickResp *bobTickResponse
+
+	// Per-cycle cache for transactions (from GetTickTransactions).
+	// Used by GetTxStatus to compute moneyFlew without re-fetching.
+	cachedTxsTick uint32
+	cachedTxs     types.Transactions
 }
 
 // NewBobDataFetcher creates a new BobDataFetcher.
@@ -108,6 +113,12 @@ func (b *BobDataFetcher) GetTickTransactions(ctx context.Context, tickNumber uin
 		txs = append(txs, tx)
 	}
 
+	// Cache for use by GetTxStatus
+	b.mu.Lock()
+	b.cachedTxsTick = tickNumber
+	b.cachedTxs = txs
+	b.mu.Unlock()
+
 	return txs, nil
 }
 
@@ -125,17 +136,37 @@ func (b *BobDataFetcher) GetComputors(ctx context.Context) (types.Computors, err
 	return convertComputors(compsResp.Computors, compsResp.Epoch)
 }
 
-func (b *BobDataFetcher) GetTxStatus(_ context.Context, _ uint32) (types.TransactionStatus, bool, error) {
-	// TODO: Compute moneyFlew from bob's log events using qubic_getTransactionReceipt.
-	// For now, return empty status indicating data is not available.
-	return types.TransactionStatus{}, false, nil
+func (b *BobDataFetcher) GetTxStatus(ctx context.Context, tick uint32) (types.TransactionStatus, bool, error) {
+	tickResp, err := b.getTickResponse(ctx, tick)
+	if err != nil {
+		return types.TransactionStatus{}, false, fmt.Errorf("getting tick response for tx status: %w", err)
+	}
+
+	// Get cached transactions (populated by GetTickTransactions which runs before GetTxStatus)
+	b.mu.Lock()
+	txs := b.cachedTxs
+	txsTick := b.cachedTxsTick
+	b.mu.Unlock()
+
+	if txsTick != tick || txs == nil {
+		return types.TransactionStatus{}, false, fmt.Errorf("transactions for tick %d not cached (have tick %d)", tick, txsTick)
+	}
+
+	status, err := computeMoneyFlew(ctx, b.client, tickResp, txs, tick)
+	if err != nil {
+		return types.TransactionStatus{}, false, fmt.Errorf("computing moneyFlew: %w", err)
+	}
+
+	return status, true, nil
 }
 
 func (b *BobDataFetcher) Release(_ error) {
-	// Clear the per-cycle cache
+	// Clear per-cycle caches
 	b.mu.Lock()
 	b.cachedTick = 0
 	b.cachedTickResp = nil
+	b.cachedTxsTick = 0
+	b.cachedTxs = nil
 	b.mu.Unlock()
 }
 

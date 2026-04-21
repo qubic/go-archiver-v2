@@ -50,20 +50,21 @@ response.
 
 ---
 
-## 4. Transaction status (moneyFlew)
+## 4. Transaction status (moneyFlew) - RESOLVED
 
 **What**: Bob has per-transaction `executed` status from log events, but does NOT
 expose the `MoneyFlew` bit array that the node connector provides.
 
-**Current behavior**: The archiver returns empty transaction status (all moneyFlew
-bits set to false) when using bob. The `txstatus` validation is effectively skipped.
+**Resolution**: Implemented moneyFlew computation from bob's log events. The archiver
+fetches all logs for a tick via `GET /log/{epoch}/{logIdStart}/{logIdEnd}`, groups
+QU_TRANSFER events by transaction hash, and applies the algorithm:
+```
+moneyFlew = (tx.amount == first_event.amount) && (tx.src == first_event.src)
+         && (tx.dst == first_event.dst) && (tx.tick == first_event.tick)
+```
+Only transactions with `amount > 0` are candidates; others default to false.
 
-**Impact**: Medium. The `moneyFlew` field is used by API consumers to determine if
-a transaction's side effects were executed. Currently all transactions appear as
-"not executed" when using bob.
-
-**Future fix**: Use `qubic_getTransactionReceipt` to fetch per-transaction execution
-status, then reconstruct the MoneyFlew bit array from the `executed` field.
+See: `network/bob/moneyflew.go`
 
 ---
 
