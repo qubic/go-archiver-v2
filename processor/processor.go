@@ -11,12 +11,10 @@ import (
 	"github.com/qubic/go-archiver-v2/metrics"
 	"github.com/qubic/go-archiver-v2/network"
 	"github.com/qubic/go-archiver-v2/protobuf"
-	"github.com/qubic/go-archiver-v2/validator"
-	"github.com/qubic/go-node-connector/types"
 )
 
 type Validator interface {
-	Validate(ctx context.Context, store *db.PebbleStore, client validator.Clients, epoch uint16, tickNumber uint32) error
+	Validate(ctx context.Context, store *db.PebbleStore, fetcher network.DataFetcher, epoch uint16, tickNumber uint32) error
 }
 
 type TickStatus struct {
@@ -27,7 +25,7 @@ type TickStatus struct {
 }
 
 type Processor struct {
-	clientPool           network.QubicClientPool
+	fetcherFactory       func() (network.DataFetcher, error)
 	databasePool         *db.DatabasePool
 	tickValidator        Validator
 	arbitratorPubKey     [32]byte
@@ -41,9 +39,9 @@ type Config struct {
 	ProcessTickTimeout time.Duration
 }
 
-func NewProcessor(clientPool network.QubicClientPool, dbPool *db.DatabasePool, tickValidator Validator, config Config, metrics *metrics.ProcessingMetrics) *Processor {
+func NewProcessor(fetcherFactory func() (network.DataFetcher, error), dbPool *db.DatabasePool, tickValidator Validator, config Config, metrics *metrics.ProcessingMetrics) *Processor {
 	return &Processor{
-		clientPool:         clientPool,
+		fetcherFactory:     fetcherFactory,
 		databasePool:       dbPool,
 		processTickTimeout: config.ProcessTickTimeout,
 		tickValidator:      tickValidator,
@@ -72,64 +70,55 @@ func (p *Processor) processOneByOne() error {
 	defer cancel()
 
 	var err error
-	client, err := p.clientPool.Get()
+	fetcher, err := p.fetcherFactory()
 	if err != nil {
-		return fmt.Errorf("getting 1st client connection: %w", err)
+		return fmt.Errorf("creating data fetcher: %w", err)
 	}
 	defer func() {
-		p.releaseClient(err, client)
+		fetcher.Release(err)
 	}()
 
-	alternativeClient, err := p.clientPool.Get()
+	tickStatus, err := fetcher.GetTickStatus(ctx)
 	if err != nil {
-		return fmt.Errorf("getting 2nd client connection: %w", err)
+		return fmt.Errorf("getting tick status: %w", err)
 	}
-	defer func() {
-		p.releaseClient(err, alternativeClient)
-	}()
+	p.tickStatus.LiveTick = tickStatus.Tick
+	p.tickStatus.LiveEpoch = tickStatus.Epoch
 
-	tickInfo, err := client.GetTickInfo(ctx)
-	if err != nil {
-		return fmt.Errorf("getting tick info: %w", err)
-	}
-	p.tickStatus.LiveTick = tickInfo.Tick
-	p.tickStatus.LiveEpoch = tickInfo.Epoch
-
-	dataStore, err := p.databasePool.GetOrCreateDbForEpoch(tickInfo.Epoch)
+	dataStore, err := p.databasePool.GetOrCreateDbForEpoch(tickStatus.Epoch)
 	if err != nil {
 		return fmt.Errorf("getting database: %w", err)
 	}
 
-	lastProcessedTick, err := p.getLastProcessedTick(ctx, dataStore, tickInfo.Epoch)
+	lastProcessedTick, err := p.getLastProcessedTick(ctx, dataStore, tickStatus.Epoch)
 	if err != nil {
 		return fmt.Errorf("getting last processed tick: %w", err)
 	}
 	p.tickStatus.ProcessedTick = lastProcessedTick.TickNumber
 	p.tickStatus.ProcessingEpoch = uint16(lastProcessedTick.Epoch)
 
-	nextTick, err := p.getNextProcessingTick(ctx, lastProcessedTick, tickInfo)
+	nextTick, err := p.getNextProcessingTick(ctx, lastProcessedTick, tickStatus)
 	if err != nil {
 		return fmt.Errorf("getting next tick to process: %w", err)
 	}
-	log.Printf("Next tick to process: [%d]. Current tick: [%d]. Delta [%d]", nextTick.TickNumber, tickInfo.Tick, int64(tickInfo.Tick)-int64(nextTick.TickNumber))
+	log.Printf("Next tick to process: [%d]. Current tick: [%d]. Delta [%d]", nextTick.TickNumber, tickStatus.Tick, int64(tickStatus.Tick)-int64(nextTick.TickNumber))
 
-	if nextTick.TickNumber > tickInfo.Tick {
+	if nextTick.TickNumber > tickStatus.Tick {
 		return fmt.Errorf("next tick is in the future. processed: %d, next %d, available %d",
-			lastProcessedTick.TickNumber, nextTick.TickNumber, tickInfo.Tick)
+			lastProcessedTick.TickNumber, nextTick.TickNumber, tickStatus.Tick)
 	}
 
 	// not sure if this helps because we will often be aligned at time of processing
-	if nextTick.TickNumber == tickInfo.Tick && tickInfo.NumberOfAlignedVotes < 451 {
-		return fmt.Errorf("tick not ready ([%d] aligned votes)", tickInfo.NumberOfAlignedVotes)
+	if nextTick.TickNumber == tickStatus.Tick && tickStatus.NumberOfAlignedVotes < 451 {
+		return fmt.Errorf("tick not ready ([%d] aligned votes)", tickStatus.NumberOfAlignedVotes)
 	}
 
-	clients := validator.Clients{Main: client, Alt: alternativeClient}
-	err = p.tickValidator.Validate(ctx, dataStore, clients, tickInfo.Epoch, nextTick.TickNumber)
+	err = p.tickValidator.Validate(ctx, dataStore, fetcher, tickStatus.Epoch, nextTick.TickNumber)
 	if err != nil {
 		return fmt.Errorf("validating tick %d: %w", nextTick.TickNumber, err)
 	}
 
-	if lastProcessedTick.TickNumber >= tickInfo.InitialTick { // no skipped ticks before initial tick
+	if lastProcessedTick.TickNumber >= tickStatus.InitialTick { // no skipped ticks before initial tick
 		err = p.handleTickIntervals(ctx, dataStore, lastProcessedTick, nextTick)
 		if err != nil {
 			return fmt.Errorf("handling skipped ticks: %w", err)
@@ -148,21 +137,6 @@ func (p *Processor) processOneByOne() error {
 	return nil
 }
 
-func (p *Processor) releaseClient(err error, client network.QubicClient) {
-	if err == nil {
-		pErr := p.clientPool.Put(client)
-		if pErr != nil {
-			log.Printf("[ERROR] putting connection back to pool: %s", pErr.Error())
-		}
-	} else {
-		log.Printf("Closing connection because of error: %v", err)
-		cErr := p.clientPool.Close(client)
-		if cErr != nil {
-			log.Printf("[ERROR] closing connection: %s", cErr.Error())
-		}
-	}
-}
-
 func (p *Processor) getLastProcessedTick(ctx context.Context, dataStore *db.PebbleStore, epoch uint16) (*protobuf.ProcessedTick, error) {
 
 	lastTick, err := dataStore.GetLastProcessedTick(ctx)
@@ -177,11 +151,11 @@ func (p *Processor) getLastProcessedTick(ctx context.Context, dataStore *db.Pebb
 	return lastTick, nil
 }
 
-func (p *Processor) getNextProcessingTick(_ context.Context, lastTick *protobuf.ProcessedTick, currentTickInfo types.TickInfo) (*protobuf.ProcessedTick, error) {
+func (p *Processor) getNextProcessingTick(_ context.Context, lastTick *protobuf.ProcessedTick, currentTickStatus network.TickStatus) (*protobuf.ProcessedTick, error) {
 	// handles the case where the initial tick of epoch returned by the node is greater than the last processed tick
 	// which means that we are in the next epoch, and we should start from the initial tick of the current epoch
-	if currentTickInfo.InitialTick > lastTick.TickNumber {
-		return &protobuf.ProcessedTick{TickNumber: currentTickInfo.InitialTick, Epoch: uint32(currentTickInfo.Epoch)}, nil
+	if currentTickStatus.InitialTick > lastTick.TickNumber {
+		return &protobuf.ProcessedTick{TickNumber: currentTickStatus.InitialTick, Epoch: uint32(currentTickStatus.Epoch)}, nil
 	}
 
 	// otherwise we are in the same epoch, and we should start from the last processed tick + 1

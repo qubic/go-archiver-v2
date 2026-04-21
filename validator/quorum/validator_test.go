@@ -63,7 +63,7 @@ func TestValidateVotes(t *testing.T) {
 		},
 	}
 
-	_, err := validateVotes(context.Background(), originalData, computors.Computors{}, 0)
+	_, err := validateVotes(context.Background(), originalData, computors.Computors{}, 0, false)
 	require.ErrorContains(t, err, "not enough quorum votes")
 
 	cases := []struct {

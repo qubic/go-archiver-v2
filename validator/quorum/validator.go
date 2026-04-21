@@ -16,12 +16,15 @@ import (
 	"golang.org/x/sync/errgroup"
 )
 
-// Validate validates the quorum votes and if success returns the aligned votes back
-func Validate(ctx context.Context, quorumVotes types.QuorumVotes, computors computors.Computors, targetTickVoteSignature uint32) (types.QuorumVotes, error) {
-	return validateVotes(ctx, quorumVotes, computors, targetTickVoteSignature)
+// Validate validates the quorum votes and if success returns the aligned votes back.
+// When skipScoreCheck is true, the TargetTickVoteSignature score filter is skipped
+// but cryptographic signature verification still runs. This is used when the data
+// source (e.g. bob) does not provide the target vote signature.
+func Validate(ctx context.Context, quorumVotes types.QuorumVotes, computors computors.Computors, targetTickVoteSignature uint32, skipScoreCheck bool) (types.QuorumVotes, error) {
+	return validateVotes(ctx, quorumVotes, computors, targetTickVoteSignature, skipScoreCheck)
 }
 
-func validateVotes(ctx context.Context, quorumVotes types.QuorumVotes, computors computors.Computors, targetTickVoteSignature uint32) (types.QuorumVotes, error) {
+func validateVotes(ctx context.Context, quorumVotes types.QuorumVotes, computors computors.Computors, targetTickVoteSignature uint32, skipScoreCheck bool) (types.QuorumVotes, error) {
 	if len(quorumVotes) < types.MinimumQuorumVotes {
 		return nil, errors.New("not enough quorum votes")
 	}
@@ -35,7 +38,7 @@ func validateVotes(ctx context.Context, quorumVotes types.QuorumVotes, computors
 		return nil, fmt.Errorf("not enough aligned votes [%d]", len(alignedVotes))
 	}
 
-	err = quorumTickSigVerify(ctx, alignedVotes, computors, targetTickVoteSignature)
+	err = quorumTickSigVerify(ctx, alignedVotes, computors, targetTickVoteSignature, skipScoreCheck)
 	if err != nil {
 		return nil, fmt.Errorf("verifying tick signature: %w", err)
 	}
@@ -113,14 +116,14 @@ func (v *vote) digest() ([32]byte, error) {
 	return digest, nil
 }
 
-func quorumTickSigVerify(ctx context.Context, quorumVotes types.QuorumVotes, computors computors.Computors, targetTickVoteSignature uint32) error {
+func quorumTickSigVerify(ctx context.Context, quorumVotes types.QuorumVotes, computors computors.Computors, targetTickVoteSignature uint32, skipScoreCheck bool) error {
 	var errorGroup errgroup.Group
 	verifyChannel := make(chan int, len(quorumVotes)) // second argument is buffer capacity
 	defer close(verifyChannel)
 
 	for _, quorumTickData := range quorumVotes {
 		errorGroup.Go(func() error {
-			success, err := checkSignature(ctx, quorumTickData, computors, targetTickVoteSignature)
+			success, err := checkSignature(ctx, quorumTickData, computors, targetTickVoteSignature, skipScoreCheck)
 			if success > 0 {
 				verifyChannel <- success
 			}
@@ -140,13 +143,13 @@ func quorumTickSigVerify(ctx context.Context, quorumVotes types.QuorumVotes, com
 	return nil
 }
 
-func checkSignature(ctx context.Context, quorumTickData types.QuorumTickVote, computors computors.Computors, targetTickVoteSignature uint32) (int, error) {
+func checkSignature(ctx context.Context, quorumTickData types.QuorumTickVote, computors computors.Computors, targetTickVoteSignature uint32, skipScoreCheck bool) (int, error) {
 	digest, err := getDigestFromQuorumTickData(quorumTickData)
 	if err != nil {
 		return 0, fmt.Errorf("creating digest from quorum tick data: %w", err)
 	}
 	computorPubKey := computors.PubKeys[quorumTickData.ComputorIndex]
-	if err := verifyTickVoteSignature(ctx, utils.SchnorrqVerify, computorPubKey, digest, quorumTickData.Signature, targetTickVoteSignature); err != nil {
+	if err := verifyTickVoteSignature(ctx, utils.SchnorrqVerify, computorPubKey, digest, quorumTickData.Signature, targetTickVoteSignature, skipScoreCheck); err != nil {
 		// the following is only additional debug information to identify the failing computor
 		var badComputor types.Identity
 		badComputor, ce := badComputor.FromPubKey(computorPubKey, false)
@@ -160,12 +163,14 @@ func checkSignature(ctx context.Context, quorumTickData types.QuorumTickVote, co
 	return 1, nil // success
 }
 
-func verifyTickVoteSignature(ctx context.Context, sigVerifierFunc utils.SigVerifierFunc, computorPubKey, digest [32]byte, signature [64]byte, targetTickVoteSignature uint32) error {
-	invertedSignatureSection := swapBytes(signature[:4])
-	score := binary.LittleEndian.Uint32(invertedSignatureSection)
+func verifyTickVoteSignature(ctx context.Context, sigVerifierFunc utils.SigVerifierFunc, computorPubKey, digest [32]byte, signature [64]byte, targetTickVoteSignature uint32, skipScoreCheck bool) error {
+	if !skipScoreCheck {
+		invertedSignatureSection := swapBytes(signature[:4])
+		score := binary.LittleEndian.Uint32(invertedSignatureSection)
 
-	if score > targetTickVoteSignature {
-		return errors.New("vote signature score over target tick vote signature")
+		if score > targetTickVoteSignature {
+			return errors.New("vote signature score over target tick vote signature")
+		}
 	}
 
 	return sigVerifierFunc(ctx, computorPubKey, digest, signature)
