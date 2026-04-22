@@ -12,16 +12,31 @@ import (
 	"github.com/qubic/go-archiver-v2/network"
 )
 
-// Get computors list
-func Get(ctx context.Context, store *db.PebbleStore, client network.QubicClient, tickNumber, initialTick uint32, epoch uint16, computorSignaturePackage uint64) ([]*Computors, error) {
+// Get fetches the computors list. When computorSignatureAvailable is false (e.g. bob backend),
+// computors are fetched once per epoch without signature-change detection.
+func Get(ctx context.Context, store *db.PebbleStore, fetcher network.DataFetcher, tickNumber, initialTick uint32, epoch uint16, computorSignaturePackage uint64, computorSignatureAvailable bool) ([]*Computors, error) {
 	compsList, err := load(ctx, store, uint32(epoch))
 	if err != nil {
 		return nil, fmt.Errorf("loading computors from data store: %w", err)
 	}
 
-	//Start of epoch
+	if !computorSignatureAvailable {
+		// Bob path: fetch once at epoch start, skip signature-change detection
+		if compsList == nil || len(compsList) == 0 {
+			computors, err := getFromFetcher(ctx, fetcher, initialTick)
+			if err != nil {
+				return nil, fmt.Errorf("getting computors from fetcher: %w", err)
+			}
+			computors.Validated = true // trust the data source
+			log.Printf("[INFO] Computors list from non-node source. Epoch: [%d]", epoch)
+			return []*Computors{computors}, nil
+		}
+		return compsList, nil
+	}
+
+	// Node path: use signature-change detection
 	if compsList == nil || len(compsList) == 0 {
-		computors, err := getFromNode(ctx, client, initialTick)
+		computors, err := getFromFetcher(ctx, fetcher, initialTick)
 		if err != nil {
 			return nil, fmt.Errorf("getting computors from node: %w", err)
 		}
@@ -36,7 +51,7 @@ func Get(ctx context.Context, store *db.PebbleStore, client network.QubicClient,
 	lastComputorList := compsList[len(compsList)-1]
 	lastComputorSignaturePackage := binary.LittleEndian.Uint64(lastComputorList.Signature[:8])
 	if computorSignaturePackage != lastComputorSignaturePackage {
-		computors, err := getFromNode(ctx, client, tickNumber)
+		computors, err := getFromFetcher(ctx, fetcher, tickNumber)
 		if err != nil {
 			return nil, fmt.Errorf("getting computors from node: %w", err)
 		}
@@ -62,8 +77,8 @@ func load(ctx context.Context, store *db.PebbleStore, epoch uint32) ([]*Computor
 	return model, nil
 }
 
-func getFromNode(ctx context.Context, client network.QubicClient, tickNumber uint32) (*Computors, error) {
-	comps, err := client.GetComputors(ctx)
+func getFromFetcher(ctx context.Context, fetcher network.DataFetcher, tickNumber uint32) (*Computors, error) {
+	comps, err := fetcher.GetComputors(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("get computors call: %w", err)
 	}

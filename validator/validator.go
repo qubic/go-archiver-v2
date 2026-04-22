@@ -31,12 +31,7 @@ func NewValidator(arbitratorPubKey [32]byte, enableStatusAddon bool) *Validator 
 	}
 }
 
-type Clients struct {
-	Main network.QubicClient
-	Alt  network.QubicClient
-}
-
-func (v *Validator) Validate(ctx context.Context, store *db.PebbleStore, clients Clients, epoch uint16, tickNumber uint32) error {
+func (v *Validator) Validate(ctx context.Context, store *db.PebbleStore, fetcher network.DataFetcher, epoch uint16, tickNumber uint32) error {
 
 	var quorumVotes types.QuorumVotes
 
@@ -44,48 +39,60 @@ func (v *Validator) Validate(ctx context.Context, store *db.PebbleStore, clients
 	eg.Go(func() error {
 		// validate quorum
 		var err error
-		quorumVotes, err = clients.Main.GetQuorumVotes(egCtx, tickNumber)
+		quorumVotes, err = fetcher.GetQuorumVotes(egCtx, tickNumber)
 		if err != nil {
 			return fmt.Errorf("getting quorum votes: %w", err)
 		}
 		if len(quorumVotes) <= 0 {
 			return errors.New("no quorum votes fetched")
 		}
-		if len(quorumVotes) < 451 {
-			return fmt.Errorf("not enough quorum votes yet: [%d]", len(quorumVotes))
+		// For empty ticks (all votes have zero TxDigest), a lower threshold is
+		// acceptable — during catchup bob may only receive partial votes for
+		// empty ticks. One-third of computors is sufficient for empty consensus.
+		minRequired := types.MinimumQuorumVotes // 451
+		if allVotesEmpty(quorumVotes) {
+			minRequired = types.NumberOfComputors / 3 // 225
+		}
+		if len(quorumVotes) < minRequired {
+			return fmt.Errorf("not enough quorum votes yet: [%d] (min: %d)", len(quorumVotes), minRequired)
 		}
 		return nil
 	})
 
-	var systemInfo types.SystemInfo
+	var systemMeta network.SystemMetadata
 	eg.Go(func() error {
 		var err error
-		systemInfo, err = clients.Alt.GetSystemInfo(egCtx)
+		systemMeta, err = fetcher.GetSystemMetadata(egCtx)
 		if err != nil {
-			return fmt.Errorf("getting system info: %w", err)
+			return fmt.Errorf("getting system metadata: %w", err)
 		}
 		return nil
 	})
 
 	err := eg.Wait()
 	if err != nil {
-		return fmt.Errorf("getting quorum votes and/or system info: %w", err)
+		return fmt.Errorf("getting quorum votes and/or system metadata: %w", err)
 	}
 
 	// typically only one client call needed per epoch
-	comps, err := v.validateComputors(ctx, store, clients.Main, tickNumber, systemInfo.InitialTick, epoch, systemInfo.ComputorPacketSignature)
+	comps, err := v.validateComputors(ctx, store, fetcher, tickNumber, systemMeta.InitialTick, epoch, systemMeta.ComputorPacketSignature, systemMeta.ComputorSignatureAvailable)
 	if err != nil {
 		return fmt.Errorf("validating computors: %w", err)
 	}
 
-	alignedVotes, err := quorum.Validate(ctx, quorumVotes, comps, systemInfo.TargetTickVoteSignature) // fast
+	skipScoreCheck := !systemMeta.VoteSignatureAvailable
+	minVotes := types.MinimumQuorumVotes
+	if allVotesEmpty(quorumVotes) {
+		minVotes = types.NumberOfComputors / 3
+	}
+	alignedVotes, err := quorum.Validate(ctx, quorumVotes, comps, systemMeta.TargetTickVoteSignature, skipScoreCheck, minVotes)
 	if err != nil {
 		return fmt.Errorf("validating quorum votes: %w", err)
 	}
 	log.Printf("Quorum valid. Aligned %d. Misaligned %d.", len(alignedVotes), len(quorumVotes)-len(alignedVotes))
 
 	// validate tick data and transactions
-	tickData, validTxs, txStatus, err := v.validateTickDataAndTransactions(ctx, alignedVotes, clients, comps, tickNumber)
+	tickData, validTxs, txStatus, err := v.validateTickDataAndTransactions(ctx, alignedVotes, fetcher, comps, tickNumber)
 	if err != nil {
 		return fmt.Errorf("validating tick data and transactions: %w", err)
 	}
@@ -97,9 +104,11 @@ func (v *Validator) Validate(ctx context.Context, store *db.PebbleStore, clients
 		return fmt.Errorf("storing aligned quorum votes: %w", err)
 	}
 
-	err = quorum.StoreTargetTickVoteSignature(store, uint32(epoch), tickNumber, systemInfo.InitialTick, systemInfo.TargetTickVoteSignature)
-	if err != nil {
-		return fmt.Errorf("storing target tick signature: %w", err)
+	if systemMeta.VoteSignatureAvailable {
+		err = quorum.StoreTargetTickVoteSignature(store, uint32(epoch), tickNumber, systemMeta.InitialTick, systemMeta.TargetTickVoteSignature)
+		if err != nil {
+			return fmt.Errorf("storing target tick signature: %w", err)
+		}
 	}
 
 	err = tick.Store(ctx, store, tickNumber, tickData)
@@ -120,7 +129,7 @@ func (v *Validator) Validate(ctx context.Context, store *db.PebbleStore, clients
 	return nil
 }
 
-func (v *Validator) validateTickDataAndTransactions(ctx context.Context, alignedVotes types.QuorumVotes, clients Clients, comps computors.Computors, tickNumber uint32) (tickData types.TickData, validTxs []types.Transaction, txStatus *protobuf.TickTransactionsStatus, err error) {
+func (v *Validator) validateTickDataAndTransactions(ctx context.Context, alignedVotes types.QuorumVotes, fetcher network.DataFetcher, comps computors.Computors, tickNumber uint32) (tickData types.TickData, validTxs []types.Transaction, txStatus *protobuf.TickTransactionsStatus, err error) {
 
 	if isEmptyTick(alignedVotes) {
 		return types.TickData{}, make([]types.Transaction, 0), &protobuf.TickTransactionsStatus{}, nil
@@ -130,7 +139,7 @@ func (v *Validator) validateTickDataAndTransactions(ctx context.Context, aligned
 
 	eg.Go(func() error {
 		var err error
-		tickData, err = v.validateTickData(egCtx, clients.Alt, comps, alignedVotes, tickNumber)
+		tickData, err = v.validateTickData(egCtx, fetcher, comps, alignedVotes, tickNumber)
 		if err != nil {
 			return fmt.Errorf("getting tick data: %w", err)
 		}
@@ -140,7 +149,7 @@ func (v *Validator) validateTickDataAndTransactions(ctx context.Context, aligned
 	var transactions []types.Transaction
 	eg.Go(func() error {
 		var err error
-		transactions, err = clients.Main.GetTickTransactions(egCtx, tickNumber)
+		transactions, err = fetcher.GetTickTransactions(egCtx, tickNumber)
 		if err != nil {
 			return fmt.Errorf("getting transactions: %w", err)
 		}
@@ -152,7 +161,7 @@ func (v *Validator) validateTickDataAndTransactions(ctx context.Context, aligned
 		return tickData, nil, nil, fmt.Errorf("getting tick data and/or transactions: %w", err)
 	}
 
-	validTxs, txStatus, err = v.validateTransactions(ctx, clients.Main, transactions, tickData, tickNumber)
+	validTxs, txStatus, err = v.validateTransactions(ctx, fetcher, transactions, tickData, tickNumber)
 	if err != nil {
 		return tickData, nil, nil, fmt.Errorf("validating transactions: %w", err)
 	}
@@ -161,9 +170,9 @@ func (v *Validator) validateTickDataAndTransactions(ctx context.Context, aligned
 
 }
 
-func (v *Validator) validateComputors(ctx context.Context, store *db.PebbleStore, client network.QubicClient, tickNumber, initialTick uint32, epoch uint16, computorPacketSignature uint64) (computors.Computors, error) {
+func (v *Validator) validateComputors(ctx context.Context, store *db.PebbleStore, fetcher network.DataFetcher, tickNumber, initialTick uint32, epoch uint16, computorPacketSignature uint64, computorSignatureAvailable bool) (computors.Computors, error) {
 
-	comps, err := computors.Get(ctx, store, client, tickNumber, initialTick, epoch, computorPacketSignature)
+	comps, err := computors.Get(ctx, store, fetcher, tickNumber, initialTick, epoch, computorPacketSignature, computorSignatureAvailable)
 	if err != nil {
 		return computors.Computors{}, fmt.Errorf("getting computors: %w", err)
 	}
@@ -173,9 +182,11 @@ func (v *Validator) validateComputors(ctx context.Context, store *db.PebbleStore
 
 	latestComps := comps[len(comps)-1]
 	if !latestComps.Validated || bytes.Compare(v.arbitratorPubKey[:], latestComps.Arbitrator[:]) != 0 {
-		err = computors.Validate(ctx, *latestComps, v.arbitratorPubKey)
-		if err != nil {
-			return computors.Computors{}, fmt.Errorf("validating computors: %w", err)
+		if computorSignatureAvailable {
+			err = computors.Validate(ctx, *latestComps, v.arbitratorPubKey)
+			if err != nil {
+				return computors.Computors{}, fmt.Errorf("validating computors: %w", err)
+			}
 		}
 		latestComps.Validated = true
 		latestComps.Arbitrator = v.arbitratorPubKey
@@ -189,8 +200,8 @@ func (v *Validator) validateComputors(ctx context.Context, store *db.PebbleStore
 	return *latestComps, nil
 }
 
-func (v *Validator) validateTickData(ctx context.Context, client network.QubicClient, comps computors.Computors, quorumVotes types.QuorumVotes, tickNumber uint32) (types.TickData, error) {
-	tickData, err := client.GetTickData(ctx, tickNumber)
+func (v *Validator) validateTickData(ctx context.Context, fetcher network.DataFetcher, comps computors.Computors, quorumVotes types.QuorumVotes, tickNumber uint32) (types.TickData, error) {
+	tickData, err := fetcher.GetTickData(ctx, tickNumber)
 	if err != nil {
 		return types.TickData{}, fmt.Errorf("getting tick data: %w", err)
 	}
@@ -203,7 +214,7 @@ func (v *Validator) validateTickData(ctx context.Context, client network.QubicCl
 	return tickData, nil
 }
 
-func (v *Validator) validateTransactions(ctx context.Context, client network.QubicClient, transactions []types.Transaction, tickData types.TickData, tickNumber uint32) ([]types.Transaction, *protobuf.TickTransactionsStatus, error) {
+func (v *Validator) validateTransactions(ctx context.Context, fetcher network.DataFetcher, transactions []types.Transaction, tickData types.TickData, tickNumber uint32) ([]types.Transaction, *protobuf.TickTransactionsStatus, error) {
 
 	// keeps all transactions that are in the tick data digests
 	validTxs, err := tx.Validate(ctx, transactions, tickData)
@@ -217,14 +228,26 @@ func (v *Validator) validateTransactions(ctx context.Context, client network.Qub
 		log.Printf("[%d] out of [%d] transactions are valid.", len(validTxs), len(transactions))
 	}
 
-	// get tx status only if status addon is enabled
-	tickTxStatus, err := getTxStatus(ctx, client, len(validTxs), tickNumber, v.statusAddonEnabled)
+	// get tx status
+	tickTxStatus, txStatusAvailable, err := fetcher.GetTxStatus(ctx, tickNumber)
 	if err != nil {
 		return nil, nil, fmt.Errorf("getting tx status: %w", err)
 	}
 
+	shouldValidateStatus := txStatusAvailable && v.statusAddonEnabled
+	if !txStatusAvailable {
+		// fill in stub data when status is not available (e.g. bob backend)
+		tickTxStatus = types.TransactionStatus{
+			CurrentTickOfNode:  tickNumber,
+			Tick:               tickNumber,
+			TxCount:            uint32(len(validTxs)),
+			MoneyFlew:          [128]byte{},
+			TransactionDigests: nil,
+		}
+	}
+
 	// combine valid transactions with money flew status
-	transactionsWithTxStatus, err := txstatus.ValidateAndConvert(ctx, tickTxStatus, validTxs, v.statusAddonEnabled)
+	transactionsWithTxStatus, err := txstatus.ValidateAndConvert(ctx, tickTxStatus, validTxs, shouldValidateStatus)
 	if err != nil {
 		return nil, nil, fmt.Errorf("validating tx status: %w", err)
 	}
@@ -233,21 +256,16 @@ func (v *Validator) validateTransactions(ctx context.Context, client network.Qub
 
 }
 
-func getTxStatus(ctx context.Context, client network.QubicClient, transactionsCount int, tickNumber uint32, enabled bool) (types.TransactionStatus, error) {
-	if enabled {
-		return client.GetTxStatus(ctx, tickNumber)
-	} else {
-		// empty transaction status
-		return types.TransactionStatus{
-			CurrentTickOfNode:  tickNumber,
-			Tick:               tickNumber,
-			TxCount:            uint32(transactionsCount),
-			MoneyFlew:          [128]byte{},
-			TransactionDigests: nil,
-		}, nil
-	}
-}
-
 func isEmptyTick(quorumVotes types.QuorumVotes) bool {
 	return quorumVotes[0].TxDigest == [32]byte{}
+}
+
+// allVotesEmpty returns true if every vote has a zero TxDigest, indicating an empty tick.
+func allVotesEmpty(votes types.QuorumVotes) bool {
+	for _, v := range votes {
+		if v.TxDigest != [32]byte{} {
+			return false
+		}
+	}
+	return true
 }

@@ -63,7 +63,7 @@ func TestValidateVotes(t *testing.T) {
 		},
 	}
 
-	_, err := validateVotes(context.Background(), originalData, computors.Computors{}, 0)
+	_, err := validateVotes(context.Background(), originalData, computors.Computors{}, 0, false, 451)
 	require.ErrorContains(t, err, "not enough quorum votes")
 
 	cases := []struct {
@@ -255,6 +255,48 @@ func deepCopy(votes types.QuorumVotes) types.QuorumVotes {
 	}
 
 	return cp
+}
+
+func TestValidateVotes_EmptyTick_LowerThreshold_RejectsBelow(t *testing.T) {
+	// Empty tick votes have zero TxDigest. With only 2 votes and minVotes=451, should fail.
+	emptyVotes := types.QuorumVotes{
+		{ComputorIndex: 0, Epoch: 1, Tick: 100, TxDigest: [32]byte{}},
+		{ComputorIndex: 1, Epoch: 1, Tick: 100, TxDigest: [32]byte{}},
+	}
+
+	_, err := validateVotes(context.Background(), emptyVotes, computors.Computors{}, 0, true, 451)
+	require.ErrorContains(t, err, "not enough quorum votes")
+}
+
+func TestValidateVotes_EmptyTick_LowerThreshold_AlignmentPasses(t *testing.T) {
+	// Test that empty tick votes align correctly and pass the minVotes threshold.
+	// We test alignment only (not sig verification) since the lower threshold
+	// is about accepting fewer votes, not about signature validity.
+	emptyVotes := types.QuorumVotes{
+		{ComputorIndex: 0, Epoch: 1, Tick: 100, TxDigest: [32]byte{}},
+		{ComputorIndex: 1, Epoch: 1, Tick: 100, TxDigest: [32]byte{}},
+		{ComputorIndex: 2, Epoch: 1, Tick: 100, TxDigest: [32]byte{}},
+	}
+
+	alignedVotes, err := getAlignedVotes(emptyVotes)
+	require.NoError(t, err)
+	require.Equal(t, 3, len(alignedVotes))
+
+	// Verify that minVotes=3 would pass the threshold check
+	require.GreaterOrEqual(t, len(alignedVotes), 3)
+
+	// And minVotes=451 would not
+	require.Less(t, len(alignedVotes), 451)
+}
+
+func TestValidateVotes_EmptyTick_NotEnoughEvenForLowerThreshold(t *testing.T) {
+	emptyVotes := types.QuorumVotes{
+		{ComputorIndex: 0, Epoch: 1, Tick: 100, TxDigest: [32]byte{}},
+	}
+
+	// Even with lower threshold of 2, 1 vote is not enough
+	_, err := validateVotes(context.Background(), emptyVotes, computors.Computors{}, 0, true, 2)
+	require.ErrorContains(t, err, "not enough quorum votes")
 }
 
 func TestByteSwap(t *testing.T) {

@@ -21,6 +21,7 @@ import (
 	"github.com/qubic/go-archiver-v2/db"
 	metrics "github.com/qubic/go-archiver-v2/metrics"
 	"github.com/qubic/go-archiver-v2/network"
+	"github.com/qubic/go-archiver-v2/network/bob"
 	"github.com/qubic/go-archiver-v2/processor"
 	"github.com/qubic/go-archiver-v2/protobuf"
 	"github.com/qubic/go-archiver-v2/validator"
@@ -70,6 +71,10 @@ func run() error {
 		Metrics struct {
 			Namespace string `conf:"default:qubic_archiver_v2"`
 		}
+		Backend struct {
+			Type   string `conf:"default:node"` // "node" or "bob"
+			BobURL string `conf:"default:http://127.0.0.1:40420"`
+		}
 	}
 
 	help, err := conf.Parse(prefix, &cfg)
@@ -115,17 +120,34 @@ func run() error {
 	}
 	defer dbPool.Close()
 
-	clientPool, err := network.NewNodeConnectorPool(qubic.PoolConfig{
-		InitialCap:         cfg.Pool.InitialCap,
-		MaxCap:             cfg.Pool.MaxCap,
-		MaxIdle:            cfg.Pool.MaxIdle,
-		IdleTimeout:        cfg.Pool.IdleTimeout,
-		NodeFetcherUrl:     cfg.Pool.NodeFetcherUrl,
-		NodeFetcherTimeout: cfg.Pool.NodeFetcherTimeout,
-		NodePort:           cfg.Pool.NodePort,
-	})
-	if err != nil {
-		return fmt.Errorf("creating node pool: %w", err)
+	// create data fetcher factory based on backend type
+	var fetcherFactory func() (network.DataFetcher, error)
+
+	switch cfg.Backend.Type {
+	case "node":
+		clientPool, err := network.NewNodeConnectorPool(qubic.PoolConfig{
+			InitialCap:         cfg.Pool.InitialCap,
+			MaxCap:             cfg.Pool.MaxCap,
+			MaxIdle:            cfg.Pool.MaxIdle,
+			IdleTimeout:        cfg.Pool.IdleTimeout,
+			NodeFetcherUrl:     cfg.Pool.NodeFetcherUrl,
+			NodeFetcherTimeout: cfg.Pool.NodeFetcherTimeout,
+			NodePort:           cfg.Pool.NodePort,
+		})
+		if err != nil {
+			return fmt.Errorf("creating node pool: %w", err)
+		}
+		fetcherFactory = func() (network.DataFetcher, error) {
+			return network.NewNodeDataFetcher(clientPool)
+		}
+	case "bob":
+		bobFetcher := bob.NewBobDataFetcher(cfg.Backend.BobURL)
+		fetcherFactory = func() (network.DataFetcher, error) {
+			return bobFetcher, nil
+		}
+		log.Printf("main: Using bob backend at [%s]", cfg.Backend.BobURL)
+	default:
+		return fmt.Errorf("unknown backend type: %s", cfg.Backend.Type)
 	}
 
 	// start processor
@@ -135,7 +157,7 @@ func run() error {
 		return fmt.Errorf("calculating arbitrator public key from [%s]: %w", cfg.Qubic.ArbitratorIdentity, err)
 	}
 	tickValidator := validator.NewValidator(arbitratorPubKey, cfg.Qubic.EnableTxStatusAddon)
-	proc := processor.NewProcessor(clientPool, dbPool, tickValidator, processor.Config{
+	proc := processor.NewProcessor(fetcherFactory, dbPool, tickValidator, processor.Config{
 		ProcessTickTimeout: cfg.Qubic.ProcessTickTimeout,
 	}, m)
 
