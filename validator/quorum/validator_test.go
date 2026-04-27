@@ -257,6 +257,87 @@ func deepCopy(votes types.QuorumVotes) types.QuorumVotes {
 	return cp
 }
 
+// buildAlignedVotes returns count votes that share every alignment-relevant field
+// (so getAlignedVotes returns all of them as one bucket). ComputorIndex differs per vote
+// but is not part of the alignment digest, so it does not affect bucketing.
+func buildAlignedVotes(count int, txDigest [32]byte) types.QuorumVotes {
+	votes := make(types.QuorumVotes, count)
+	for i := 0; i < count; i++ {
+		votes[i] = types.QuorumTickVote{
+			ComputorIndex:                 uint16(i),
+			Epoch:                         1,
+			Tick:                          100,
+			Millisecond:                   500,
+			Second:                        30,
+			Minute:                        15,
+			Hour:                          12,
+			Day:                           28,
+			Month:                         2,
+			Year:                          20,
+			PreviousResourceTestingDigest: 1234567890,
+			PreviousSpectrumDigest:        nonEmptyDigest(1),
+			PreviousUniverseDigest:        nonEmptyDigest(2),
+			PreviousComputerDigest:        nonEmptyDigest(3),
+			TxDigest:                      txDigest,
+		}
+	}
+	return votes
+}
+
+func TestValidateVotes_BelowFloor(t *testing.T) {
+	// 225 votes is below the 226-vote floor and must be rejected before alignment runs.
+	votes := buildAlignedVotes(EmptyTickMinVoteCount-1, [32]byte{})
+
+	_, err := validateVotes(context.Background(), votes, computors.Computors{}, 0)
+	require.ErrorContains(t, err, "not enough quorum votes")
+}
+
+func TestValidateVotes_EmptyTick_PassesCountGateAtFloor(t *testing.T) {
+	// Exactly 226 aligned empty-tick votes must clear both the floor and the post-alignment
+	// count check. Sig verification then fails (zero pubkeys/signatures), which is what we
+	// assert on to prove the count gates were passed.
+	votes := buildAlignedVotes(EmptyTickMinVoteCount, [32]byte{})
+
+	_, err := validateVotes(context.Background(), votes, computors.Computors{}, 0)
+	require.Error(t, err)
+	require.NotContains(t, err.Error(), "not enough quorum votes")
+	require.NotContains(t, err.Error(), "not enough aligned votes")
+	require.Contains(t, err.Error(), "verifying tick signature")
+}
+
+func TestValidateVotes_EmptyTick_PassesCountGateBetweenThresholds(t *testing.T) {
+	// 300 aligned empty-tick votes — the previously broken case. Must pass the count gate
+	// (would have failed under the old 451 requirement) and reach sig verification.
+	votes := buildAlignedVotes(300, [32]byte{})
+
+	_, err := validateVotes(context.Background(), votes, computors.Computors{}, 0)
+	require.Error(t, err)
+	require.NotContains(t, err.Error(), "not enough aligned votes")
+	require.Contains(t, err.Error(), "verifying tick signature")
+}
+
+func TestValidateVotes_NonEmptyTick_StillRequiresFullQuorum(t *testing.T) {
+	// 300 aligned votes for a non-empty tick must still be rejected at the count gate;
+	// the relaxed empty-tick threshold must not bleed into the non-empty path.
+	votes := buildAlignedVotes(300, nonEmptyDigest(7))
+
+	_, err := validateVotes(context.Background(), votes, computors.Computors{}, 0)
+	require.ErrorContains(t, err, "not enough aligned votes [300]")
+	require.ErrorContains(t, err, "required [451]")
+}
+
+func TestIsEmptyTick(t *testing.T) {
+	t.Run("zero TxDigest returns true", func(t *testing.T) {
+		require.True(t, IsEmptyTick(types.QuorumVotes{{TxDigest: [32]byte{}}}))
+	})
+	t.Run("non-zero TxDigest returns false", func(t *testing.T) {
+		require.False(t, IsEmptyTick(types.QuorumVotes{{TxDigest: nonEmptyDigest(1)}}))
+	})
+	t.Run("empty slice panics", func(t *testing.T) {
+		require.Panics(t, func() { IsEmptyTick(types.QuorumVotes{}) })
+	})
+}
+
 func TestByteSwap(t *testing.T) {
 
 	testData := []struct {
