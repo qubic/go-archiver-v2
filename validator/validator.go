@@ -51,7 +51,7 @@ func (v *Validator) Validate(ctx context.Context, store *db.PebbleStore, clients
 		if len(quorumVotes) <= 0 {
 			return errors.New("no quorum votes fetched")
 		}
-		if len(quorumVotes) < 451 {
+		if len(quorumVotes) < quorum.EmptyTickMinVoteCount {
 			return fmt.Errorf("not enough quorum votes yet: [%d]", len(quorumVotes))
 		}
 		return nil
@@ -122,7 +122,7 @@ func (v *Validator) Validate(ctx context.Context, store *db.PebbleStore, clients
 
 func (v *Validator) validateTickDataAndTransactions(ctx context.Context, alignedVotes types.QuorumVotes, clients Clients, comps computors.Computors, tickNumber uint32) (tickData types.TickData, validTxs []types.Transaction, txStatus *protobuf.TickTransactionsStatus, err error) {
 
-	if isEmptyTick(alignedVotes) {
+	if quorum.IsEmptyTick(alignedVotes) {
 		return types.TickData{}, make([]types.Transaction, 0), &protobuf.TickTransactionsStatus{}, nil
 	}
 
@@ -246,8 +246,4 @@ func getTxStatus(ctx context.Context, client network.QubicClient, transactionsCo
 			TransactionDigests: nil,
 		}, nil
 	}
-}
-
-func isEmptyTick(quorumVotes types.QuorumVotes) bool {
-	return quorumVotes[0].TxDigest == [32]byte{}
 }
