@@ -2,7 +2,6 @@ module github.com/qubic/go-archiver-v2
 
 go 1.25.0
 
-toolchain go1.25.5
 
 require (
 	github.com/ardanlabs/conf/v3 v3.9.0
