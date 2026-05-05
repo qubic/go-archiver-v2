@@ -33,12 +33,7 @@ func validateVotes(ctx context.Context, quorumVotes types.QuorumVotes, computors
 		return nil, fmt.Errorf("getting aligned votes: %w", err)
 	}
 
-	isEmptyTick := IsEmptyTick(alignedVotes)
-	minRequired := types.MinimumQuorumVotes
-	if isEmptyTick {
-		minRequired = EmptyTickMinVoteCount
-	}
-
+	minRequired := requiredQuorumVotes(IsEmptyTick(alignedVotes))
 	if len(alignedVotes) < minRequired {
 		return nil, fmt.Errorf("not enough aligned votes [%d], required [%d]", len(alignedVotes), minRequired)
 	}
@@ -272,4 +267,11 @@ func initTargetTickVoteSignatureList(store *db.PebbleStore, epoch, initialTick, 
 // IsEmptyTick must be called with a non-empty aligned vote set, otherwise it will panic.
 func IsEmptyTick(quorumVotes types.QuorumVotes) bool {
 	return quorumVotes[0].TxDigest == [32]byte{}
+}
+
+func requiredQuorumVotes(isEmptyTick bool) int {
+	if isEmptyTick {
+		return EmptyTickMinVoteCount
+	}
+	return types.MinimumQuorumVotes
 }

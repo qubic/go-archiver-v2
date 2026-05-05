@@ -284,6 +284,12 @@ func buildAlignedVotes(count int, txDigest [32]byte) types.QuorumVotes {
 	return votes
 }
 
+func TestRequiredQuorumVotes(t *testing.T) {
+	// Empty ticks need only the relaxed threshold; non-empty ticks need full BFT quorum.
+	require.Equal(t, EmptyTickMinVoteCount, requiredQuorumVotes(true))
+	require.Equal(t, types.MinimumQuorumVotes, requiredQuorumVotes(false))
+}
+
 func TestValidateVotes_BelowFloor(t *testing.T) {
 	// 225 votes is below the 226-vote floor and must be rejected before alignment runs.
 	votes := buildAlignedVotes(EmptyTickMinVoteCount-1, [32]byte{})
@@ -292,28 +298,15 @@ func TestValidateVotes_BelowFloor(t *testing.T) {
 	require.ErrorContains(t, err, "not enough quorum votes")
 }
 
-func TestValidateVotes_EmptyTick_PassesCountGateAtFloor(t *testing.T) {
-	// Exactly 226 aligned empty-tick votes must clear both the floor and the post-alignment
-	// count check. Sig verification then fails (zero pubkeys/signatures), which is what we
-	// assert on to prove the count gates were passed.
+func TestValidateVotes_EmptyTick_BelowAlignmentThreshold(t *testing.T) {
+	// 226 empty-tick votes total but one is misaligned, so only 225 align — one below
+	// the relaxed empty-tick threshold. Must be rejected at the post-alignment count gate.
 	votes := buildAlignedVotes(EmptyTickMinVoteCount, [32]byte{})
+	votes[0].Second += 1 // breaks alignment for this vote only
 
 	_, err := validateVotes(context.Background(), votes, computors.Computors{}, 0)
-	require.Error(t, err)
-	require.NotContains(t, err.Error(), "not enough quorum votes")
-	require.NotContains(t, err.Error(), "not enough aligned votes")
-	require.Contains(t, err.Error(), "verifying tick signature")
-}
-
-func TestValidateVotes_EmptyTick_PassesCountGateBetweenThresholds(t *testing.T) {
-	// 300 aligned empty-tick votes — the previously broken case. Must pass the count gate
-	// (would have failed under the old 451 requirement) and reach sig verification.
-	votes := buildAlignedVotes(300, [32]byte{})
-
-	_, err := validateVotes(context.Background(), votes, computors.Computors{}, 0)
-	require.Error(t, err)
-	require.NotContains(t, err.Error(), "not enough aligned votes")
-	require.Contains(t, err.Error(), "verifying tick signature")
+	require.ErrorContains(t, err, "not enough aligned votes [225]")
+	require.ErrorContains(t, err, "required [226]")
 }
 
 func TestValidateVotes_NonEmptyTick_StillRequiresFullQuorum(t *testing.T) {
