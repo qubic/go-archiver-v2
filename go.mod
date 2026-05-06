@@ -2,6 +2,7 @@ module github.com/qubic/go-archiver-v2
 
 go 1.25.0
 
+
 require (
 	github.com/ardanlabs/conf/v3 v3.9.0
 	github.com/cloudflare/circl v1.6.1

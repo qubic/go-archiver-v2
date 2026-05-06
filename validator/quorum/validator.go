@@ -16,13 +16,15 @@ import (
 	"golang.org/x/sync/errgroup"
 )
 
+const EmptyTickMinVoteCount = 226
+
 // Validate validates the quorum votes and if success returns the aligned votes back
 func Validate(ctx context.Context, quorumVotes types.QuorumVotes, computors computors.Computors, targetTickVoteSignature uint32) (types.QuorumVotes, error) {
 	return validateVotes(ctx, quorumVotes, computors, targetTickVoteSignature)
 }
 
 func validateVotes(ctx context.Context, quorumVotes types.QuorumVotes, computors computors.Computors, targetTickVoteSignature uint32) (types.QuorumVotes, error) {
-	if len(quorumVotes) < types.MinimumQuorumVotes {
+	if len(quorumVotes) < EmptyTickMinVoteCount {
 		return nil, errors.New("not enough quorum votes")
 	}
 
@@ -31,11 +33,12 @@ func validateVotes(ctx context.Context, quorumVotes types.QuorumVotes, computors
 		return nil, fmt.Errorf("getting aligned votes: %w", err)
 	}
 
-	if len(alignedVotes) < types.MinimumQuorumVotes {
-		return nil, fmt.Errorf("not enough aligned votes [%d]", len(alignedVotes))
+	minRequired := requiredQuorumVotes(IsEmptyTick(alignedVotes))
+	if len(alignedVotes) < minRequired {
+		return nil, fmt.Errorf("not enough aligned votes [%d], required [%d]", len(alignedVotes), minRequired)
 	}
 
-	err = quorumTickSigVerify(ctx, alignedVotes, computors, targetTickVoteSignature)
+	err = quorumTickSigVerify(ctx, alignedVotes, computors, targetTickVoteSignature, minRequired)
 	if err != nil {
 		return nil, fmt.Errorf("verifying tick signature: %w", err)
 	}
@@ -113,7 +116,7 @@ func (v *vote) digest() ([32]byte, error) {
 	return digest, nil
 }
 
-func quorumTickSigVerify(ctx context.Context, quorumVotes types.QuorumVotes, computors computors.Computors, targetTickVoteSignature uint32) error {
+func quorumTickSigVerify(ctx context.Context, quorumVotes types.QuorumVotes, computors computors.Computors, targetTickVoteSignature uint32, minVotesRequired int) error {
 	var errorGroup errgroup.Group
 	verifyChannel := make(chan int, len(quorumVotes)) // second argument is buffer capacity
 	defer close(verifyChannel)
@@ -134,7 +137,7 @@ func quorumTickSigVerify(ctx context.Context, quorumVotes types.QuorumVotes, com
 	}
 
 	var successVotes = len(verifyChannel)
-	if successVotes < types.MinimumQuorumVotes {
+	if successVotes < minVotesRequired {
 		return fmt.Errorf("not enough verified quorum votes: %d", successVotes)
 	}
 	return nil
@@ -259,4 +262,16 @@ func initTargetTickVoteSignatureList(store *db.PebbleStore, epoch, initialTick, 
 	}
 	log.Printf("Initialized target vote tick signature list for epoch %d: %d\n", epoch, targetTickVoteSignature)
 	return nil
+}
+
+// IsEmptyTick must be called with a non-empty aligned vote set, otherwise it will panic.
+func IsEmptyTick(quorumVotes types.QuorumVotes) bool {
+	return quorumVotes[0].TxDigest == [32]byte{}
+}
+
+func requiredQuorumVotes(isEmptyTick bool) int {
+	if isEmptyTick {
+		return EmptyTickMinVoteCount
+	}
+	return types.MinimumQuorumVotes
 }

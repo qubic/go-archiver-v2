@@ -3,7 +3,7 @@ name: Deploy prod images to GHCR
 on:
   push:
     branches:
-      - 'fix/tx-status-validation'
+      - '23-empty-ticks-validation-bug'
 
 jobs:
   push-store-image:
@@ -21,5 +21,5 @@ jobs:
 
       - name: 'Build Inventory Image'
         run: |
-          docker build . --tag ghcr.io/qubic/qubic-archiver-v2:snapshot
-          docker push ghcr.io/qubic/qubic-archiver-v2:snapshot
+          docker build . --tag ghcr.io/qubic/qubic-archiver-v2:23-empty-ticks-validation-bug
+          docker push ghcr.io/qubic/qubic-archiver-v2:23-empty-ticks-validation-bug
