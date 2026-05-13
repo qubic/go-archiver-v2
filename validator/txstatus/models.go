@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	"github.com/qubic/go-archiver-v2/protobuf"
-	"github.com/qubic/go-node-connector/types"
+	"github.com/qubic/go-node-connector/v2/types"
 )
 
 func qubicToProto(txs types.Transactions, txStatus types.TransactionStatus) (*protobuf.TickTransactionsStatus, error) {

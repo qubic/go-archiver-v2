@@ -3,16 +3,16 @@ package quorum
 import (
 	"context"
 	"encoding/binary"
+	"errors"
 	"fmt"
 	"log"
 	"slices"
 
-	"github.com/pkg/errors"
 	"github.com/qubic/go-archiver-v2/db"
 	"github.com/qubic/go-archiver-v2/protobuf"
 	"github.com/qubic/go-archiver-v2/utils"
 	"github.com/qubic/go-archiver-v2/validator/computors"
-	"github.com/qubic/go-node-connector/types"
+	"github.com/qubic/go-node-connector/v2/types"
 	"golang.org/x/sync/errgroup"
 )
 

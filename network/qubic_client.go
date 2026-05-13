@@ -3,8 +3,8 @@ package network
 import (
 	"context"
 
-	"github.com/qubic/go-node-connector"
-	"github.com/qubic/go-node-connector/types"
+	"github.com/qubic/go-node-connector/v2"
+	"github.com/qubic/go-node-connector/v2/types"
 )
 
 // QubicClient interface extracted from qubic.Client in go-node-connector.

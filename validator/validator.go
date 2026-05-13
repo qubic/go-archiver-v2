@@ -15,7 +15,7 @@ import (
 	"github.com/qubic/go-archiver-v2/validator/tick"
 	"github.com/qubic/go-archiver-v2/validator/tx"
 	"github.com/qubic/go-archiver-v2/validator/txstatus"
-	"github.com/qubic/go-node-connector/types"
+	"github.com/qubic/go-node-connector/v2/types"
 	"golang.org/x/sync/errgroup"
 )
 
@@ -242,7 +242,7 @@ func getTxStatus(ctx context.Context, client network.QubicClient, transactionsCo
 			CurrentTickOfNode:  tickNumber,
 			Tick:               tickNumber,
 			TxCount:            uint32(transactionsCount),
-			MoneyFlew:          [128]byte{},
+			MoneyFlew:          [(types.NumberOfTransactionsPerTick + 7) / 8]byte{},
 			TransactionDigests: nil,
 		}, nil
 	}
