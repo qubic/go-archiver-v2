@@ -11,7 +11,7 @@ require (
 	github.com/grpc-ecosystem/go-grpc-middleware/providers/prometheus v1.1.0
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.29.0
 	github.com/prometheus/client_golang v1.23.2
-	github.com/qubic/go-node-connector/v2 v2.0.0-20260513100112-2428d7a0b546
+	github.com/qubic/go-node-connector/v2 v2.0.0-20260513145133-48d72b80ba13
 	github.com/qubic/go-schnorrq v1.1.1
 	github.com/stretchr/testify v1.11.1
 	golang.org/x/sync v0.20.0

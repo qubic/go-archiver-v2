@@ -56,7 +56,7 @@ func TestQubicToProto(t *testing.T) {
 
 	timeLock := [32]byte{6, 4, 7, 4, 2}
 	transactionDigests := [types.NumberOfTransactionsPerTick][32]byte{digestOne, digestTwo}
-	contractFees := [types.NumberOfTransactionsPerTick]int64{1, 2, 3, 4, 5, 6, 7, 8, 9}
+	contractFees := [types.MaxNumberOfContracts]int64{1, 2, 3, 4, 5, 6, 7, 8, 9}
 	signature := [64]byte{0x1, 0x2, 0x3, 0x4, 0x5, 0x6, 0x07, 0x8, 0x9, 0x10, 0x1, 0x2, 0x3, 0x4, 0x5, 0x6, 0x07, 0x8, 0x9, 0x10}
 	qubicTickData := types.TickData{
 		ComputorIndex:      15,

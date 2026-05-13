@@ -49,7 +49,7 @@ func digestsToIdentities(digests [types.NumberOfTransactionsPerTick][32]byte) ([
 	return identities, nil
 }
 
-func contractFeesToProto(contractFees [types.NumberOfTransactionsPerTick]int64) []int64 {
+func contractFeesToProto(contractFees [types.MaxNumberOfContracts]int64) []int64 {
 	protoContractFees := make([]int64, 0, len(contractFees))
 	for _, fee := range contractFees {
 		if fee == 0 {
