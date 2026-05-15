@@ -15,7 +15,7 @@ import (
 	"github.com/qubic/go-archiver-v2/validator/tick"
 	"github.com/qubic/go-archiver-v2/validator/tx"
 	"github.com/qubic/go-archiver-v2/validator/txstatus"
-	"github.com/qubic/go-node-connector/types"
+	"github.com/qubic/go-node-connector/v2/types"
 	"golang.org/x/sync/errgroup"
 )
 
@@ -236,14 +236,14 @@ func (v *Validator) validateTransactions(ctx context.Context, client network.Qub
 func getTxStatus(ctx context.Context, client network.QubicClient, transactionsCount int, tickNumber uint32, enabled bool) (types.TransactionStatus, error) {
 	if enabled {
 		return client.GetTxStatus(ctx, tickNumber)
-	} else {
-		// empty transaction status
-		return types.TransactionStatus{
-			CurrentTickOfNode:  tickNumber,
-			Tick:               tickNumber,
-			TxCount:            uint32(transactionsCount),
-			MoneyFlew:          [128]byte{},
-			TransactionDigests: nil,
-		}, nil
 	}
+
+	// empty transaction status
+	return types.TransactionStatus{
+		CurrentTickOfNode:  tickNumber,
+		Tick:               tickNumber,
+		TxCount:            uint32(transactionsCount),
+		MoneyFlew:          [(types.NumberOfTransactionsPerTick + 7) / 8]byte{},
+		TransactionDigests: nil,
+	}, nil
 }

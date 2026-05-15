@@ -5,8 +5,8 @@ import (
 	"errors"
 	"testing"
 
-	qubic "github.com/qubic/go-node-connector"
-	"github.com/qubic/go-node-connector/types"
+	qubic "github.com/qubic/go-node-connector/v2"
+	"github.com/qubic/go-node-connector/v2/types"
 	"github.com/stretchr/testify/require"
 
 	"github.com/qubic/go-archiver-v2/protobuf"

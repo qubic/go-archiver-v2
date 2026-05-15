@@ -4,7 +4,7 @@ import (
 	"context"
 	"testing"
 
-	"github.com/qubic/go-node-connector/types"
+	"github.com/qubic/go-node-connector/v2/types"
 	"github.com/stretchr/testify/require"
 )
 
@@ -29,7 +29,7 @@ func TestValidate_HappyPath(t *testing.T) {
 		CurrentTickOfNode:  1000,
 		Tick:               1000,
 		TxCount:            1,
-		MoneyFlew:          [128]byte{0b00000001}, // first tx moneyFlew = true
+		MoneyFlew:          [(types.NumberOfTransactionsPerTick + 7) / 8]byte{0b00000001}, // first tx moneyFlew = true
 		TransactionDigests: [][32]byte{digest},
 	}
 
@@ -48,7 +48,7 @@ func TestValidate_TxCountMismatch(t *testing.T) {
 		CurrentTickOfNode:  1000,
 		Tick:               1000,
 		TxCount:            0,
-		MoneyFlew:          [128]byte{},
+		MoneyFlew:          [(types.NumberOfTransactionsPerTick + 7) / 8]byte{},
 		TransactionDigests: nil,
 	}
 
@@ -65,7 +65,7 @@ func TestValidate_DigestMismatch(t *testing.T) {
 		CurrentTickOfNode:  1000,
 		Tick:               1000,
 		TxCount:            1,
-		MoneyFlew:          [128]byte{0b00000001},
+		MoneyFlew:          [(types.NumberOfTransactionsPerTick + 7) / 8]byte{0b00000001},
 		TransactionDigests: [][32]byte{{99, 99, 99}}, // wrong digest
 	}
 
@@ -80,7 +80,7 @@ func TestValidate_EmptyTick(t *testing.T) {
 		CurrentTickOfNode:  1000,
 		Tick:               1000,
 		TxCount:            0,
-		MoneyFlew:          [128]byte{},
+		MoneyFlew:          [(types.NumberOfTransactionsPerTick + 7) / 8]byte{},
 		TransactionDigests: nil,
 	}
 
@@ -97,9 +97,9 @@ func TestValidateAndConvert_NoValidation(t *testing.T) {
 	txStatus := types.TransactionStatus{
 		CurrentTickOfNode:  12345,
 		Tick:               12345,
-		TxCount:            1,           // any count
-		MoneyFlew:          [128]byte{}, // no tx status data
-		TransactionDigests: nil,         // no tx status digests
+		TxCount:            1,                                                   // any count
+		MoneyFlew:          [(types.NumberOfTransactionsPerTick + 7) / 8]byte{}, // no tx status data
+		TransactionDigests: nil,                                                 // no tx status digests
 	}
 
 	// should pass because validate=false

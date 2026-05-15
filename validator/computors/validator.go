@@ -5,7 +5,7 @@ import (
 	"fmt"
 
 	"github.com/qubic/go-archiver-v2/utils"
-	"github.com/qubic/go-node-connector/types"
+	"github.com/qubic/go-node-connector/v2/types"
 )
 
 func Validate(ctx context.Context, computors Computors, arbitratorPubKey [32]byte) error {

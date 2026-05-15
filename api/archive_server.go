@@ -14,7 +14,7 @@ import (
 	"github.com/qubic/go-archiver-v2/processor"
 	"github.com/qubic/go-archiver-v2/protobuf"
 	"github.com/qubic/go-archiver-v2/validator/quorum"
-	"github.com/qubic/go-node-connector/types"
+	"github.com/qubic/go-node-connector/v2/types"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials/insecure"

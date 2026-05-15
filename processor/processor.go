@@ -12,7 +12,7 @@ import (
 	"github.com/qubic/go-archiver-v2/network"
 	"github.com/qubic/go-archiver-v2/protobuf"
 	"github.com/qubic/go-archiver-v2/validator"
-	"github.com/qubic/go-node-connector/types"
+	"github.com/qubic/go-node-connector/v2/types"
 )
 
 type Validator interface {
