@@ -1,6 +1,6 @@
 # The qubic archiver service (version 2)
 
-> The archiver service's purpose is to create archives of epoch data and make the data available for further processing.
+The archiver service's purpose is to create archives of epoch data and make the data available for further processing.
 
 ## High level description:
 
@@ -18,6 +18,8 @@ The archive system consists of two services:
 > The archiver **DOES NOT** migrate the database to the new format by itself, and **MAY BREAK** your existing 
 > information, if not migrated correctly. Please use the migration tool for converting the old multi-epoch archive 
 > into several new archives (one per epoch).
+
+If you need to upgrade from the old archiver and need any help feel free to reach out via official channels.
 
 ## Build
 
