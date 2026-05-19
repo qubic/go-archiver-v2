@@ -5,10 +5,9 @@ import (
 	"encoding/hex"
 	"fmt"
 
-	"github.com/pkg/errors"
 	"github.com/qubic/go-archiver-v2/db"
 	"github.com/qubic/go-archiver-v2/utils"
-	"github.com/qubic/go-node-connector/types"
+	"github.com/qubic/go-node-connector/v2/types"
 )
 
 var emptyTxDigest [32]byte
@@ -69,7 +68,7 @@ func validateTransactions(ctx context.Context, transactions []types.Transaction,
 	}
 
 	if len(digestsMap) > 0 {
-		return nil, errors.Errorf("not all digests were matched, remaining: %v", digestsMap)
+		return nil, fmt.Errorf("not all digests were matched, remaining: %v", digestsMap)
 	}
 
 	return validTransactions, nil

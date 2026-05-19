@@ -3,7 +3,7 @@ package network
 import (
 	"fmt"
 
-	qubic "github.com/qubic/go-node-connector"
+	qubic "github.com/qubic/go-node-connector/v2"
 )
 
 type QubicClientPool interface {

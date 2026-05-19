@@ -3,11 +3,11 @@ package db
 import (
 	"context"
 	"encoding/binary"
+	"errors"
 	"fmt"
 	"strconv"
 
 	"github.com/cockroachdb/pebble/v2"
-	"github.com/pkg/errors"
 	"github.com/qubic/go-archiver-v2/protobuf"
 	"google.golang.org/protobuf/proto"
 )
@@ -892,7 +892,7 @@ func (s *PebbleStore) GetEmptyTickListPerEpoch(epoch uint32) ([]uint32, error) {
 	defer closer.Close()
 
 	if len(value)%4 != 0 {
-		return nil, errors.Errorf("corrupted empty tick list for epoch %d. array length mod 4 != 0. length: %d", epoch, len(value))
+		return nil, fmt.Errorf("corrupted empty tick list for epoch %d. array length mod 4 != 0. length: %d", epoch, len(value))
 	}
 
 	var emptyTicks []uint32

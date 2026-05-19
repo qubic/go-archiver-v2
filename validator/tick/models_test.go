@@ -6,7 +6,7 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/qubic/go-archiver-v2/protobuf"
-	"github.com/qubic/go-node-connector/types"
+	"github.com/qubic/go-node-connector/v2/types"
 )
 
 func TestQubicToProto(t *testing.T) {
@@ -55,8 +55,8 @@ func TestQubicToProto(t *testing.T) {
 	}
 
 	timeLock := [32]byte{6, 4, 7, 4, 2}
-	transactionDigests := [1024][32]byte{digestOne, digestTwo}
-	contractFees := [1024]int64{1, 2, 3, 4, 5, 6, 7, 8, 9}
+	transactionDigests := [types.NumberOfTransactionsPerTick][32]byte{digestOne, digestTwo}
+	contractFees := [types.MaxNumberOfContracts]int64{1, 2, 3, 4, 5, 6, 7, 8, 9}
 	signature := [64]byte{0x1, 0x2, 0x3, 0x4, 0x5, 0x6, 0x07, 0x8, 0x9, 0x10, 0x1, 0x2, 0x3, 0x4, 0x5, 0x6, 0x07, 0x8, 0x9, 0x10}
 	qubicTickData := types.TickData{
 		ComputorIndex:      15,

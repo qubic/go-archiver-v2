@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"github.com/qubic/go-archiver-v2/validator/computors"
-	"github.com/qubic/go-node-connector/types"
+	"github.com/qubic/go-node-connector/v2/types"
 	"github.com/stretchr/testify/require"
 )
 
