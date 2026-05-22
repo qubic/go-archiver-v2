@@ -2,6 +2,7 @@ package processor
 
 import (
 	"context"
+	"errors"
 	"log"
 	"testing"
 	"time"
@@ -38,6 +39,32 @@ type TestValidator struct{}
 
 func (t TestValidator) Validate(_ context.Context, _ *db.PebbleStore, _ validator.Clients, epoch uint16, tickNumber uint32) error {
 	log.Printf("Mock validated tick [%d] in epoch [%d].", tickNumber, epoch)
+	return nil
+}
+
+type FailingValidator struct{}
+
+func (f FailingValidator) Validate(_ context.Context, _ *db.PebbleStore, _ validator.Clients, _ uint16, _ uint32) error {
+	return errors.New("validation failed")
+}
+
+type TrackingPool struct {
+	client      network.QubicClient
+	putCalled   int
+	closeCalled int
+}
+
+func (t *TrackingPool) Get() (network.QubicClient, error) {
+	return t.client, nil
+}
+
+func (t *TrackingPool) Put(_ network.QubicClient) error {
+	t.putCalled++
+	return nil
+}
+
+func (t *TrackingPool) Close(_ network.QubicClient) error {
+	t.closeCalled++
 	return nil
 }
 
@@ -198,4 +225,23 @@ func TestProcessor_processOneByOne_epochChange(t *testing.T) {
 	require.NoError(t, err)
 	_, err = dataPool.GetDbForEpoch(43) // new epoch
 	require.NoError(t, err)
+}
+
+func TestProcessor_processOneByOne_clientClosedOnError(t *testing.T) {
+	client := &TestClient{
+		epoch:       42,
+		tick:        101,
+		InitialTick: 100,
+	}
+	pool := &TrackingPool{client: client}
+	testDir := t.TempDir()
+	dataPool, err := db.NewDatabasePool(testDir, 5)
+	require.NoError(t, err)
+
+	processor := NewProcessor(pool, dataPool, FailingValidator{}, Config{time.Second}, dummyMetrics)
+	err = processor.processOneByOne()
+	require.Error(t, err)
+
+	require.Equal(t, 2, pool.closeCalled, "both clients should be closed on error")
+	require.Equal(t, 0, pool.putCalled, "no clients should be returned to pool on error")
 }
