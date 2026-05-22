@@ -114,13 +114,17 @@ func (p *Processor) processOneByOne() error {
 	log.Printf("Next tick to process: [%d]. Current tick: [%d]. Delta [%d]", nextTick.TickNumber, tickInfo.Tick, int64(tickInfo.Tick)-int64(nextTick.TickNumber))
 
 	if nextTick.TickNumber > tickInfo.Tick {
-		return fmt.Errorf("next tick is in the future. processed: %d, next %d, available %d",
+		// set error for releasing client
+		err = fmt.Errorf("next tick is in the future. processed: %d, next %d, available %d",
 			lastProcessedTick.TickNumber, nextTick.TickNumber, tickInfo.Tick)
+		return err
 	}
 
 	// not sure if this helps because we will often be aligned at time of processing
 	if nextTick.TickNumber == tickInfo.Tick && tickInfo.NumberOfAlignedVotes < 451 {
-		return fmt.Errorf("tick not ready ([%d] aligned votes)", tickInfo.NumberOfAlignedVotes)
+		// set error for releasing client
+		err = fmt.Errorf("tick not ready ([%d] aligned votes)", tickInfo.NumberOfAlignedVotes)
+		return err
 	}
 
 	clients := validator.Clients{Main: client, Alt: alternativeClient}
