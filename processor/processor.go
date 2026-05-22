@@ -66,12 +66,11 @@ func (p *Processor) GetTickStatus() *TickStatus {
 	return p.tickStatus
 }
 
-func (p *Processor) processOneByOne() error {
+func (p *Processor) processOneByOne() (err error) {
 	start := time.Now()
 	ctx, cancel := context.WithTimeout(context.Background(), p.processTickTimeout)
 	defer cancel()
 
-	var err error
 	client, err := p.clientPool.Get()
 	if err != nil {
 		return fmt.Errorf("getting 1st client connection: %w", err)
@@ -114,17 +113,13 @@ func (p *Processor) processOneByOne() error {
 	log.Printf("Next tick to process: [%d]. Current tick: [%d]. Delta [%d]", nextTick.TickNumber, tickInfo.Tick, int64(tickInfo.Tick)-int64(nextTick.TickNumber))
 
 	if nextTick.TickNumber > tickInfo.Tick {
-		// set error for releasing client
-		err = fmt.Errorf("next tick is in the future. processed: %d, next %d, available %d",
+		return fmt.Errorf("next tick is in the future. processed: %d, next %d, available %d",
 			lastProcessedTick.TickNumber, nextTick.TickNumber, tickInfo.Tick)
-		return err
 	}
 
 	// not sure if this helps because we will often be aligned at time of processing
 	if nextTick.TickNumber == tickInfo.Tick && tickInfo.NumberOfAlignedVotes < 451 {
-		// set error for releasing client
-		err = fmt.Errorf("tick not ready ([%d] aligned votes)", tickInfo.NumberOfAlignedVotes)
-		return err
+		return fmt.Errorf("tick not ready ([%d] aligned votes)", tickInfo.NumberOfAlignedVotes)
 	}
 
 	clients := validator.Clients{Main: client, Alt: alternativeClient}

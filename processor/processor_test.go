@@ -69,9 +69,10 @@ func (t *TrackingPool) Close(_ network.QubicClient) error {
 }
 
 type TestClient struct {
-	epoch       uint16
-	tick        uint32
-	InitialTick uint32
+	epoch        uint16
+	tick         uint32
+	InitialTick  uint32
+	alignedVotes uint16
 }
 
 func (t *TestClient) GetIssuedAssets(_ context.Context, _ string) (types.IssuedAssets, error) {
@@ -91,10 +92,14 @@ func (t *TestClient) GetIdentity(_ context.Context, _ string) (types.AddressInfo
 }
 
 func (t *TestClient) GetTickInfo(_ context.Context) (types.TickInfo, error) {
+	votes := t.alignedVotes
+	if votes == 0 {
+		votes = 500
+	}
 	return types.TickInfo{
 		Epoch:                t.epoch,
 		Tick:                 t.tick,
-		NumberOfAlignedVotes: 500,
+		NumberOfAlignedVotes: votes,
 		InitialTick:          t.InitialTick,
 	}, nil
 }
@@ -225,6 +230,47 @@ func TestProcessor_processOneByOne_epochChange(t *testing.T) {
 	require.NoError(t, err)
 	_, err = dataPool.GetDbForEpoch(43) // new epoch
 	require.NoError(t, err)
+}
+
+func TestProcessor_processOneByOne_clientClosedWhenNextTickInFuture(t *testing.T) {
+	// InitialTick > tick forces nextTick=100 > tick=99 on the first call.
+	client := &TestClient{
+		epoch:       42,
+		tick:        99,
+		InitialTick: 100,
+	}
+	pool := &TrackingPool{client: client}
+	testDir := t.TempDir()
+	dataPool, err := db.NewDatabasePool(testDir, 5)
+	require.NoError(t, err)
+
+	processor := NewProcessor(pool, dataPool, &TestValidator{}, Config{time.Second}, dummyMetrics)
+	err = processor.processOneByOne()
+	require.ErrorContains(t, err, "next tick is in the future")
+
+	require.Equal(t, 2, pool.closeCalled, "both clients should be closed on error")
+	require.Equal(t, 0, pool.putCalled, "no clients should be returned to pool on error")
+}
+
+func TestProcessor_processOneByOne_clientClosedWhenTickNotReady(t *testing.T) {
+	// nextTick == tick but not enough aligned votes.
+	client := &TestClient{
+		epoch:        42,
+		tick:         100,
+		InitialTick:  100,
+		alignedVotes: 450,
+	}
+	pool := &TrackingPool{client: client}
+	testDir := t.TempDir()
+	dataPool, err := db.NewDatabasePool(testDir, 5)
+	require.NoError(t, err)
+
+	processor := NewProcessor(pool, dataPool, &TestValidator{}, Config{time.Second}, dummyMetrics)
+	err = processor.processOneByOne()
+	require.ErrorContains(t, err, "tick not ready")
+
+	require.Equal(t, 2, pool.closeCalled, "both clients should be closed on error")
+	require.Equal(t, 0, pool.putCalled, "no clients should be returned to pool on error")
 }
 
 func TestProcessor_processOneByOne_clientClosedOnError(t *testing.T) {
