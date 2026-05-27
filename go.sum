@@ -101,8 +101,8 @@ github.com/prometheus/common v0.67.5 h1:pIgK94WWlQt1WLwAC5j2ynLaBRDiinoAb86HZHTU
 github.com/prometheus/common v0.67.5/go.mod h1:SjE/0MzDEEAyrdr5Gqc6G+sXI67maCxzaT3A2+HqjUw=
 github.com/prometheus/procfs v0.20.1 h1:XwbrGOIplXW/AU3YhIhLODXMJYyC1isLFfYCsTEycfc=
 github.com/prometheus/procfs v0.20.1/go.mod h1:o9EMBZGRyvDrSPH1RqdxhojkuXstoe4UlK79eF5TGGo=
-github.com/qubic/go-node-connector/v2 v2.0.0 h1:CJFU4LLqvBWb2Dm2i7MgKt2sre2Ikor7o7i330v6KcQ=
-github.com/qubic/go-node-connector/v2 v2.0.0/go.mod h1:X6gsjPLA0zK+hCK7ZIdCochlT9qy3vdYy2qW5sTGU1Q=
+github.com/qubic/go-node-connector/v2 v2.0.1 h1:nU1PV+2n48ZqFeWf3Nbjn3C6bDyBC/oIp8dKVjf3WnA=
+github.com/qubic/go-node-connector/v2 v2.0.1/go.mod h1:X6gsjPLA0zK+hCK7ZIdCochlT9qy3vdYy2qW5sTGU1Q=
 github.com/qubic/go-schnorrq v1.1.2 h1:o9P4gjk0ldPHuUVRUeWZX0uN+bO7jo8U6ru6YyAZ/tw=
 github.com/qubic/go-schnorrq v1.1.2/go.mod h1:3jvRZEgoLgEfiuVxsc920+78+2EgmbhrMND9g5jKbls=
 github.com/rogpeppe/go-internal v1.9.0/go.mod h1:WtVeX8xhTBvf0smdhujwtBcq4Qrzq/fJaraNFVN+nFs=
