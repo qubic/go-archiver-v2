@@ -21,6 +21,7 @@ import (
 	"github.com/qubic/go-archiver-v2/db"
 	"github.com/qubic/go-archiver-v2/metrics"
 	"github.com/qubic/go-archiver-v2/network"
+	"github.com/qubic/go-archiver-v2/network/bob"
 	"github.com/qubic/go-archiver-v2/processor"
 	"github.com/qubic/go-archiver-v2/protobuf"
 	"github.com/qubic/go-archiver-v2/validator"
@@ -62,6 +63,7 @@ func run() error {
 			StartTick           uint32        `conf:"default:0"`
 			StartEpoch          uint16        `conf:"default:0"`
 			ProcessingEnabled   bool          `conf:"default:true"`
+			BobURL              string        `conf:"default:"`
 		}
 		Store struct {
 			StorageFolder   string `conf:"default:archive-data"`
@@ -134,7 +136,12 @@ func run() error {
 	if err != nil {
 		return fmt.Errorf("calculating arbitrator public key from [%s]: %w", cfg.Qubic.ArbitratorIdentity, err)
 	}
-	tickValidator := validator.NewValidator(arbitratorPubKey, cfg.Qubic.EnableTxStatusAddon)
+	var bobClient *bob.Client
+	if cfg.Qubic.BobURL != "" {
+		bobClient = bob.NewClient(cfg.Qubic.BobURL)
+		log.Printf("main: bob backend enabled for moneyFlew at [%s].", cfg.Qubic.BobURL)
+	}
+	tickValidator := validator.NewValidator(arbitratorPubKey, cfg.Qubic.EnableTxStatusAddon, bobClient)
 	proc := processor.NewProcessor(clientPool, dbPool, tickValidator, processor.Config{
 		ProcessTickTimeout: cfg.Qubic.ProcessTickTimeout,
 	}, m)

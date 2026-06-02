@@ -95,7 +95,7 @@ func (s *stubClient) Close() error {
 func TestValidateTickDataAndTransactions_EmptyTick(t *testing.T) {
 	// When the quorum vote has a zero TxDigest the tick is considered empty and the function
 	// must return immediately with empty-but-non-nil results without calling any client method.
-	v := NewValidator([32]byte{}, false)
+	v := NewValidator([32]byte{}, false, nil)
 
 	emptyVotes := types.QuorumVotes{{TxDigest: [32]byte{}}}
 
@@ -109,7 +109,7 @@ func TestValidateTickDataAndTransactions_EmptyTick(t *testing.T) {
 }
 
 func TestValidateTickDataAndTransactions_GetTickTransactionsError(t *testing.T) {
-	v := NewValidator([32]byte{}, false)
+	v := NewValidator([32]byte{}, false, nil)
 
 	// Non-zero TxDigest so isEmptyTick returns false and the parallel fetch is executed.
 	nonEmptyVotes := types.QuorumVotes{{TxDigest: [32]byte{1}}}
@@ -134,7 +134,7 @@ func TestValidateTickDataAndTransactions_GetTickTransactionsError(t *testing.T) 
 }
 
 func TestValidateTickDataAndTransactions_GetTickDataError(t *testing.T) {
-	v := NewValidator([32]byte{}, false)
+	v := NewValidator([32]byte{}, false, nil)
 
 	nonEmptyVotes := types.QuorumVotes{{TxDigest: [32]byte{1}}}
 
@@ -161,7 +161,7 @@ func TestValidateTransactions_StatusAddonEnabled_GetTxStatusError(t *testing.T) 
 	wantErr := errors.New("connection refused")
 	client := &stubClient{getTxStatusErr: wantErr}
 
-	v := NewValidator([32]byte{}, true)
+	v := NewValidator([32]byte{}, true, nil)
 
 	// Empty tickData has no non-zero TransactionDigests, so tx.Validate returns [] immediately,
 	// allowing the test to reach the getTxStatus call.
