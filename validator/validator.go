@@ -9,6 +9,7 @@ import (
 
 	"github.com/qubic/go-archiver-v2/db"
 	"github.com/qubic/go-archiver-v2/network"
+	"github.com/qubic/go-archiver-v2/network/bob"
 	"github.com/qubic/go-archiver-v2/protobuf"
 	"github.com/qubic/go-archiver-v2/validator/computors"
 	"github.com/qubic/go-archiver-v2/validator/quorum"
@@ -22,12 +23,14 @@ import (
 type Validator struct {
 	arbitratorPubKey   [32]byte
 	statusAddonEnabled bool
+	bobClient          *bob.Client // nil = use node's GetTxStatus for moneyFlew
 }
 
-func NewValidator(arbitratorPubKey [32]byte, enableStatusAddon bool) *Validator {
+func NewValidator(arbitratorPubKey [32]byte, enableStatusAddon bool, bobClient *bob.Client) *Validator {
 	return &Validator{
 		arbitratorPubKey:   arbitratorPubKey,
 		statusAddonEnabled: enableStatusAddon,
+		bobClient:          bobClient,
 	}
 }
 
@@ -218,7 +221,7 @@ func (v *Validator) validateTransactions(ctx context.Context, client network.Qub
 	}
 
 	// get tx status only if status addon is enabled
-	tickTxStatus, err := getTxStatus(ctx, client, len(validTxs), tickNumber, v.statusAddonEnabled)
+	tickTxStatus, err := v.getTxStatus(ctx, client, validTxs, tickNumber)
 	if err != nil {
 		return nil, nil, fmt.Errorf("getting tx status: %w", err)
 	}
@@ -233,17 +236,18 @@ func (v *Validator) validateTransactions(ctx context.Context, client network.Qub
 
 }
 
-func getTxStatus(ctx context.Context, client network.QubicClient, transactionsCount int, tickNumber uint32, enabled bool) (types.TransactionStatus, error) {
-	if enabled {
-		return client.GetTxStatus(ctx, tickNumber)
-	} else {
-		// empty transaction status
+func (v *Validator) getTxStatus(ctx context.Context, client network.QubicClient, validTxs []types.Transaction, tickNumber uint32) (types.TransactionStatus, error) {
+	if !v.statusAddonEnabled {
 		return types.TransactionStatus{
 			CurrentTickOfNode:  tickNumber,
 			Tick:               tickNumber,
-			TxCount:            uint32(transactionsCount),
+			TxCount:            uint32(len(validTxs)),
 			MoneyFlew:          [(types.NumberOfTransactionsPerTick + 7) / 8]byte{},
 			TransactionDigests: nil,
 		}, nil
 	}
+	if v.bobClient != nil {
+		return bob.GetMoneyFlew(ctx, v.bobClient, tickNumber, validTxs)
+	}
+	return client.GetTxStatus(ctx, tickNumber)
 }
