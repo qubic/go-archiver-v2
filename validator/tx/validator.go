@@ -39,29 +39,32 @@ func validateTransactions(ctx context.Context, transactions []types.Transaction,
 			return nil, fmt.Errorf("getting digest from transaction: %w", err)
 		}
 
-		txId, err := tx.ID()
+		txID, err := tx.ID()
 		if err != nil {
-			return nil, fmt.Errorf("getting tx hash: %w", err)
+			return nil, fmt.Errorf("getting tx id: %w", err)
 		}
 
 		hexDigest := hex.EncodeToString(txDigest[:])
 		if _, ok := digestsMap[hexDigest]; !ok {
-			return nil, fmt.Errorf("transaction [%s] not found in digests map: %w", txId, err)
+			// Extra transaction not referenced by the tick data — drop it and
+			// keep validating the rest. The post-loop check still fails if any
+			// tick-data digest goes unmatched.
+			continue
 		}
 
 		txDataBytes, err := tx.MarshallBinary()
 		if err != nil {
-			return nil, fmt.Errorf("marshalling transaction data: %w", err)
+			return nil, fmt.Errorf("marshalling transaction data for txID %s: %w", txID, err)
 		}
 
 		constructedDigest, err := utils.K12Hash(txDataBytes[:len(txDataBytes)-64])
 		if err != nil {
-			return nil, fmt.Errorf("calculating digest from transaction: %w", err)
+			return nil, fmt.Errorf("calculating digest for txID %s: %w", txID, err)
 		}
 
 		err = utils.SchnorrqVerify(ctx, tx.SourcePublicKey, constructedDigest, tx.Signature)
 		if err != nil {
-			return nil, fmt.Errorf("verifying transaction signature: %w", err)
+			return nil, fmt.Errorf("verifying transaction signature for txID %s: %w", txID, err)
 		}
 		validTransactions = append(validTransactions, tx)
 		delete(digestsMap, hexDigest)

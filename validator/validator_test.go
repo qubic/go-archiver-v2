@@ -165,6 +165,6 @@ func TestValidateTransactions_StatusAddonEnabled_GetTxStatusError(t *testing.T) 
 
 	// Empty tickData has no non-zero TransactionDigests, so tx.Validate returns [] immediately,
 	// allowing the test to reach the getTxStatus call.
-	_, _, err := v.validateTransactions(context.Background(), client, nil, types.TickData{}, 100)
+	_, _, err := v.validateTxsAndFetchTxStatus(context.Background(), client, nil, types.TickData{}, 100)
 	require.ErrorIs(t, err, wantErr)
 }
