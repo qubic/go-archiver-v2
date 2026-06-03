@@ -155,9 +155,9 @@ func (v *Validator) validateTickDataAndTransactions(ctx context.Context, aligned
 		return tickData, nil, nil, fmt.Errorf("getting tick data and/or transactions: %w", err)
 	}
 
-	validTxs, txStatus, err = v.validateTransactions(ctx, clients.Main, transactions, tickData, tickNumber)
+	validTxs, txStatus, err = v.validateTxsAndFetchTxStatus(ctx, clients.Main, transactions, tickData, tickNumber)
 	if err != nil {
-		return tickData, nil, nil, fmt.Errorf("validating transactions: %w", err)
+		return tickData, nil, nil, fmt.Errorf("getting valid transactions and txStatus: %w", err)
 	}
 
 	return tickData, validTxs, txStatus, nil
@@ -206,12 +206,12 @@ func (v *Validator) validateTickData(ctx context.Context, client network.QubicCl
 	return tickData, nil
 }
 
-func (v *Validator) validateTransactions(ctx context.Context, client network.QubicClient, transactions []types.Transaction, tickData types.TickData, tickNumber uint32) ([]types.Transaction, *protobuf.TickTransactionsStatus, error) {
+func (v *Validator) validateTxsAndFetchTxStatus(ctx context.Context, client network.QubicClient, transactions []types.Transaction, tickData types.TickData, tickNumber uint32) ([]types.Transaction, *protobuf.TickTransactionsStatus, error) {
 
 	// keeps all transactions that are in the tick data digests
 	validTxs, err := tx.Validate(ctx, transactions, tickData)
 	if err != nil {
-		return nil, nil, fmt.Errorf("validating transactions: %w", err)
+		return nil, nil, fmt.Errorf("getting valid transactions: %w", err)
 	}
 
 	if len(validTxs) == len(transactions) {
