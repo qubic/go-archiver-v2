@@ -63,7 +63,7 @@ func run() error {
 			StartTick           uint32        `conf:"default:0"`
 			StartEpoch          uint16        `conf:"default:0"`
 			ProcessingEnabled   bool          `conf:"default:true"`
-			BobURL              string        `conf:"default:http://qubic-bob:40420"`
+			BobURL              string
 		}
 		Store struct {
 			StorageFolder   string `conf:"default:archive-data"`
