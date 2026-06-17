@@ -62,6 +62,8 @@ func run() error {
 			OverrideTick        bool          `conf:"default:false"`
 			StartTick           uint32        `conf:"default:0"`
 			StartEpoch          uint16        `conf:"default:0"`
+			OverrideStopTick    bool          `conf:"default:false"`
+			StopTick            uint32        `conf:"default:0"`
 			ProcessingEnabled   bool          `conf:"default:true"`
 			BobURL              string
 		}
@@ -144,6 +146,7 @@ func run() error {
 	tickValidator := validator.NewValidator(arbitratorPubKey, cfg.Qubic.EnableTxStatusAddon, bobClient)
 	proc := processor.NewProcessor(clientPool, dbPool, tickValidator, processor.Config{
 		ProcessTickTimeout: cfg.Qubic.ProcessTickTimeout,
+		StopTick:           cfg.Qubic.StopTick,
 	}, m)
 
 	procErrors := make(chan error, 1)

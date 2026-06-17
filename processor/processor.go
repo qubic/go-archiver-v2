@@ -35,10 +35,12 @@ type Processor struct {
 	tickStatus           *TickStatus
 	startFromCurrentTick bool
 	metrics              *metrics.ProcessingMetrics
+	stopTick             uint32
 }
 
 type Config struct {
 	ProcessTickTimeout time.Duration
+	StopTick           uint32
 }
 
 func NewProcessor(clientPool network.QubicClientPool, dbPool *db.DatabasePool, tickValidator Validator, config Config, metrics *metrics.ProcessingMetrics) *Processor {
@@ -49,6 +51,7 @@ func NewProcessor(clientPool network.QubicClientPool, dbPool *db.DatabasePool, t
 		tickValidator:      tickValidator,
 		tickStatus:         &TickStatus{},
 		metrics:            metrics,
+		stopTick:           config.StopTick,
 	}
 }
 
@@ -91,6 +94,14 @@ func (p *Processor) processOneByOne() (err error) {
 	if err != nil {
 		return fmt.Errorf("getting tick info: %w", err)
 	}
+
+	if p.stopTick != 0 {
+		log.Printf("Using stop tick: [%d] instead of live tick [%d].", p.stopTick, tickInfo.Tick)
+		tickInfo.Tick = p.stopTick
+		tickInfo.Epoch = 217
+		tickInfo.InitialTick = 57700000
+	}
+
 	p.tickStatus.LiveTick = tickInfo.Tick
 	p.tickStatus.LiveEpoch = tickInfo.Epoch
 
