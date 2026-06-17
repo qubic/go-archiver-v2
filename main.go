@@ -102,8 +102,8 @@ func run() error {
 	prometheusRegistry := prometheus.NewRegistry()
 	m := metrics.NewProcessingMetrics(prometheusRegistry, cfg.Metrics.Namespace)
 
-	// set up tracing (inert no-op tracer when disabled)
-	tracer, traceShutdown, err := telemetry.Setup(context.Background(), telemetry.Config{
+	// set up tracing (inert no-op provider when disabled)
+	traceShutdown, err := telemetry.Setup(context.Background(), telemetry.Config{
 		Enabled:       cfg.Tracing.Enabled,
 		Exporter:      cfg.Tracing.Exporter,
 		OTLPEndpoint:  cfg.Tracing.OTLPEndpoint,
@@ -168,14 +168,14 @@ func run() error {
 	}
 	var bobClient *bob.Client
 	if cfg.Qubic.BobURL != "" {
-		bobClient = bob.NewClient(cfg.Qubic.BobURL, tracer)
+		bobClient = bob.NewClient(cfg.Qubic.BobURL)
 		log.Printf("main: bob backend enabled for moneyFlew at [%s].", cfg.Qubic.BobURL)
 	}
-	tickValidator := validator.NewValidator(arbitratorPubKey, cfg.Qubic.EnableTxStatusAddon, bobClient, tracer)
+	tickValidator := validator.NewValidator(arbitratorPubKey, cfg.Qubic.EnableTxStatusAddon, bobClient)
 	proc := processor.NewProcessor(clientPool, dbPool, tickValidator, processor.Config{
 		ProcessTickTimeout: cfg.Qubic.ProcessTickTimeout,
 		StopTick:           cfg.Qubic.StopTick,
-	}, m, tracer)
+	}, m)
 
 	procErrors := make(chan error, 1)
 	if cfg.Qubic.ProcessingEnabled {

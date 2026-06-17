@@ -11,7 +11,6 @@ import (
 	"go.opentelemetry.io/otel/sdk/resource"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 	semconv "go.opentelemetry.io/otel/semconv/v1.41.0"
-	"go.opentelemetry.io/otel/trace"
 )
 
 // Config holds the tracing configuration. It mirrors the Tracing config
@@ -27,26 +26,27 @@ type Config struct {
 
 func noopShutdown(context.Context) error { return nil }
 
-// Setup builds the global TracerProvider and returns a tracer plus a shutdown
-// func that flushes the batch span processor. When tracing is disabled it
-// installs a no-op tracer (spans are dropped) so callers stay free of nil checks.
-func Setup(ctx context.Context, cfg Config) (trace.Tracer, func(context.Context) error, error) {
+// Setup builds and installs the global TracerProvider and returns a shutdown func
+// that flushes the batch span processor. When tracing is disabled it leaves the
+// global no-op provider in place (spans are dropped). Packages obtain their tracer
+// via the tracing package, so Setup does not return one.
+func Setup(ctx context.Context, cfg Config) (func(context.Context) error, error) {
 	if !cfg.Enabled || cfg.Exporter == "none" {
-		return otel.Tracer(cfg.ServiceName), noopShutdown, nil
+		return noopShutdown, nil
 	}
 
 	exporter, err := newExporter(ctx, cfg)
 	if err != nil {
-		return nil, nil, fmt.Errorf("creating span exporter: %w", err)
+		return nil, fmt.Errorf("creating span exporter: %w", err)
 	}
 
 	tp, err := newTracerProvider(exporter, cfg)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 	otel.SetTracerProvider(tp)
 
-	return tp.Tracer(cfg.ServiceName), tp.Shutdown, nil
+	return tp.Shutdown, nil
 }
 
 // newTracerProvider builds the provider used by Setup. It is kept separate so

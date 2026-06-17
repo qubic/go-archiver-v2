@@ -49,7 +49,7 @@ func bobServer(t *testing.T, txs []bobRPCTransaction) (*Client, func()) {
 			Result:  result,
 		}))
 	}))
-	return NewClient(srv.URL, nil), srv.Close
+	return NewClient(srv.URL), srv.Close
 }
 
 func ptrBool(b bool) *bool { return &b }
@@ -155,7 +155,7 @@ func TestGetMoneyFlew_EmptyTick_NoRPC(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	status, err := GetMoneyFlew(context.Background(), NewClient(srv.URL, nil), 100, []types.Transaction{})
+	status, err := GetMoneyFlew(context.Background(), NewClient(srv.URL), 100, []types.Transaction{})
 	require.NoError(t, err)
 	require.Equal(t, uint32(0), status.TxCount)
 	require.Equal(t, uint32(100), status.Tick)
@@ -186,7 +186,7 @@ func TestGetMoneyFlew_RPCError(t *testing.T) {
 	defer srv.Close()
 
 	tx1, _ := makeTx(t, 1)
-	_, err := GetMoneyFlew(context.Background(), NewClient(srv.URL, nil), 100, []types.Transaction{tx1})
+	_, err := GetMoneyFlew(context.Background(), NewClient(srv.URL), 100, []types.Transaction{tx1})
 	require.Error(t, err)
 	require.Contains(t, err.Error(), fmt.Sprintf("tick=%d", 100))
 }

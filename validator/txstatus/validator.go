@@ -8,6 +8,7 @@ import (
 
 	"github.com/qubic/go-archiver-v2/db"
 	"github.com/qubic/go-archiver-v2/protobuf"
+	"github.com/qubic/go-archiver-v2/tracing"
 	"github.com/qubic/go-node-connector/v2/types"
 )
 
@@ -80,6 +81,9 @@ func sortByteSlices(slice [][32]byte) {
 }
 
 func Store(ctx context.Context, store *db.PebbleStore, tickNumber uint32, approvedTxs *protobuf.TickTransactionsStatus) error {
+	ctx, span := tracing.Tracer().Start(ctx, "store.tx_status")
+	defer span.End()
+
 	err := store.SetTickTransactionsStatus(ctx, uint64(tickNumber), approvedTxs)
 	if err != nil {
 		return fmt.Errorf("storing transactions status: %w", err)

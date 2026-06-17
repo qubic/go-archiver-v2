@@ -11,11 +11,11 @@ import (
 	"github.com/qubic/go-archiver-v2/metrics"
 	"github.com/qubic/go-archiver-v2/network"
 	"github.com/qubic/go-archiver-v2/protobuf"
+	"github.com/qubic/go-archiver-v2/tracing"
 	"github.com/qubic/go-archiver-v2/validator"
 	"github.com/qubic/go-node-connector/v2/types"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
-	"go.opentelemetry.io/otel/trace"
 )
 
 type Validator interface {
@@ -38,7 +38,6 @@ type Processor struct {
 	tickStatus           *TickStatus
 	startFromCurrentTick bool
 	metrics              *metrics.ProcessingMetrics
-	tracer               trace.Tracer
 	stopTick             uint32
 }
 
@@ -47,7 +46,7 @@ type Config struct {
 	StopTick           uint32
 }
 
-func NewProcessor(clientPool network.QubicClientPool, dbPool *db.DatabasePool, tickValidator Validator, config Config, metrics *metrics.ProcessingMetrics, tracer trace.Tracer) *Processor {
+func NewProcessor(clientPool network.QubicClientPool, dbPool *db.DatabasePool, tickValidator Validator, config Config, metrics *metrics.ProcessingMetrics) *Processor {
 	return &Processor{
 		clientPool:         clientPool,
 		databasePool:       dbPool,
@@ -55,7 +54,6 @@ func NewProcessor(clientPool network.QubicClientPool, dbPool *db.DatabasePool, t
 		tickValidator:      tickValidator,
 		tickStatus:         &TickStatus{},
 		metrics:            metrics,
-		tracer:             tracer,
 		stopTick:           config.StopTick,
 	}
 }
@@ -79,7 +77,7 @@ func (p *Processor) processOneByOne() (err error) {
 	ctx, cancel := context.WithTimeout(context.Background(), p.processTickTimeout)
 	defer cancel()
 
-	ctx, rootSpan := p.tracer.Start(ctx, "process_tick")
+	ctx, rootSpan := tracing.Tracer().Start(ctx, "process_tick")
 	defer func() {
 		if err != nil {
 			rootSpan.RecordError(err)
@@ -89,7 +87,7 @@ func (p *Processor) processOneByOne() (err error) {
 	}()
 
 	// note: do not reassign ctx here, otherwise sibling phases would nest under pool_get
-	_, poolSpan := p.tracer.Start(ctx, "pool_get")
+	_, poolSpan := tracing.Tracer().Start(ctx, "pool_get")
 	rawClient, err := p.clientPool.Get()
 	if err != nil {
 		poolSpan.End()
@@ -110,8 +108,8 @@ func (p *Processor) processOneByOne() (err error) {
 	poolSpan.End()
 
 	// wrap raw clients with tracing decorators; raw clients are returned to the pool
-	client := network.NewTracingQubicClient(rawClient, p.tracer)
-	alternativeClient := network.NewTracingQubicClient(rawAltClient, p.tracer)
+	client := network.NewTracingQubicClient(rawClient)
+	alternativeClient := network.NewTracingQubicClient(rawAltClient)
 
 	tickInfo, err := client.GetTickInfo(ctx)
 	if err != nil {

@@ -11,13 +11,13 @@ import (
 	"github.com/qubic/go-archiver-v2/network"
 	"github.com/qubic/go-archiver-v2/network/bob"
 	"github.com/qubic/go-archiver-v2/protobuf"
+	"github.com/qubic/go-archiver-v2/tracing"
 	"github.com/qubic/go-archiver-v2/validator/computors"
 	"github.com/qubic/go-archiver-v2/validator/quorum"
 	"github.com/qubic/go-archiver-v2/validator/tick"
 	"github.com/qubic/go-archiver-v2/validator/tx"
 	"github.com/qubic/go-archiver-v2/validator/txstatus"
 	"github.com/qubic/go-node-connector/v2/types"
-	"go.opentelemetry.io/otel/trace"
 	"golang.org/x/sync/errgroup"
 )
 
@@ -25,15 +25,13 @@ type Validator struct {
 	arbitratorPubKey   [32]byte
 	statusAddonEnabled bool
 	bobClient          *bob.Client // nil = use node's GetTxStatus for moneyFlew
-	tracer             trace.Tracer
 }
 
-func NewValidator(arbitratorPubKey [32]byte, enableStatusAddon bool, bobClient *bob.Client, tracer trace.Tracer) *Validator {
+func NewValidator(arbitratorPubKey [32]byte, enableStatusAddon bool, bobClient *bob.Client) *Validator {
 	return &Validator{
 		arbitratorPubKey:   arbitratorPubKey,
 		statusAddonEnabled: enableStatusAddon,
 		bobClient:          bobClient,
-		tracer:             tracer,
 	}
 }
 
@@ -44,13 +42,13 @@ type Clients struct {
 
 func (v *Validator) Validate(ctx context.Context, store *db.PebbleStore, clients Clients, epoch uint16, tickNumber uint32) error {
 
-	ctx, span := v.tracer.Start(ctx, "validate")
+	ctx, span := tracing.Tracer().Start(ctx, "validate")
 	defer span.End()
 
 	var quorumVotes types.QuorumVotes
 
 	eg, egCtx := errgroup.WithContext(ctx)
-	egCtx, fetchSpan := v.tracer.Start(egCtx, "fetch_quorum_and_systeminfo")
+	egCtx, fetchSpan := tracing.Tracer().Start(egCtx, "fetch_quorum_and_systeminfo")
 	eg.Go(func() error {
 		// validate quorum
 		var err error
@@ -84,65 +82,49 @@ func (v *Validator) Validate(ctx context.Context, store *db.PebbleStore, clients
 	}
 
 	// typically only one client call needed per epoch
-	compCtx, compSpan := v.tracer.Start(ctx, "validate_computors")
-	comps, err := v.validateComputors(compCtx, store, clients.Main, tickNumber, systemInfo.InitialTick, epoch, systemInfo.ComputorPacketSignature)
-	compSpan.End()
+	comps, err := v.validateComputors(ctx, store, clients.Main, tickNumber, systemInfo.InitialTick, epoch, systemInfo.ComputorPacketSignature)
 	if err != nil {
 		return fmt.Errorf("validating computors: %w", err)
 	}
 
-	quorumCtx, quorumSpan := v.tracer.Start(ctx, "quorum.verify_signatures")
-	alignedVotes, err := quorum.Validate(quorumCtx, quorumVotes, comps, systemInfo.TargetTickVoteSignature) // fast
-	quorumSpan.End()
+	alignedVotes, err := quorum.Validate(ctx, quorumVotes, comps, systemInfo.TargetTickVoteSignature) // fast
 	if err != nil {
 		return fmt.Errorf("validating quorum votes: %w", err)
 	}
 	log.Printf("Quorum valid. Aligned %d. Misaligned %d.", len(alignedVotes), len(quorumVotes)-len(alignedVotes))
 
 	// validate tick data and transactions
-	tdCtx, tdSpan := v.tracer.Start(ctx, "validate_tickdata_and_txs")
-	tickData, validTxs, txStatus, err := v.validateTickDataAndTransactions(tdCtx, alignedVotes, clients, comps, tickNumber)
-	tdSpan.End()
+	tickData, validTxs, txStatus, err := v.validateTickDataAndTransactions(ctx, alignedVotes, clients, comps, tickNumber)
 	if err != nil {
 		return fmt.Errorf("validating tick data and transactions: %w", err)
 	}
 
-	// store data
-
-	ctx, storeSpan := v.tracer.Start(ctx, "store_phase")
+	// store data. store_phase groups the individual store.* spans, which each start
+	// inside their respective Store function.
+	ctx, storeSpan := tracing.Tracer().Start(ctx, "store_phase")
 	defer storeSpan.End()
 
-	storeCtx, s := v.tracer.Start(ctx, "store.quorum")
-	err = quorum.Store(storeCtx, store, tickNumber, alignedVotes)
-	s.End()
+	err = quorum.Store(ctx, store, tickNumber, alignedVotes)
 	if err != nil {
 		return fmt.Errorf("storing aligned quorum votes: %w", err)
 	}
 
-	_, s = v.tracer.Start(ctx, "store.target_tick_signature")
 	err = quorum.StoreTargetTickVoteSignature(store, uint32(epoch), tickNumber, systemInfo.InitialTick, systemInfo.TargetTickVoteSignature)
-	s.End()
 	if err != nil {
 		return fmt.Errorf("storing target tick signature: %w", err)
 	}
 
-	storeCtx, s = v.tracer.Start(ctx, "store.tick")
-	err = tick.Store(storeCtx, store, tickNumber, tickData)
-	s.End()
+	err = tick.Store(ctx, store, tickNumber, tickData)
 	if err != nil {
 		return fmt.Errorf("storing tick data: %w", err)
 	}
 
-	storeCtx, s = v.tracer.Start(ctx, "store.transactions")
-	err = tx.Store(storeCtx, store, tickNumber, validTxs)
-	s.End()
+	err = tx.Store(ctx, store, tickNumber, validTxs)
 	if err != nil {
 		return fmt.Errorf("storing transactions: %w", err)
 	}
 
-	storeCtx, s = v.tracer.Start(ctx, "store.tx_status")
-	err = txstatus.Store(storeCtx, store, tickNumber, txStatus)
-	s.End()
+	err = txstatus.Store(ctx, store, tickNumber, txStatus)
 	if err != nil {
 		return fmt.Errorf("storing transactions status: %w", err)
 	}
@@ -152,12 +134,15 @@ func (v *Validator) Validate(ctx context.Context, store *db.PebbleStore, clients
 
 func (v *Validator) validateTickDataAndTransactions(ctx context.Context, alignedVotes types.QuorumVotes, clients Clients, comps computors.Computors, tickNumber uint32) (tickData types.TickData, validTxs []types.Transaction, txStatus *protobuf.TickTransactionsStatus, err error) {
 
+	ctx, span := tracing.Tracer().Start(ctx, "validate_tickdata_and_txs")
+	defer span.End()
+
 	if quorum.IsEmptyTick(alignedVotes) {
 		return types.TickData{}, make([]types.Transaction, 0), &protobuf.TickTransactionsStatus{}, nil
 	}
 
 	eg, egCtx := errgroup.WithContext(ctx)
-	egCtx, fetchSpan := v.tracer.Start(egCtx, "fetch_tickdata_and_transactions")
+	egCtx, fetchSpan := tracing.Tracer().Start(egCtx, "fetch_tickdata_and_transactions")
 
 	eg.Go(func() error {
 		var err error
@@ -212,6 +197,9 @@ func (v *Validator) validateTickDataAndTransactions(ctx context.Context, aligned
 
 func (v *Validator) validateComputors(ctx context.Context, store *db.PebbleStore, client network.QubicClient, tickNumber, initialTick uint32, epoch uint16, computorPacketSignature uint64) (computors.Computors, error) {
 
+	ctx, span := tracing.Tracer().Start(ctx, "validate_computors")
+	defer span.End()
+
 	comps, err := computors.Get(ctx, store, client, tickNumber, initialTick, epoch, computorPacketSignature)
 	if err != nil {
 		return computors.Computors{}, fmt.Errorf("getting computors: %w", err)
@@ -255,9 +243,7 @@ func (v *Validator) validateTickData(ctx context.Context, client network.QubicCl
 func (v *Validator) computeTxsAndStatus(ctx context.Context, client network.QubicClient, transactions []types.Transaction, tickData types.TickData, tickNumber uint32, bobTick bob.TickData, bobPrefetched bool) ([]types.Transaction, *protobuf.TickTransactionsStatus, error) {
 
 	// keeps all transactions that are in the tick data digests
-	txCtx, txSpan := v.tracer.Start(ctx, "tx.validate")
-	validTxs, err := tx.Validate(txCtx, transactions, tickData)
-	txSpan.End()
+	validTxs, err := tx.Validate(ctx, transactions, tickData)
 	if err != nil {
 		return nil, nil, fmt.Errorf("getting valid transactions: %w", err)
 	}
@@ -269,9 +255,7 @@ func (v *Validator) computeTxsAndStatus(ctx context.Context, client network.Qubi
 	}
 
 	// get tx status only if status addon is enabled
-	statusCtx, statusSpan := v.tracer.Start(ctx, "get_tx_status")
-	tickTxStatus, err := v.getTxStatus(statusCtx, client, validTxs, tickNumber, bobTick, bobPrefetched)
-	statusSpan.End()
+	tickTxStatus, err := v.getTxStatus(ctx, client, validTxs, tickNumber, bobTick, bobPrefetched)
 	if err != nil {
 		return nil, nil, fmt.Errorf("getting tx status: %w", err)
 	}
@@ -287,6 +271,9 @@ func (v *Validator) computeTxsAndStatus(ctx context.Context, client network.Qubi
 }
 
 func (v *Validator) getTxStatus(ctx context.Context, client network.QubicClient, validTxs []types.Transaction, tickNumber uint32, bobTick bob.TickData, bobPrefetched bool) (types.TransactionStatus, error) {
+	ctx, span := tracing.Tracer().Start(ctx, "get_tx_status")
+	defer span.End()
+
 	if !v.statusAddonEnabled {
 		return types.TransactionStatus{
 			CurrentTickOfNode:  tickNumber,

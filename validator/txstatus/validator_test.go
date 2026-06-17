@@ -97,9 +97,9 @@ func TestValidateAndConvert_NoValidation(t *testing.T) {
 	txStatus := types.TransactionStatus{
 		CurrentTickOfNode:  12345,
 		Tick:               12345,
-		TxCount:            1,           // any count
+		TxCount:            1,                                                   // any count
 		MoneyFlew:          [(types.NumberOfTransactionsPerTick + 7) / 8]byte{}, // no tx status data
-		TransactionDigests: nil,         // no tx status digests
+		TransactionDigests: nil,                                                 // no tx status digests
 	}
 
 	// should pass because validate=false

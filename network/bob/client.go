@@ -9,31 +9,25 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/qubic/go-archiver-v2/tracing"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/trace"
-	"go.opentelemetry.io/otel/trace/noop"
 )
 
 // Client is an HTTP client for bob's JSON-RPC 2.0 API.
 type Client struct {
 	baseURL    string
 	httpClient *http.Client
-	tracer     trace.Tracer
 }
 
-// NewClient creates a new bob HTTP client. A nil tracer is replaced with a no-op
-// tracer so callers (and tests) never need to pass one.
-func NewClient(baseURL string, tracer trace.Tracer) *Client {
-	if tracer == nil {
-		tracer = noop.NewTracerProvider().Tracer("bob")
-	}
+// NewClient creates a new bob HTTP client.
+func NewClient(baseURL string) *Client {
 	return &Client{
 		baseURL: baseURL,
 		httpClient: &http.Client{
 			Timeout: 30 * time.Second,
 		},
-		tracer: tracer,
 	}
 }
 
@@ -62,7 +56,7 @@ func (e *jsonRPCError) Error() string {
 
 // RPCCall makes a JSON-RPC 2.0 call to bob.
 func (c *Client) RPCCall(ctx context.Context, method string, params interface{}) (json.RawMessage, error) {
-	ctx, span := c.tracer.Start(ctx, "bob.RPCCall",
+	ctx, span := tracing.Tracer().Start(ctx, "bob.RPCCall",
 		trace.WithSpanKind(trace.SpanKindClient),
 		trace.WithAttributes(attribute.String("bob.rpc_method", method)))
 	defer span.End()

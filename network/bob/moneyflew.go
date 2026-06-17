@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/qubic/go-archiver-v2/tracing"
 	"github.com/qubic/go-node-connector/v2/types"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
@@ -25,7 +26,7 @@ type TickData struct {
 // with the node's tick data / transactions. A still-pending tx (executed=nil) is
 // an error so the caller fails the tick and retries.
 func FetchTick(ctx context.Context, client *Client, tickNumber uint32) (TickData, error) {
-	ctx, span := client.tracer.Start(ctx, "bob.FetchTick",
+	ctx, span := tracing.Tracer().Start(ctx, "bob.FetchTick",
 		trace.WithAttributes(attribute.Int64("qubic.tick_number", int64(tickNumber))))
 	defer span.End()
 
