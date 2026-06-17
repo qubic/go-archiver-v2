@@ -167,7 +167,7 @@ func run() error {
 	}
 	var bobClient *bob.Client
 	if cfg.Qubic.BobURL != "" {
-		bobClient = bob.NewClient(cfg.Qubic.BobURL)
+		bobClient = bob.NewClient(cfg.Qubic.BobURL, tracer)
 		log.Printf("main: bob backend enabled for moneyFlew at [%s].", cfg.Qubic.BobURL)
 	}
 	tickValidator := validator.NewValidator(arbitratorPubKey, cfg.Qubic.EnableTxStatusAddon, bobClient, tracer)

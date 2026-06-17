@@ -7,6 +7,9 @@ import (
 	"strings"
 
 	"github.com/qubic/go-node-connector/v2/types"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/codes"
+	"go.opentelemetry.io/otel/trace"
 )
 
 // GetMoneyFlew fetches the tick from bob via qubic_getTickByNumber, verifies bob's
@@ -17,7 +20,20 @@ import (
 // On any disagreement (count mismatch, missing digest, or a still-pending tx that
 // the node already validated) it returns an error so the caller can fail the tick
 // and let the processor retry.
-func GetMoneyFlew(ctx context.Context, client *Client, tickNumber uint32, validTxs []types.Transaction) (types.TransactionStatus, error) {
+func GetMoneyFlew(ctx context.Context, client *Client, tickNumber uint32, validTxs []types.Transaction) (status types.TransactionStatus, err error) {
+	ctx, span := client.tracer.Start(ctx, "bob.GetMoneyFlew",
+		trace.WithAttributes(
+			attribute.Int64("qubic.tick_number", int64(tickNumber)),
+			attribute.Int("bob.valid_tx_count", len(validTxs)),
+		))
+	defer func() {
+		if err != nil {
+			span.RecordError(err)
+			span.SetStatus(codes.Error, err.Error())
+		}
+		span.End()
+	}()
+
 	if len(validTxs) == 0 {
 		return types.TransactionStatus{
 			CurrentTickOfNode: tickNumber,
