@@ -88,7 +88,8 @@ func (p *Processor) processOneByOne() (err error) {
 		rootSpan.End()
 	}()
 
-	ctx, poolSpan := p.tracer.Start(ctx, "pool_get")
+	// note: do not reassign ctx here, otherwise sibling phases would nest under pool_get
+	_, poolSpan := p.tracer.Start(ctx, "pool_get")
 	rawClient, err := p.clientPool.Get()
 	if err != nil {
 		poolSpan.End()

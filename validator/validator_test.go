@@ -10,6 +10,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"go.opentelemetry.io/otel/trace/noop"
 
+	"github.com/qubic/go-archiver-v2/network/bob"
 	"github.com/qubic/go-archiver-v2/protobuf"
 	"github.com/qubic/go-archiver-v2/validator/computors"
 )
@@ -167,7 +168,8 @@ func TestValidateTransactions_StatusAddonEnabled_GetTxStatusError(t *testing.T) 
 	v := NewValidator([32]byte{}, true, nil, testTracer)
 
 	// Empty tickData has no non-zero TransactionDigests, so tx.Validate returns [] immediately,
-	// allowing the test to reach the getTxStatus call.
-	_, _, err := v.validateTxsAndFetchTxStatus(context.Background(), client, nil, types.TickData{}, 100)
+	// allowing the test to reach the getTxStatus call. bob is not configured, so this exercises
+	// the node GetTxStatus path (bobPrefetched=false).
+	_, _, err := v.computeTxsAndStatus(context.Background(), client, nil, types.TickData{}, 100, bob.TickData{}, false)
 	require.ErrorIs(t, err, wantErr)
 }

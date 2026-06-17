@@ -40,22 +40,32 @@ func Setup(ctx context.Context, cfg Config) (trace.Tracer, func(context.Context)
 		return nil, nil, fmt.Errorf("creating span exporter: %w", err)
 	}
 
+	tp, err := newTracerProvider(exporter, cfg)
+	if err != nil {
+		return nil, nil, err
+	}
+	otel.SetTracerProvider(tp)
+
+	return tp.Tracer(cfg.ServiceName), tp.Shutdown, nil
+}
+
+// newTracerProvider builds the provider used by Setup. It is kept separate so
+// tests can drive it with an in-memory exporter and assert each span is exported
+// exactly once (a single BatchSpanProcessor, no duplicate processors).
+func newTracerProvider(exporter sdktrace.SpanExporter, cfg Config) (*sdktrace.TracerProvider, error) {
 	res, err := resource.Merge(resource.Default(), resource.NewWithAttributes(
 		semconv.SchemaURL,
 		semconv.ServiceName(cfg.ServiceName),
 	))
 	if err != nil {
-		return nil, nil, fmt.Errorf("building resource: %w", err)
+		return nil, fmt.Errorf("building resource: %w", err)
 	}
 
-	tp := sdktrace.NewTracerProvider(
+	return sdktrace.NewTracerProvider(
 		sdktrace.WithBatcher(exporter), // async export, no hot-path latency
 		sdktrace.WithResource(res),
 		sdktrace.WithSampler(sdktrace.ParentBased(sdktrace.TraceIDRatioBased(cfg.SamplingRatio))),
-	)
-	otel.SetTracerProvider(tp)
-
-	return tp.Tracer(cfg.ServiceName), tp.Shutdown, nil
+	), nil
 }
 
 func newExporter(ctx context.Context, cfg Config) (sdktrace.SpanExporter, error) {

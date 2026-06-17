@@ -3,6 +3,8 @@ package telemetry
 import (
 	"context"
 	"testing"
+
+	"go.opentelemetry.io/otel/sdk/trace/tracetest"
 )
 
 func TestSetup_Disabled_NoopAndNoError(t *testing.T) {
@@ -57,4 +59,43 @@ func TestSetup_StdoutExporter_RecordsSampledSpanTree(t *testing.T) {
 	child.End()
 	root.End()
 	_ = childCtx
+}
+
+// TestNewTracerProvider_ExportsEachSpanOnce guards against the SDK setup being a
+// source of duplicate spans: with a single BatchSpanProcessor each emitted span
+// must be exported exactly once. If Jaeger shows doubled spans while this passes,
+// the duplication is on the transport/ingest side (e.g. OTLP at-least-once retry),
+// not in our provider.
+func TestNewTracerProvider_ExportsEachSpanOnce(t *testing.T) {
+	exporter := tracetest.NewInMemoryExporter()
+	tp, err := newTracerProvider(exporter, Config{SamplingRatio: 1.0, ServiceName: "dedup-test"})
+	if err != nil {
+		t.Fatalf("newTracerProvider returned error: %v", err)
+	}
+	tracer := tp.Tracer("dedup-test")
+
+	ctx, root := tracer.Start(context.Background(), "process_tick")
+	_, a := tracer.Start(ctx, "fetch")
+	a.End()
+	_, b := tracer.Start(ctx, "store_phase")
+	b.End()
+	root.End()
+
+	if err := tp.ForceFlush(context.Background()); err != nil {
+		t.Fatalf("ForceFlush returned error: %v", err)
+	}
+
+	spans := exporter.GetSpans()
+	if len(spans) != 3 {
+		t.Fatalf("expected 3 exported spans, got %d (duplicate export in provider setup?)", len(spans))
+	}
+	seen := map[string]int{}
+	for _, s := range spans {
+		seen[s.SpanContext.SpanID().String()]++
+	}
+	for id, n := range seen {
+		if n != 1 {
+			t.Errorf("span %s exported %d times, want 1", id, n)
+		}
+	}
 }

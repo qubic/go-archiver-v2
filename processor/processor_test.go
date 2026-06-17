@@ -185,7 +185,7 @@ func TestProcessor_processOneByOne(t *testing.T) {
 	dataPool, err := db.NewDatabasePool(testDir, 5)
 	require.NoError(t, err)
 
-	processor := NewProcessor(clientPool, dataPool, &TestValidator{}, Config{time.Millisecond}, dummyMetrics, testTracer)
+	processor := NewProcessor(clientPool, dataPool, &TestValidator{}, Config{ProcessTickTimeout: time.Millisecond}, dummyMetrics, testTracer)
 	err = processor.processOneByOne()
 	require.NoError(t, err)
 	err = processor.processOneByOne()
@@ -207,7 +207,7 @@ func TestProcessor_processOneByOne_epochChange(t *testing.T) {
 	dataPool, err := db.NewDatabasePool(testDir, 5)
 	require.NoError(t, err)
 
-	processor := NewProcessor(clientPool, dataPool, &TestValidator{}, Config{time.Millisecond}, dummyMetrics, testTracer)
+	processor := NewProcessor(clientPool, dataPool, &TestValidator{}, Config{ProcessTickTimeout: time.Millisecond}, dummyMetrics, testTracer)
 	err = processor.processOneByOne()
 	require.NoError(t, err)
 	err = processor.processOneByOne()
@@ -247,7 +247,7 @@ func TestProcessor_processOneByOne_clientClosedWhenNextTickInFuture(t *testing.T
 	dataPool, err := db.NewDatabasePool(testDir, 5)
 	require.NoError(t, err)
 
-	processor := NewProcessor(pool, dataPool, &TestValidator{}, Config{time.Second}, dummyMetrics, testTracer)
+	processor := NewProcessor(pool, dataPool, &TestValidator{}, Config{ProcessTickTimeout: time.Second}, dummyMetrics, testTracer)
 	err = processor.processOneByOne()
 	require.ErrorContains(t, err, "next tick is in the future")
 
@@ -268,7 +268,7 @@ func TestProcessor_processOneByOne_clientClosedWhenTickNotReady(t *testing.T) {
 	dataPool, err := db.NewDatabasePool(testDir, 5)
 	require.NoError(t, err)
 
-	processor := NewProcessor(pool, dataPool, &TestValidator{}, Config{time.Second}, dummyMetrics, testTracer)
+	processor := NewProcessor(pool, dataPool, &TestValidator{}, Config{ProcessTickTimeout: time.Second}, dummyMetrics, testTracer)
 	err = processor.processOneByOne()
 	require.ErrorContains(t, err, "tick not ready")
 
@@ -287,7 +287,7 @@ func TestProcessor_processOneByOne_clientClosedOnError(t *testing.T) {
 	dataPool, err := db.NewDatabasePool(testDir, 5)
 	require.NoError(t, err)
 
-	processor := NewProcessor(pool, dataPool, FailingValidator{}, Config{time.Second}, dummyMetrics, testTracer)
+	processor := NewProcessor(pool, dataPool, FailingValidator{}, Config{ProcessTickTimeout: time.Second}, dummyMetrics, testTracer)
 	err = processor.processOneByOne()
 	require.Error(t, err)
 
