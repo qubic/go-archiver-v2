@@ -24,6 +24,7 @@ import (
 	"github.com/qubic/go-archiver-v2/network/bob"
 	"github.com/qubic/go-archiver-v2/processor"
 	"github.com/qubic/go-archiver-v2/protobuf"
+	"github.com/qubic/go-archiver-v2/telemetry"
 	"github.com/qubic/go-archiver-v2/validator"
 	qubic "github.com/qubic/go-node-connector/v2"
 	"github.com/qubic/go-node-connector/v2/types"
@@ -72,6 +73,14 @@ func run() error {
 		Metrics struct {
 			Namespace string `conf:"default:qubic_archiver_v2"`
 		}
+		Tracing struct {
+			Enabled       bool    `conf:"default:false"`
+			Exporter      string  `conf:"default:stdout"`         // stdout | otlp-grpc | otlp-http | none
+			OTLPEndpoint  string  `conf:"default:localhost:4317"` // 4317 grpc, 4318 http
+			OTLPInsecure  bool    `conf:"default:true"`
+			SamplingRatio float64 `conf:"default:1.0"` // 1.0 = always sample (low tick volume)
+			ServiceName   string  `conf:"default:qubic-archiver-v2"`
+		}
 	}
 
 	help, err := conf.Parse(prefix, &cfg)
@@ -91,6 +100,26 @@ func run() error {
 
 	prometheusRegistry := prometheus.NewRegistry()
 	m := metrics.NewProcessingMetrics(prometheusRegistry, cfg.Metrics.Namespace)
+
+	// set up tracing (inert no-op tracer when disabled)
+	tracer, traceShutdown, err := telemetry.Setup(context.Background(), telemetry.Config{
+		Enabled:       cfg.Tracing.Enabled,
+		Exporter:      cfg.Tracing.Exporter,
+		OTLPEndpoint:  cfg.Tracing.OTLPEndpoint,
+		OTLPInsecure:  cfg.Tracing.OTLPInsecure,
+		SamplingRatio: cfg.Tracing.SamplingRatio,
+		ServiceName:   cfg.Tracing.ServiceName,
+	})
+	if err != nil {
+		return fmt.Errorf("setting up tracing: %w", err)
+	}
+	defer func() {
+		shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+		if err := traceShutdown(shutdownCtx); err != nil {
+			log.Printf("[ERROR] shutting down tracer: %s", err.Error())
+		}
+	}()
 
 	// handle shutdowns
 	shutdown := make(chan os.Signal, 1)
@@ -141,10 +170,10 @@ func run() error {
 		bobClient = bob.NewClient(cfg.Qubic.BobURL)
 		log.Printf("main: bob backend enabled for moneyFlew at [%s].", cfg.Qubic.BobURL)
 	}
-	tickValidator := validator.NewValidator(arbitratorPubKey, cfg.Qubic.EnableTxStatusAddon, bobClient)
+	tickValidator := validator.NewValidator(arbitratorPubKey, cfg.Qubic.EnableTxStatusAddon, bobClient, tracer)
 	proc := processor.NewProcessor(clientPool, dbPool, tickValidator, processor.Config{
 		ProcessTickTimeout: cfg.Qubic.ProcessTickTimeout,
-	}, m)
+	}, m, tracer)
 
 	procErrors := make(chan error, 1)
 	if cfg.Qubic.ProcessingEnabled {

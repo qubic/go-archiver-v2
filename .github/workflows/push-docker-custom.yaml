@@ -3,7 +3,7 @@ name: Deploy custom tagged images to GHCR
 on:
   push:
     branches:
-      - 'feature/bob-moneyflew'
+      - '36-to-investigate-how-can-we-speed-up-the-archiver-sync-speed'
 
 jobs:
   push-store-image:
@@ -21,5 +21,5 @@ jobs:
 
       - name: 'Build Inventory Image'
         run: |
-          docker build . --tag ghcr.io/qubic/qubic-archiver-v2:bob-moneyflew
-          docker push ghcr.io/qubic/qubic-archiver-v2:bob-moneyflew
+          docker build . --tag ghcr.io/qubic/qubic-archiver-v2:tracing
+          docker push ghcr.io/qubic/qubic-archiver-v2:tracing

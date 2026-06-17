@@ -8,10 +8,13 @@ import (
 	qubic "github.com/qubic/go-node-connector/v2"
 	"github.com/qubic/go-node-connector/v2/types"
 	"github.com/stretchr/testify/require"
+	"go.opentelemetry.io/otel/trace/noop"
 
 	"github.com/qubic/go-archiver-v2/protobuf"
 	"github.com/qubic/go-archiver-v2/validator/computors"
 )
+
+var testTracer = noop.NewTracerProvider().Tracer("test")
 
 // stubClient implements network.QubicClient with configurable behaviour for the methods exercised
 // by the validator. Any method that is not configured panics, acting as a strict expectation that
@@ -95,7 +98,7 @@ func (s *stubClient) Close() error {
 func TestValidateTickDataAndTransactions_EmptyTick(t *testing.T) {
 	// When the quorum vote has a zero TxDigest the tick is considered empty and the function
 	// must return immediately with empty-but-non-nil results without calling any client method.
-	v := NewValidator([32]byte{}, false, nil)
+	v := NewValidator([32]byte{}, false, nil, testTracer)
 
 	emptyVotes := types.QuorumVotes{{TxDigest: [32]byte{}}}
 
@@ -109,7 +112,7 @@ func TestValidateTickDataAndTransactions_EmptyTick(t *testing.T) {
 }
 
 func TestValidateTickDataAndTransactions_GetTickTransactionsError(t *testing.T) {
-	v := NewValidator([32]byte{}, false, nil)
+	v := NewValidator([32]byte{}, false, nil, testTracer)
 
 	// Non-zero TxDigest so isEmptyTick returns false and the parallel fetch is executed.
 	nonEmptyVotes := types.QuorumVotes{{TxDigest: [32]byte{1}}}
@@ -134,7 +137,7 @@ func TestValidateTickDataAndTransactions_GetTickTransactionsError(t *testing.T) 
 }
 
 func TestValidateTickDataAndTransactions_GetTickDataError(t *testing.T) {
-	v := NewValidator([32]byte{}, false, nil)
+	v := NewValidator([32]byte{}, false, nil, testTracer)
 
 	nonEmptyVotes := types.QuorumVotes{{TxDigest: [32]byte{1}}}
 
@@ -161,7 +164,7 @@ func TestValidateTransactions_StatusAddonEnabled_GetTxStatusError(t *testing.T) 
 	wantErr := errors.New("connection refused")
 	client := &stubClient{getTxStatusErr: wantErr}
 
-	v := NewValidator([32]byte{}, true, nil)
+	v := NewValidator([32]byte{}, true, nil, testTracer)
 
 	// Empty tickData has no non-zero TransactionDigests, so tx.Validate returns [] immediately,
 	// allowing the test to reach the getTxStatus call.

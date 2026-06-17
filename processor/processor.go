@@ -13,6 +13,9 @@ import (
 	"github.com/qubic/go-archiver-v2/protobuf"
 	"github.com/qubic/go-archiver-v2/validator"
 	"github.com/qubic/go-node-connector/v2/types"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/codes"
+	"go.opentelemetry.io/otel/trace"
 )
 
 type Validator interface {
@@ -35,13 +38,14 @@ type Processor struct {
 	tickStatus           *TickStatus
 	startFromCurrentTick bool
 	metrics              *metrics.ProcessingMetrics
+	tracer               trace.Tracer
 }
 
 type Config struct {
 	ProcessTickTimeout time.Duration
 }
 
-func NewProcessor(clientPool network.QubicClientPool, dbPool *db.DatabasePool, tickValidator Validator, config Config, metrics *metrics.ProcessingMetrics) *Processor {
+func NewProcessor(clientPool network.QubicClientPool, dbPool *db.DatabasePool, tickValidator Validator, config Config, metrics *metrics.ProcessingMetrics, tracer trace.Tracer) *Processor {
 	return &Processor{
 		clientPool:         clientPool,
 		databasePool:       dbPool,
@@ -49,6 +53,7 @@ func NewProcessor(clientPool network.QubicClientPool, dbPool *db.DatabasePool, t
 		tickValidator:      tickValidator,
 		tickStatus:         &TickStatus{},
 		metrics:            metrics,
+		tracer:             tracer,
 	}
 }
 
@@ -71,21 +76,38 @@ func (p *Processor) processOneByOne() (err error) {
 	ctx, cancel := context.WithTimeout(context.Background(), p.processTickTimeout)
 	defer cancel()
 
-	client, err := p.clientPool.Get()
+	ctx, rootSpan := p.tracer.Start(ctx, "process_tick")
+	defer func() {
+		if err != nil {
+			rootSpan.RecordError(err)
+			rootSpan.SetStatus(codes.Error, err.Error())
+		}
+		rootSpan.End()
+	}()
+
+	ctx, poolSpan := p.tracer.Start(ctx, "pool_get")
+	rawClient, err := p.clientPool.Get()
 	if err != nil {
+		poolSpan.End()
 		return fmt.Errorf("getting 1st client connection: %w", err)
 	}
 	defer func() {
-		p.releaseClient(err, client)
+		p.releaseClient(err, rawClient)
 	}()
 
-	alternativeClient, err := p.clientPool.Get()
+	rawAltClient, err := p.clientPool.Get()
 	if err != nil {
+		poolSpan.End()
 		return fmt.Errorf("getting 2nd client connection: %w", err)
 	}
 	defer func() {
-		p.releaseClient(err, alternativeClient)
+		p.releaseClient(err, rawAltClient)
 	}()
+	poolSpan.End()
+
+	// wrap raw clients with tracing decorators; raw clients are returned to the pool
+	client := network.NewTracingQubicClient(rawClient, p.tracer)
+	alternativeClient := network.NewTracingQubicClient(rawAltClient, p.tracer)
 
 	tickInfo, err := client.GetTickInfo(ctx)
 	if err != nil {
@@ -110,6 +132,11 @@ func (p *Processor) processOneByOne() (err error) {
 	if err != nil {
 		return fmt.Errorf("getting next tick to process: %w", err)
 	}
+	rootSpan.SetAttributes(
+		attribute.Int64("tick.number", int64(nextTick.TickNumber)),
+		attribute.Int64("tick.live", int64(tickInfo.Tick)),
+		attribute.Int64("tick.delta", int64(tickInfo.Tick)-int64(nextTick.TickNumber)),
+	)
 	log.Printf("Next tick to process: [%d]. Current tick: [%d]. Delta [%d]", nextTick.TickNumber, tickInfo.Tick, int64(tickInfo.Tick)-int64(nextTick.TickNumber))
 
 	if nextTick.TickNumber > tickInfo.Tick {
