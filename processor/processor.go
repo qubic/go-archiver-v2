@@ -94,6 +94,14 @@ func (p *Processor) processOneByOne() (err error) {
 	if err != nil {
 		return fmt.Errorf("getting tick info: %w", err)
 	}
+
+	if p.stopTick != 0 {
+		log.Printf("Using stop tick: [%d] instead of live tick [%d].", p.stopTick, tickInfo.Tick)
+		tickInfo.Tick = p.stopTick
+		tickInfo.Epoch = 217
+		tickInfo.InitialTick = 57700000
+	}
+
 	p.tickStatus.LiveTick = tickInfo.Tick
 	p.tickStatus.LiveEpoch = tickInfo.Epoch
 
@@ -108,11 +116,6 @@ func (p *Processor) processOneByOne() (err error) {
 	}
 	p.tickStatus.ProcessedTick = lastProcessedTick.TickNumber
 	p.tickStatus.ProcessingEpoch = uint16(lastProcessedTick.Epoch)
-
-	if p.stopTick != 0 {
-		tickInfo.Tick = p.stopTick
-		tickInfo.Epoch = uint16(lastProcessedTick.Epoch)
-	}
 
 	nextTick, err := p.getNextProcessingTick(ctx, lastProcessedTick, tickInfo)
 	if err != nil {
