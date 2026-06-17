@@ -39,6 +39,55 @@ func TestValidate_HappyPath(t *testing.T) {
 	require.True(t, result.Transactions[0].MoneyFlew)
 }
 
+func TestValidateAndConvert_MixedMoneyFlew(t *testing.T) {
+	// Three transactions with executed = [true, false, true]. This is the case that
+	// catches index/ordering bugs in the bit-array -> per-tx bool mapping: a single-tx
+	// happy path cannot distinguish a correct mapping from an off-by-one.
+	tx0 := makeTransaction([32]byte{1}, [32]byte{0xa}, 10, 1000)
+	tx1 := makeTransaction([32]byte{2}, [32]byte{0xb}, 20, 1000)
+	tx2 := makeTransaction([32]byte{3}, [32]byte{0xc}, 30, 1000)
+	txs := types.Transactions{tx0, tx1, tx2}
+
+	d0, err := tx0.Digest()
+	require.NoError(t, err)
+	d1, err := tx1.Digest()
+	require.NoError(t, err)
+	d2, err := tx2.Digest()
+	require.NoError(t, err)
+
+	// bit 0 set (tx0=true), bit 1 clear (tx1=false), bit 2 set (tx2=true)
+	var moneyFlew [(types.NumberOfTransactionsPerTick + 7) / 8]byte
+	moneyFlew[0] = 0b00000101
+
+	txStatus := types.TransactionStatus{
+		CurrentTickOfNode:  1000,
+		Tick:               1000,
+		TxCount:            3,
+		MoneyFlew:          moneyFlew,
+		TransactionDigests: [][32]byte{d0, d1, d2},
+	}
+
+	// validate=true exercises the full stored path (count + digest checks, then convert).
+	result, err := ValidateAndConvert(context.Background(), txStatus, txs, true)
+	require.NoError(t, err)
+	require.Len(t, result.Transactions, 3)
+
+	id0, err := tx0.ID()
+	require.NoError(t, err)
+	id1, err := tx1.ID()
+	require.NoError(t, err)
+	id2, err := tx2.ID()
+	require.NoError(t, err)
+
+	// output preserves the digest order, and each tx carries the right stored flag
+	require.Equal(t, id0, result.Transactions[0].TxId)
+	require.True(t, result.Transactions[0].MoneyFlew, "tx0 executed=true -> stored moneyFlew=true")
+	require.Equal(t, id1, result.Transactions[1].TxId)
+	require.False(t, result.Transactions[1].MoneyFlew, "tx1 executed=false -> stored moneyFlew=false")
+	require.Equal(t, id2, result.Transactions[2].TxId)
+	require.True(t, result.Transactions[2].MoneyFlew, "tx2 executed=true -> stored moneyFlew=true")
+}
+
 func TestValidate_TxCountMismatch(t *testing.T) {
 	tx := makeTransaction([32]byte{1}, [32]byte{2}, 100, 1000)
 	txs := types.Transactions{tx}
