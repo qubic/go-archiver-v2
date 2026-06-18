@@ -2,6 +2,7 @@ package processor
 
 import (
 	"context"
+	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -78,6 +79,60 @@ func TestProcessor_prefetchServesBatchFromCacheThenReprefetches(t *testing.T) {
 	require.NoError(t, proc.processOneByOne())
 	require.Equal(t, 2, client.prefetchCalls, "exhausting the batch triggers a re-prefetch")
 	require.Equal(t, uint32(105), rv.validated[len(rv.validated)-1])
+}
+
+// blockingBobServer responds instantly for every tick except blockTick, for which it
+// blocks until the request context is cancelled. It lets us prove a batch fails fast on
+// a single slow tick rather than draining the full per-tick budget.
+func blockingBobServer(t *testing.T, blockTick uint32) (*bob.Client, func()) {
+	t.Helper()
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		var req struct {
+			Params []json.RawMessage `json:"params"`
+		}
+		_ = json.NewDecoder(r.Body).Decode(&req)
+		var tick uint32
+		if len(req.Params) > 0 {
+			_ = json.Unmarshal(req.Params[0], &tick)
+		}
+		if tick == blockTick {
+			<-r.Context().Done() // hang until the per-fetch timeout cancels us
+			return
+		}
+		_, _ = w.Write([]byte(`{"jsonrpc":"2.0","id":1,"result":{"transactions":[]}}`))
+	}))
+	return bob.NewClient(srv.URL), srv.Close
+}
+
+func TestProcessor_prefetchFailsFastWhenOneBobTickHangs(t *testing.T) {
+	const nrTicks = 5
+	// batch covers ticks 100..104 (InitialTick=100, nothing processed yet); hang tick 102.
+	bobClient, stop := blockingBobServer(t, 102)
+	defer stop()
+
+	client := &TestClient{epoch: 42, tick: 1000, InitialTick: 100, prefetchFn: cannedPrefetch}
+	pool := &TrackingPool{client: client}
+
+	dataPool, err := db.NewDatabasePool(t.TempDir(), 5)
+	require.NoError(t, err)
+
+	rv := &recordingValidator{}
+	proc := NewProcessor(pool, dataPool, rv, Config{
+		ProcessTickTimeout: 5 * time.Second, // generous: must NOT be what bounds the failure
+		BobClient:          bobClient,
+		PrefetchEnabled:    true,
+		PrefetchNrTicks:    nrTicks,
+		PrefetchBobTimeout: 100 * time.Millisecond,
+	}, dummyMetrics)
+
+	start := time.Now()
+	err = proc.processOneByOne()
+	elapsed := time.Since(start)
+
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "bob fetch tick 102", "the hung tick should be named in the error")
+	require.Less(t, elapsed, time.Second, "batch should fail fast (≈ bob timeout), not drain the 5s process budget")
+	require.Empty(t, rv.validated, "no tick should be validated when the batch fails")
 }
 
 func TestProcessor_prefetchFallsBackToLiveNearTip(t *testing.T) {

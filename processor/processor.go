@@ -46,6 +46,7 @@ type Processor struct {
 	bobClient       *bob.Client
 	prefetchEnabled bool
 	prefetchNrTicks uint32
+	bobFetchTimeout time.Duration
 	currentBatch    *prefetchBatch
 }
 
@@ -54,6 +55,7 @@ type Config struct {
 	BobClient          *bob.Client
 	PrefetchEnabled    bool
 	PrefetchNrTicks    uint32
+	PrefetchBobTimeout time.Duration
 }
 
 func NewProcessor(clientPool network.QubicClientPool, dbPool *db.DatabasePool, tickValidator Validator, config Config, metrics *metrics.ProcessingMetrics) *Processor {
@@ -67,6 +69,7 @@ func NewProcessor(clientPool network.QubicClientPool, dbPool *db.DatabasePool, t
 		bobClient:          config.BobClient,
 		prefetchEnabled:    config.PrefetchEnabled,
 		prefetchNrTicks:    config.PrefetchNrTicks,
+		bobFetchTimeout:    config.PrefetchBobTimeout,
 	}
 }
 
@@ -268,7 +271,16 @@ func (p *Processor) prefetchBatch(ctx context.Context, client network.QubicClien
 	for _, t := range result.Ticks {
 		tick := t.Tick
 		eg.Go(func() error {
-			bt, err := bob.FetchTick(egCtx, p.bobClient, tick)
+			// Each fetch gets its own (shorter) deadline so a single slow/unreachable
+			// tick trips quickly; errgroup then cancels the siblings and the whole batch
+			// fails fast, instead of every fetch draining the full per-tick budget.
+			fctx, fcancel := egCtx, context.CancelFunc(func() {})
+			if p.bobFetchTimeout > 0 {
+				fctx, fcancel = context.WithTimeout(egCtx, p.bobFetchTimeout)
+			}
+			defer fcancel()
+
+			bt, err := bob.FetchTick(fctx, p.bobClient, tick)
 			if err != nil {
 				return fmt.Errorf("bob fetch tick %d: %w", tick, err)
 			}

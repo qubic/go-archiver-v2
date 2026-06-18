@@ -67,8 +67,9 @@ func run() error {
 			BobURL              string
 		}
 		Prefetch struct {
-			Enabled bool   `conf:"default:false"`
-			NrTicks uint32 `conf:"default:10"`
+			Enabled    bool          `conf:"default:false"`
+			NrTicks    uint32        `conf:"default:10"`
+			BobTimeout time.Duration `conf:"default:1s"` // per-tick bob fetch timeout inside a batch
 		}
 		Store struct {
 			StorageFolder   string `conf:"default:archive-data"`
@@ -180,6 +181,7 @@ func run() error {
 		BobClient:          bobClient,
 		PrefetchEnabled:    cfg.Prefetch.Enabled,
 		PrefetchNrTicks:    cfg.Prefetch.NrTicks,
+		PrefetchBobTimeout: cfg.Prefetch.BobTimeout,
 	}, m)
 
 	procErrors := make(chan error, 1)
