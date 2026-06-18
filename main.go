@@ -63,9 +63,12 @@ func run() error {
 			OverrideTick        bool          `conf:"default:false"`
 			StartTick           uint32        `conf:"default:0"`
 			StartEpoch          uint16        `conf:"default:0"`
-			StopTick            uint32        `conf:"default:0"`
 			ProcessingEnabled   bool          `conf:"default:true"`
 			BobURL              string
+		}
+		Prefetch struct {
+			Enabled bool   `conf:"default:false"`
+			NrTicks uint32 `conf:"default:10"`
 		}
 		Store struct {
 			StorageFolder   string `conf:"default:archive-data"`
@@ -171,10 +174,12 @@ func run() error {
 		bobClient = bob.NewClient(cfg.Qubic.BobURL)
 		log.Printf("main: bob backend enabled for moneyFlew at [%s].", cfg.Qubic.BobURL)
 	}
-	tickValidator := validator.NewValidator(arbitratorPubKey, cfg.Qubic.EnableTxStatusAddon, bobClient)
+	tickValidator := validator.NewValidator(arbitratorPubKey, cfg.Qubic.EnableTxStatusAddon)
 	proc := processor.NewProcessor(clientPool, dbPool, tickValidator, processor.Config{
 		ProcessTickTimeout: cfg.Qubic.ProcessTickTimeout,
-		StopTick:           cfg.Qubic.StopTick,
+		BobClient:          bobClient,
+		PrefetchEnabled:    cfg.Prefetch.Enabled,
+		PrefetchNrTicks:    cfg.Prefetch.NrTicks,
 	}, m)
 
 	procErrors := make(chan error, 1)

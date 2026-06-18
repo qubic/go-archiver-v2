@@ -69,10 +69,12 @@ func (t *TrackingPool) Close(_ network.QubicClient) error {
 }
 
 type TestClient struct {
-	epoch        uint16
-	tick         uint32
-	InitialTick  uint32
-	alignedVotes uint16
+	epoch         uint16
+	tick          uint32
+	InitialTick   uint32
+	alignedVotes  uint16
+	prefetchFn    func(startTick, nrTicks uint32) (qubic.PrefetchResult, error)
+	prefetchCalls int
 }
 
 func (t *TestClient) GetIssuedAssets(_ context.Context, _ string) (types.IssuedAssets, error) {
@@ -129,6 +131,14 @@ func (t *TestClient) GetQuorumVotes(_ context.Context, _ uint32) (types.QuorumVo
 }
 
 func (t *TestClient) GetComputors(_ context.Context) (types.Computors, error) {
+	panic("implement me")
+}
+
+func (t *TestClient) PrefetchTicks(_ context.Context, startTick, nrTicks uint32) (qubic.PrefetchResult, error) {
+	t.prefetchCalls++
+	if t.prefetchFn != nil {
+		return t.prefetchFn(startTick, nrTicks)
+	}
 	panic("implement me")
 }
 
@@ -248,7 +258,8 @@ func TestProcessor_processOneByOne_clientClosedWhenNextTickInFuture(t *testing.T
 	err = processor.processOneByOne()
 	require.ErrorContains(t, err, "next tick is in the future")
 
-	require.Equal(t, 2, pool.closeCalled, "both clients should be closed on error")
+	// this errors before reaching validation, so only the primary connection is acquired
+	require.Equal(t, 1, pool.closeCalled, "the primary client should be closed on error")
 	require.Equal(t, 0, pool.putCalled, "no clients should be returned to pool on error")
 }
 
@@ -269,7 +280,8 @@ func TestProcessor_processOneByOne_clientClosedWhenTickNotReady(t *testing.T) {
 	err = processor.processOneByOne()
 	require.ErrorContains(t, err, "tick not ready")
 
-	require.Equal(t, 2, pool.closeCalled, "both clients should be closed on error")
+	// this errors before reaching validation, so only the primary connection is acquired
+	require.Equal(t, 1, pool.closeCalled, "the primary client should be closed on error")
 	require.Equal(t, 0, pool.putCalled, "no clients should be returned to pool on error")
 }
 

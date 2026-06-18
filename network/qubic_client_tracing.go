@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/qubic/go-archiver-v2/tracing"
+	qubic "github.com/qubic/go-node-connector/v2"
 	"github.com/qubic/go-node-connector/v2/types"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
@@ -80,6 +81,19 @@ func (c *tracingQubicClient) GetTickTransactions(ctx context.Context, tickNumber
 		trace.WithAttributes(attribute.Int64("qubic.tick_number", int64(tickNumber))))
 	defer span.End()
 	res, err := c.QubicClient.GetTickTransactions(ctx, tickNumber)
+	recordErr(span, err)
+	return res, err
+}
+
+func (c *tracingQubicClient) PrefetchTicks(ctx context.Context, startTick, nrTicks uint32) (qubic.PrefetchResult, error) {
+	ctx, span := tracing.Tracer().Start(ctx, "qubic.PrefetchTicks",
+		trace.WithSpanKind(trace.SpanKindClient),
+		trace.WithAttributes(
+			attribute.Int64("qubic.start_tick", int64(startTick)),
+			attribute.Int64("qubic.nr_ticks", int64(nrTicks)),
+		))
+	defer span.End()
+	res, err := c.QubicClient.PrefetchTicks(ctx, startTick, nrTicks)
 	recordErr(span, err)
 	return res, err
 }

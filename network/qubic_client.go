@@ -21,6 +21,9 @@ type QubicClient interface {
 	SendRawTransaction(ctx context.Context, rawTx []byte) error
 	GetQuorumVotes(ctx context.Context, tickNumber uint32) (types.QuorumVotes, error)
 	GetComputors(ctx context.Context) (types.Computors, error)
+	// PrefetchTicks pipelines SystemInfo + TickInfo + (QuorumVotes, TickData,
+	// TickTransactions) for [startTick, startTick+nrTicks) over one connection.
+	PrefetchTicks(ctx context.Context, startTick, nrTicks uint32) (qubic.PrefetchResult, error)
 	QuerySmartContract(ctx context.Context, rcf qubic.RequestContractFunction, requestData []byte) (types.SmartContractData, error)
 	GetAssetPossessionsByFilter(ctx context.Context, issuerIdentity, assetName,
 		ownerIdentity, possessorIdentity string, ownerContract, possessorContract uint16) (types.AssetPossessions, error)
