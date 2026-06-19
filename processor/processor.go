@@ -188,6 +188,7 @@ func (p *Processor) processOneByOne() (err error) {
 	// currentIndexingTick-1). A cached batch was already gated at build time and the
 	// ceiling only rises, so cache hits skip the /status round-trip and stay valid.
 	ceiling := tickInfo.Tick
+	var bobIndexingTick uint32
 	useBob := p.bobClient != nil
 	cachedHit := p.prefetchEnabled && useBob && p.currentBatch.covers(nextTick.TickNumber, tickInfo.Epoch)
 	if useBob && !cachedHit {
@@ -196,6 +197,7 @@ func (p *Processor) processOneByOne() (err error) {
 			err = fmt.Errorf("getting bob status: %w", serr)
 			return err
 		}
+		bobIndexingTick = st.CurrentIndexingTick
 		ceiling = bobCeiling(tickInfo.Tick, st.CurrentIndexingTick)
 		rootSpan.SetAttributes(
 			attribute.Int64("bob.indexing_tick", int64(st.CurrentIndexingTick)),
@@ -211,7 +213,7 @@ func (p *Processor) processOneByOne() (err error) {
 	// Prefetch fast path: serve this tick (and the next nrTicks-1) from one pipelined
 	// batch when possible; otherwise fall back to the live single-tick path.
 	if p.prefetchEnabled && p.bobClient != nil {
-		served, pErr := p.processFromPrefetch(ctx, client, dataStore, tickInfo, nextTick, ceiling)
+		served, pErr := p.processFromPrefetch(ctx, client, dataStore, tickInfo, nextTick, ceiling, bobIndexingTick)
 		if pErr != nil {
 			err = pErr
 			return err
@@ -251,7 +253,7 @@ func (p *Processor) processOneByOne() (err error) {
 // ceiling so it never reads bob past the indexed frontier. It returns served=false (with
 // no error) when a prefetched tick fails validation, so the caller falls back to the live
 // path. A non-nil error is a prefetch-infrastructure failure that should abort the iteration.
-func (p *Processor) processFromPrefetch(ctx context.Context, client network.QubicClient, dataStore *db.PebbleStore, tickInfo types.TickInfo, nextTick *protobuf.ProcessedTick, ceiling uint32) (served bool, err error) {
+func (p *Processor) processFromPrefetch(ctx context.Context, client network.QubicClient, dataStore *db.PebbleStore, tickInfo types.TickInfo, nextTick *protobuf.ProcessedTick, ceiling, bobIndexingTick uint32) (served bool, err error) {
 	epoch := tickInfo.Epoch
 	if !p.currentBatch.covers(nextTick.TickNumber, epoch) {
 		// Clamp the batch so it never reads bob past the ceiling (bob's indexing frontier):
@@ -262,6 +264,8 @@ func (p *Processor) processFromPrefetch(ctx context.Context, client network.Qubi
 		if avail := ceiling - nextTick.TickNumber + 1; avail < nrTicks {
 			nrTicks = avail
 		}
+		log.Printf("Prefetch batch [%d..%d] (%d ticks). Node tick [%d], bob indexing tick [%d].",
+			nextTick.TickNumber, nextTick.TickNumber+nrTicks-1, nrTicks, tickInfo.Tick, bobIndexingTick)
 		batch, bErr := p.prefetchBatch(ctx, client, nextTick.TickNumber, nrTicks, epoch)
 		if bErr != nil {
 			return false, fmt.Errorf("prefetching batch at tick %d: %w", nextTick.TickNumber, bErr)
@@ -345,7 +349,6 @@ func (p *Processor) prefetchBatch(ctx context.Context, client network.QubicClien
 		return nil, fmt.Errorf("prefetching bob statuses: %w", err)
 	}
 
-	log.Printf("Prefetched batch: %d ticks starting at [%d].", len(result.Ticks), startTick)
 	return &prefetchBatch{epoch: epoch, result: result, byTick: byTick, bobByTick: bobByTick}, nil
 }
 
