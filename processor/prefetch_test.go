@@ -3,6 +3,7 @@ package processor
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -27,14 +28,25 @@ func (r *recordingValidator) Validate(_ context.Context, _ *db.PebbleStore, _ va
 	return r.err
 }
 
-// emptyBobServer returns a qubic_getTickByNumber response with no transactions, so
-// bob.FetchTick succeeds for any tick (the recording validator ignores the data).
-func emptyBobServer(t *testing.T) (*bob.Client, func()) {
+// bobServer answers GET /status with the given indexing frontier and every
+// qubic_getTickByNumber with an empty transaction list (bob.FetchTick succeeds for any
+// tick; the recording validator ignores the data).
+func bobServer(t *testing.T, indexingTick uint32) (*bob.Client, func()) {
 	t.Helper()
-	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/status" {
+			fmt.Fprintf(w, `{"currentFetchingTick":%d,"currentIndexingTick":%d}`, indexingTick, indexingTick)
+			return
+		}
 		_, _ = w.Write([]byte(`{"jsonrpc":"2.0","id":1,"result":{"transactions":[]}}`))
 	}))
 	return bob.NewClient(srv.URL), srv.Close
+}
+
+// emptyBobServer reports an indexing frontier far ahead so the indexing gate never trips;
+// tests that exercise the gate use bobServer with a specific frontier.
+func emptyBobServer(t *testing.T) (*bob.Client, func()) {
+	return bobServer(t, 1_000_000)
 }
 
 func cannedPrefetch(startTick, n uint32) (qubic.PrefetchResult, error) {
@@ -87,6 +99,12 @@ func TestProcessor_prefetchServesBatchFromCacheThenReprefetches(t *testing.T) {
 func blockingBobServer(t *testing.T, blockTick uint32) (*bob.Client, func()) {
 	t.Helper()
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/status" {
+			// indexing far ahead so the gate passes and the batch is built (then a single
+			// tick's fetch hangs, exercising fail-fast)
+			fmt.Fprint(w, `{"currentFetchingTick":1000000,"currentIndexingTick":1000000}`)
+			return
+		}
 		var req struct {
 			Params []json.RawMessage `json:"params"`
 		}
@@ -158,4 +176,67 @@ func TestProcessor_prefetchFallsBackToLiveNearTip(t *testing.T) {
 	require.NoError(t, proc.processOneByOne())
 	require.Equal(t, 0, client.prefetchCalls, "no prefetch when a full batch can't fit before the tip")
 	require.Equal(t, []uint32{100}, rv.validated)
+}
+
+func TestBobCeiling(t *testing.T) {
+	require.Equal(t, uint32(98), bobCeiling(1000, 99), "indexing-1 below node tick wins")
+	require.Equal(t, uint32(1000), bobCeiling(1000, 5000), "node tick wins when indexing is far ahead")
+	require.Equal(t, uint32(99), bobCeiling(100, 100), "indexing-1 == node tick-1")
+	require.Equal(t, uint32(0), bobCeiling(100, 0), "indexing 0 clamps to 0 (forces wait)")
+	require.Equal(t, uint32(0), bobCeiling(100, 1), "indexing 1 -> 0")
+}
+
+// TestProcessor_prefetchFallsBackToLiveWhenBatchExceedsIndexing: the node has the whole
+// batch but bob hasn't indexed it yet, so prefetch must fall back to the live single tick.
+func TestProcessor_prefetchFallsBackToLiveWhenBatchExceedsIndexing(t *testing.T) {
+	// node tick 1000, nextTick 100, nrTicks 5 -> batch end 104. indexing 103 => ceiling 102
+	// (< 104) so the batch can't fit, but nextTick 100 <= 102 so the live path runs.
+	bobClient, stop := bobServer(t, 103)
+	defer stop()
+
+	client := &TestClient{epoch: 42, tick: 1000, InitialTick: 100} // prefetchFn nil => panics if prefetched
+	pool := &TrackingPool{client: client}
+
+	dataPool, err := db.NewDatabasePool(t.TempDir(), 5)
+	require.NoError(t, err)
+
+	rv := &recordingValidator{}
+	proc := NewProcessor(pool, dataPool, rv, Config{
+		ProcessTickTimeout: time.Second,
+		BobClient:          bobClient,
+		PrefetchEnabled:    true,
+		PrefetchNrTicks:    5,
+	}, dummyMetrics)
+
+	require.NoError(t, proc.processOneByOne())
+	require.Equal(t, 0, client.prefetchCalls, "no prefetch when the batch extends past bob's indexing frontier")
+	require.Equal(t, []uint32{100}, rv.validated)
+}
+
+// TestProcessor_waitsWhenNextTickBeyondIndexing: bob has not indexed up to nextTick, so
+// the processor must wait (error) and validate nothing.
+func TestProcessor_waitsWhenNextTickBeyondIndexing(t *testing.T) {
+	// indexing 100 => ceiling 99; nextTick 100 > 99 => wait.
+	bobClient, stop := bobServer(t, 100)
+	defer stop()
+
+	client := &TestClient{epoch: 42, tick: 1000, InitialTick: 100} // prefetchFn nil => panics if prefetched
+	pool := &TrackingPool{client: client}
+
+	dataPool, err := db.NewDatabasePool(t.TempDir(), 5)
+	require.NoError(t, err)
+
+	rv := &recordingValidator{}
+	proc := NewProcessor(pool, dataPool, rv, Config{
+		ProcessTickTimeout: time.Second,
+		BobClient:          bobClient,
+		PrefetchEnabled:    true,
+		PrefetchNrTicks:    5,
+	}, dummyMetrics)
+
+	err = proc.processOneByOne()
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "waiting for bob indexing")
+	require.Equal(t, 0, client.prefetchCalls)
+	require.Empty(t, rv.validated, "nothing should be validated while waiting for bob indexing")
 }

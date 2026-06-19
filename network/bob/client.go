@@ -31,6 +31,52 @@ func NewClient(baseURL string) *Client {
 	}
 }
 
+// Status is bob's REST /status payload (subset). currentIndexingTick is bob's indexing
+// frontier: ticks at or below it have final tx execution flags, while ticks above it
+// (fetched but not yet indexed) may report a premature executed=false.
+type Status struct {
+	CurrentFetchingTick uint32 `json:"currentFetchingTick"`
+	CurrentIndexingTick uint32 `json:"currentIndexingTick"`
+}
+
+// GetStatus fetches bob's indexing frontier via REST GET /status (not the /qubic
+// JSON-RPC endpoint).
+func (c *Client) GetStatus(ctx context.Context) (Status, error) {
+	ctx, span := tracing.Tracer().Start(ctx, "bob.GetStatus", trace.WithSpanKind(trace.SpanKindClient))
+	defer span.End()
+
+	st, err := c.getStatus(ctx)
+	if err != nil {
+		span.RecordError(err)
+		span.SetStatus(codes.Error, err.Error())
+	}
+	return st, err
+}
+
+func (c *Client) getStatus(ctx context.Context) (Status, error) {
+	req, err := http.NewRequestWithContext(ctx, "GET", c.baseURL+"/status", nil)
+	if err != nil {
+		return Status{}, fmt.Errorf("creating status request: %w", err)
+	}
+
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return Status{}, fmt.Errorf("executing status request: %w", err)
+	}
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return Status{}, fmt.Errorf("reading status response: %w", err)
+	}
+
+	var st Status
+	if err := json.Unmarshal(body, &st); err != nil {
+		return Status{}, fmt.Errorf("unmarshalling status response: %w", err)
+	}
+	return st, nil
+}
+
 type jsonRPCRequest struct {
 	JSONRPC string      `json:"jsonrpc"`
 	Method  string      `json:"method"`
