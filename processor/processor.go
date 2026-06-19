@@ -39,6 +39,7 @@ type Processor struct {
 	tickValidator        Validator
 	arbitratorPubKey     [32]byte
 	processTickTimeout   time.Duration
+	retryDelay           time.Duration
 	tickStatus           *TickStatus
 	startFromCurrentTick bool
 	metrics              *metrics.ProcessingMetrics
@@ -52,6 +53,7 @@ type Processor struct {
 
 type Config struct {
 	ProcessTickTimeout time.Duration
+	RetryDelay         time.Duration
 	BobClient          *bob.Client
 	PrefetchEnabled    bool
 	PrefetchNrTicks    uint32
@@ -59,10 +61,15 @@ type Config struct {
 }
 
 func NewProcessor(clientPool network.QubicClientPool, dbPool *db.DatabasePool, tickValidator Validator, config Config, metrics *metrics.ProcessingMetrics) *Processor {
+	retryDelay := config.RetryDelay
+	if retryDelay <= 0 {
+		retryDelay = 200 * time.Millisecond
+	}
 	return &Processor{
 		clientPool:         clientPool,
 		databasePool:       dbPool,
 		processTickTimeout: config.ProcessTickTimeout,
+		retryDelay:         retryDelay,
 		tickValidator:      tickValidator,
 		tickStatus:         &TickStatus{},
 		metrics:            metrics,
@@ -96,7 +103,7 @@ func (p *Processor) Start() error {
 		err := p.processOneByOne()
 		if err != nil {
 			log.Printf("Processing failed: %s", err.Error())
-			time.Sleep(1 * time.Second)
+			time.Sleep(p.retryDelay)
 		}
 	}
 }
@@ -195,7 +202,8 @@ func (p *Processor) processOneByOne() (err error) {
 			attribute.Int64("tick.ceiling", int64(ceiling)),
 		)
 		if int64(nextTick.TickNumber) > int64(ceiling) {
-			return fmt.Errorf("waiting for bob indexing: next tick %d > ceiling %d (node %d, bob indexing %d)",
+			// caught up to bob's indexed frontier: no tick is safe to sync yet
+			return fmt.Errorf("no ticks to sync up to bob indexed frontier: next tick %d > ceiling %d (node %d, bob indexing %d)",
 				nextTick.TickNumber, ceiling, tickInfo.Tick, st.CurrentIndexingTick)
 		}
 	}
@@ -238,22 +246,23 @@ func (p *Processor) processOneByOne() (err error) {
 	return nil
 }
 
-// processFromPrefetch serves nextTick from the cached batch, fetching a new batch
-// first when the current one doesn't cover it. It returns served=false (with no
-// error) when the tick can't be served from prefetch — too few ticks available, or a
-// prefetched tick failed validation — so the caller falls back to the live path. A
-// non-nil error is a prefetch-infrastructure failure that should abort the iteration.
+// processFromPrefetch serves nextTick from the cached batch, fetching a new batch first
+// when the current one doesn't cover it. The new batch is clamped to bob's indexing
+// ceiling so it never reads bob past the indexed frontier. It returns served=false (with
+// no error) when a prefetched tick fails validation, so the caller falls back to the live
+// path. A non-nil error is a prefetch-infrastructure failure that should abort the iteration.
 func (p *Processor) processFromPrefetch(ctx context.Context, client network.QubicClient, dataStore *db.PebbleStore, tickInfo types.TickInfo, nextTick *protobuf.ProcessedTick, ceiling uint32) (served bool, err error) {
 	epoch := tickInfo.Epoch
 	if !p.currentBatch.covers(nextTick.TickNumber, epoch) {
-		// only prefetch when the full batch fits at or below the ceiling (bob's indexing
-		// frontier); otherwise fall back to the live single-tick path, which already
-		// processes a tick <= ceiling.
-		if uint64(ceiling) < uint64(nextTick.TickNumber)+uint64(p.prefetchNrTicks)-1 {
-			p.currentBatch = nil
-			return false, nil
+		// Clamp the batch so it never reads bob past the ceiling (bob's indexing frontier):
+		// sync only the ticks available up to the ceiling. The caller guarantees
+		// nextTick <= ceiling, so this is always >= 1; near the frontier the batch just
+		// shrinks instead of overshooting or falling back to the live path.
+		nrTicks := p.prefetchNrTicks
+		if avail := ceiling - nextTick.TickNumber + 1; avail < nrTicks {
+			nrTicks = avail
 		}
-		batch, bErr := p.prefetchBatch(ctx, client, nextTick.TickNumber, epoch)
+		batch, bErr := p.prefetchBatch(ctx, client, nextTick.TickNumber, nrTicks, epoch)
 		if bErr != nil {
 			return false, fmt.Errorf("prefetching batch at tick %d: %w", nextTick.TickNumber, bErr)
 		}
@@ -291,12 +300,13 @@ func bobCeiling(nodeTick, indexingTick uint32) uint32 {
 }
 
 // prefetchBatch pipelines the node responses for [startTick, startTick+nrTicks) and,
-// in parallel, fetches bob's tx status for each of those ticks.
-func (p *Processor) prefetchBatch(ctx context.Context, client network.QubicClient, startTick uint32, epoch uint16) (*prefetchBatch, error) {
+// in parallel, fetches bob's tx status for each of those ticks. nrTicks is clamped by the
+// caller to bob's indexing frontier, so it can be smaller than the configured size.
+func (p *Processor) prefetchBatch(ctx context.Context, client network.QubicClient, startTick, nrTicks uint32, epoch uint16) (*prefetchBatch, error) {
 	ctx, span := tracing.Tracer().Start(ctx, "prefetch_batch")
 	defer span.End()
 
-	result, err := client.PrefetchTicks(ctx, startTick, p.prefetchNrTicks)
+	result, err := client.PrefetchTicks(ctx, startTick, nrTicks)
 	if err != nil {
 		return nil, fmt.Errorf("prefetch ticks: %w", err)
 	}

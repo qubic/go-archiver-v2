@@ -58,6 +58,7 @@ func run() error {
 		}
 		Qubic struct {
 			ProcessTickTimeout  time.Duration `conf:"default:5s"`
+			RetryDelay          time.Duration `conf:"default:200ms"` // sleep between processing retries (e.g. waiting for bob indexing)
 			EnableTxStatusAddon bool          `conf:"default:true"`
 			ArbitratorIdentity  string        `conf:"default:AFZPUAIYVPNUYGJRQVLUKOPPVLHAZQTGLYAAUUNBXFTVTAMSBKQBLEIEPCVJ"`
 			OverrideTick        bool          `conf:"default:false"`
@@ -178,6 +179,7 @@ func run() error {
 	tickValidator := validator.NewValidator(arbitratorPubKey, cfg.Qubic.EnableTxStatusAddon)
 	proc := processor.NewProcessor(clientPool, dbPool, tickValidator, processor.Config{
 		ProcessTickTimeout: cfg.Qubic.ProcessTickTimeout,
+		RetryDelay:         cfg.Qubic.RetryDelay,
 		BobClient:          bobClient,
 		PrefetchEnabled:    cfg.Prefetch.Enabled,
 		PrefetchNrTicks:    cfg.Prefetch.NrTicks,
