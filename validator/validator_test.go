@@ -9,6 +9,7 @@ import (
 	"github.com/qubic/go-node-connector/v2/types"
 	"github.com/stretchr/testify/require"
 
+	"github.com/qubic/go-archiver-v2/network/bob"
 	"github.com/qubic/go-archiver-v2/protobuf"
 	"github.com/qubic/go-archiver-v2/validator/computors"
 )
@@ -67,6 +68,9 @@ func (s *stubClient) GetQuorumVotes(_ context.Context, _ uint32) (types.QuorumVo
 func (s *stubClient) GetComputors(_ context.Context) (types.Computors, error) {
 	panic("not implemented")
 }
+func (s *stubClient) PrefetchTicks(_ context.Context, _, _ uint32) (qubic.PrefetchResult, error) {
+	panic("not implemented")
+}
 func (s *stubClient) QuerySmartContract(_ context.Context, _ qubic.RequestContractFunction, _ []byte) (types.SmartContractData, error) {
 	panic("not implemented")
 }
@@ -95,7 +99,7 @@ func (s *stubClient) Close() error {
 func TestValidateTickDataAndTransactions_EmptyTick(t *testing.T) {
 	// When the quorum vote has a zero TxDigest the tick is considered empty and the function
 	// must return immediately with empty-but-non-nil results without calling any client method.
-	v := NewValidator([32]byte{}, false, nil)
+	v := NewValidator([32]byte{}, false)
 
 	emptyVotes := types.QuorumVotes{{TxDigest: [32]byte{}}}
 
@@ -109,7 +113,7 @@ func TestValidateTickDataAndTransactions_EmptyTick(t *testing.T) {
 }
 
 func TestValidateTickDataAndTransactions_GetTickTransactionsError(t *testing.T) {
-	v := NewValidator([32]byte{}, false, nil)
+	v := NewValidator([32]byte{}, false)
 
 	// Non-zero TxDigest so isEmptyTick returns false and the parallel fetch is executed.
 	nonEmptyVotes := types.QuorumVotes{{TxDigest: [32]byte{1}}}
@@ -134,7 +138,7 @@ func TestValidateTickDataAndTransactions_GetTickTransactionsError(t *testing.T) 
 }
 
 func TestValidateTickDataAndTransactions_GetTickDataError(t *testing.T) {
-	v := NewValidator([32]byte{}, false, nil)
+	v := NewValidator([32]byte{}, false)
 
 	nonEmptyVotes := types.QuorumVotes{{TxDigest: [32]byte{1}}}
 
@@ -161,10 +165,11 @@ func TestValidateTransactions_StatusAddonEnabled_GetTxStatusError(t *testing.T) 
 	wantErr := errors.New("connection refused")
 	client := &stubClient{getTxStatusErr: wantErr}
 
-	v := NewValidator([32]byte{}, true, nil)
+	v := NewValidator([32]byte{}, true)
 
 	// Empty tickData has no non-zero TransactionDigests, so tx.Validate returns [] immediately,
-	// allowing the test to reach the getTxStatus call.
-	_, _, err := v.validateTxsAndFetchTxStatus(context.Background(), client, nil, types.TickData{}, 100)
+	// allowing the test to reach the getTxStatus call. bob is not configured, so this exercises
+	// the node GetTxStatus path (bobPrefetched=false).
+	_, _, err := v.computeTxsAndStatus(context.Background(), client, nil, types.TickData{}, 100, bob.TickData{}, false)
 	require.ErrorIs(t, err, wantErr)
 }

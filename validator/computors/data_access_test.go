@@ -285,6 +285,10 @@ func (t *TestClient) GetComputors(_ context.Context) (types.Computors, error) {
 	return t.computors, nil
 }
 
+func (t *TestClient) PrefetchTicks(_ context.Context, _, _ uint32) (qubic.PrefetchResult, error) {
+	panic("implement me")
+}
+
 func (t *TestClient) QuerySmartContract(_ context.Context, _ qubic.RequestContractFunction, _ []byte) (types.SmartContractData, error) {
 	panic("implement me")
 }

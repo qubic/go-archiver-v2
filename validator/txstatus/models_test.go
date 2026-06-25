@@ -1,10 +1,10 @@
 package txstatus
 
 import (
-	"log"
 	"testing"
 
 	"github.com/qubic/go-node-connector/v2/types"
+	"github.com/stretchr/testify/require"
 )
 
 func TestQubicToProto(t *testing.T) {
@@ -26,12 +26,12 @@ func TestQubicToProto(t *testing.T) {
 		},
 	}
 
+	// No transactions are supplied, so every digest is filtered out (a tx must be
+	// present in the tick to get a stored status). The result must be empty, not a
+	// list of statuses with arbitrary moneyFlew bits.
 	res, err := qubicToProto(types.Transactions{}, tickTransactionStatus)
-	if err != nil {
-		t.Fatalf("Got err when converting qubic to proto. err: %s", err.Error())
-	}
-
-	log.Println(res)
+	require.NoError(t, err)
+	require.Empty(t, res.Transactions, "digests with no matching transaction must be filtered out")
 }
 
 func TestEqualSlices(t *testing.T) {

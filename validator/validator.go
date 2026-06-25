@@ -11,6 +11,7 @@ import (
 	"github.com/qubic/go-archiver-v2/network"
 	"github.com/qubic/go-archiver-v2/network/bob"
 	"github.com/qubic/go-archiver-v2/protobuf"
+	"github.com/qubic/go-archiver-v2/tracing"
 	"github.com/qubic/go-archiver-v2/validator/computors"
 	"github.com/qubic/go-archiver-v2/validator/quorum"
 	"github.com/qubic/go-archiver-v2/validator/tick"
@@ -23,27 +24,38 @@ import (
 type Validator struct {
 	arbitratorPubKey   [32]byte
 	statusAddonEnabled bool
-	bobClient          *bob.Client // nil = use node's GetTxStatus for moneyFlew
 }
 
-func NewValidator(arbitratorPubKey [32]byte, enableStatusAddon bool, bobClient *bob.Client) *Validator {
+func NewValidator(arbitratorPubKey [32]byte, enableStatusAddon bool) *Validator {
 	return &Validator{
 		arbitratorPubKey:   arbitratorPubKey,
 		statusAddonEnabled: enableStatusAddon,
-		bobClient:          bobClient,
 	}
+}
+
+// BobTickFetcher returns bob's view of a tick (the executed map) for moneyFlew. The
+// processor injects either a live HTTP-backed fetcher or one serving a prefetched
+// batch from memory.
+type BobTickFetcher interface {
+	FetchTick(ctx context.Context, tick uint32) (bob.TickData, error)
 }
 
 type Clients struct {
 	Main network.QubicClient
 	Alt  network.QubicClient
+	// BobTicks is the bob tx-status source; nil = use the node's GetTxStatus instead.
+	BobTicks BobTickFetcher
 }
 
 func (v *Validator) Validate(ctx context.Context, store *db.PebbleStore, clients Clients, epoch uint16, tickNumber uint32) error {
 
+	ctx, span := tracing.Tracer().Start(ctx, "validate")
+	defer span.End()
+
 	var quorumVotes types.QuorumVotes
 
 	eg, egCtx := errgroup.WithContext(ctx)
+	egCtx, fetchSpan := tracing.Tracer().Start(egCtx, "fetch_quorum_and_systeminfo")
 	eg.Go(func() error {
 		// validate quorum
 		var err error
@@ -71,6 +83,7 @@ func (v *Validator) Validate(ctx context.Context, store *db.PebbleStore, clients
 	})
 
 	err := eg.Wait()
+	fetchSpan.End()
 	if err != nil {
 		return fmt.Errorf("getting quorum votes and/or system info: %w", err)
 	}
@@ -93,7 +106,10 @@ func (v *Validator) Validate(ctx context.Context, store *db.PebbleStore, clients
 		return fmt.Errorf("validating tick data and transactions: %w", err)
 	}
 
-	// store data
+	// store data. store_phase groups the individual store.* spans, which each start
+	// inside their respective Store function.
+	ctx, storeSpan := tracing.Tracer().Start(ctx, "store_phase")
+	defer storeSpan.End()
 
 	err = quorum.Store(ctx, store, tickNumber, alignedVotes)
 	if err != nil {
@@ -125,11 +141,15 @@ func (v *Validator) Validate(ctx context.Context, store *db.PebbleStore, clients
 
 func (v *Validator) validateTickDataAndTransactions(ctx context.Context, alignedVotes types.QuorumVotes, clients Clients, comps computors.Computors, tickNumber uint32) (tickData types.TickData, validTxs []types.Transaction, txStatus *protobuf.TickTransactionsStatus, err error) {
 
+	ctx, span := tracing.Tracer().Start(ctx, "validate_tickdata_and_txs")
+	defer span.End()
+
 	if quorum.IsEmptyTick(alignedVotes) {
 		return types.TickData{}, make([]types.Transaction, 0), &protobuf.TickTransactionsStatus{}, nil
 	}
 
 	eg, egCtx := errgroup.WithContext(ctx)
+	egCtx, fetchSpan := tracing.Tracer().Start(egCtx, "fetch_tickdata_and_transactions")
 
 	eg.Go(func() error {
 		var err error
@@ -150,12 +170,31 @@ func (v *Validator) validateTickDataAndTransactions(ctx context.Context, aligned
 		return nil
 	})
 
+	// When bob is the tx-status source, fetch its tick concurrently: the bob RPC only
+	// needs the tick number, so its round-trip overlaps the node fetches above instead
+	// of running serially after tx validation (and it's served from a prefetched batch
+	// when prefetch is enabled). The cross-check against the node-validated validTxs
+	// happens later in computeTxsAndStatus.
+	var bobTick bob.TickData
+	bobEnabled := v.statusAddonEnabled && clients.BobTicks != nil
+	if bobEnabled {
+		eg.Go(func() error {
+			var err error
+			bobTick, err = clients.BobTicks.FetchTick(egCtx, tickNumber)
+			if err != nil {
+				return fmt.Errorf("fetching bob tick: %w", err)
+			}
+			return nil
+		})
+	}
+
 	err = eg.Wait()
+	fetchSpan.End()
 	if err != nil {
 		return tickData, nil, nil, fmt.Errorf("getting tick data and/or transactions: %w", err)
 	}
 
-	validTxs, txStatus, err = v.validateTxsAndFetchTxStatus(ctx, clients.Main, transactions, tickData, tickNumber)
+	validTxs, txStatus, err = v.computeTxsAndStatus(ctx, clients.Main, transactions, tickData, tickNumber, bobTick, bobEnabled)
 	if err != nil {
 		return tickData, nil, nil, fmt.Errorf("getting valid transactions and txStatus: %w", err)
 	}
@@ -165,6 +204,9 @@ func (v *Validator) validateTickDataAndTransactions(ctx context.Context, aligned
 }
 
 func (v *Validator) validateComputors(ctx context.Context, store *db.PebbleStore, client network.QubicClient, tickNumber, initialTick uint32, epoch uint16, computorPacketSignature uint64) (computors.Computors, error) {
+
+	ctx, span := tracing.Tracer().Start(ctx, "validate_computors")
+	defer span.End()
 
 	comps, err := computors.Get(ctx, store, client, tickNumber, initialTick, epoch, computorPacketSignature)
 	if err != nil {
@@ -206,7 +248,7 @@ func (v *Validator) validateTickData(ctx context.Context, client network.QubicCl
 	return tickData, nil
 }
 
-func (v *Validator) validateTxsAndFetchTxStatus(ctx context.Context, client network.QubicClient, transactions []types.Transaction, tickData types.TickData, tickNumber uint32) ([]types.Transaction, *protobuf.TickTransactionsStatus, error) {
+func (v *Validator) computeTxsAndStatus(ctx context.Context, client network.QubicClient, transactions []types.Transaction, tickData types.TickData, tickNumber uint32, bobTick bob.TickData, bobEnabled bool) ([]types.Transaction, *protobuf.TickTransactionsStatus, error) {
 
 	// keeps all transactions that are in the tick data digests
 	validTxs, err := tx.Validate(ctx, transactions, tickData)
@@ -221,7 +263,7 @@ func (v *Validator) validateTxsAndFetchTxStatus(ctx context.Context, client netw
 	}
 
 	// get tx status only if status addon is enabled
-	tickTxStatus, err := v.getTxStatus(ctx, client, validTxs, tickNumber)
+	tickTxStatus, err := v.getTxStatus(ctx, client, validTxs, tickNumber, bobTick, bobEnabled)
 	if err != nil {
 		return nil, nil, fmt.Errorf("getting tx status: %w", err)
 	}
@@ -236,7 +278,10 @@ func (v *Validator) validateTxsAndFetchTxStatus(ctx context.Context, client netw
 
 }
 
-func (v *Validator) getTxStatus(ctx context.Context, client network.QubicClient, validTxs []types.Transaction, tickNumber uint32) (types.TransactionStatus, error) {
+func (v *Validator) getTxStatus(ctx context.Context, client network.QubicClient, validTxs []types.Transaction, tickNumber uint32, bobTick bob.TickData, bobEnabled bool) (types.TransactionStatus, error) {
+	ctx, span := tracing.Tracer().Start(ctx, "get_tx_status")
+	defer span.End()
+
 	if !v.statusAddonEnabled {
 		return types.TransactionStatus{
 			CurrentTickOfNode:  tickNumber,
@@ -246,8 +291,10 @@ func (v *Validator) getTxStatus(ctx context.Context, client network.QubicClient,
 			TransactionDigests: nil,
 		}, nil
 	}
-	if v.bobClient != nil {
-		return bob.GetMoneyFlew(ctx, v.bobClient, tickNumber, validTxs)
+	if bobEnabled {
+		// bobTick was fetched (live or from the prefetched batch) alongside the node
+		// fetches; the cross-check here is CPU-only.
+		return bob.ComputeMoneyFlew(bobTick, tickNumber, validTxs)
 	}
 	return client.GetTxStatus(ctx, tickNumber)
 }

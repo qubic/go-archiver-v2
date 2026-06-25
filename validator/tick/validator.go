@@ -6,6 +6,7 @@ import (
 	"fmt"
 
 	"github.com/qubic/go-archiver-v2/db"
+	"github.com/qubic/go-archiver-v2/tracing"
 	"github.com/qubic/go-archiver-v2/utils"
 	"github.com/qubic/go-archiver-v2/validator/computors"
 	"github.com/qubic/go-node-connector/v2/types"
@@ -86,6 +87,9 @@ func getFullDigestFromTickData(data types.TickData) ([32]byte, error) {
 }
 
 func Store(ctx context.Context, store *db.PebbleStore, tickNumber uint32, tickData types.TickData) error {
+	ctx, span := tracing.Tracer().Start(ctx, "store.tick")
+	defer span.End()
+
 	protoTickData, err := qubicToProto(tickData)
 	if err != nil {
 		return fmt.Errorf("converting tick data to proto: %w", err)

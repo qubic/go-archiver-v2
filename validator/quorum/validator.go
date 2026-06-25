@@ -10,6 +10,7 @@ import (
 
 	"github.com/qubic/go-archiver-v2/db"
 	"github.com/qubic/go-archiver-v2/protobuf"
+	"github.com/qubic/go-archiver-v2/tracing"
 	"github.com/qubic/go-archiver-v2/utils"
 	"github.com/qubic/go-archiver-v2/validator/computors"
 	"github.com/qubic/go-node-connector/v2/types"
@@ -20,6 +21,9 @@ const EmptyTickMinVoteCount = 226
 
 // Validate validates the quorum votes and if success returns the aligned votes back
 func Validate(ctx context.Context, quorumVotes types.QuorumVotes, computors computors.Computors, targetTickVoteSignature uint32) (types.QuorumVotes, error) {
+	ctx, span := tracing.Tracer().Start(ctx, "quorum.verify_signatures")
+	defer span.End()
+
 	return validateVotes(ctx, quorumVotes, computors, targetTickVoteSignature)
 }
 
@@ -201,6 +205,9 @@ func getDigestFromQuorumTickData(data types.QuorumTickVote) ([32]byte, error) {
 }
 
 func Store(ctx context.Context, store *db.PebbleStore, tickNumber uint32, quorumVotes types.QuorumVotes) error {
+	ctx, span := tracing.Tracer().Start(ctx, "store.quorum")
+	defer span.End()
+
 	protoModel := qubicToProtoStored(quorumVotes)
 
 	err := store.SetQuorumTickData(ctx, tickNumber, protoModel)
