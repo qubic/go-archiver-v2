@@ -229,11 +229,9 @@ func (p *Processor) processOneByOne() (err error) {
 		}
 	}
 
-	if lastProcessedTick.TickNumber >= tickInfo.InitialTick { // no skipped ticks before initial tick
-		err = p.handleTickIntervals(ctx, dataStore, lastProcessedTick, nextTick)
-		if err != nil {
-			return fmt.Errorf("handling skipped ticks: %w", err)
-		}
+	err = p.handleTickIntervals(ctx, dataStore, lastProcessedTick, nextTick)
+	if err != nil {
+		return fmt.Errorf("handling skipped ticks: %w", err)
 	}
 
 	err = p.updateProcessedTick(ctx, dataStore, nextTick)
