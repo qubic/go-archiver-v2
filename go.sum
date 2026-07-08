@@ -85,6 +85,8 @@ github.com/leanovate/gopter v0.2.11 h1:vRjThO1EKPb/1NsDXuDrzldR28RLkBflWYcU9CvzW
 github.com/leanovate/gopter v0.2.11/go.mod h1:aK3tzZP/C+p1m3SPRE4SYZFGP7jjkuSI4f7Xvpt0S9c=
 github.com/linckode/circl v1.3.71 h1:/TQQSpJ6PWtUb9G45trTvM/OtEEzchBN5j7/+KqjR4o=
 github.com/linckode/circl v1.3.71/go.mod h1:dLQ5MZBjeiL72xd7hsKV+MmYrI0m07e/ZFzGB18L4yg=
+github.com/linckode/circl v1.3.72 h1:kDSqu3oOpDMZu+CEYXBAsKeklCJfR14DVAgB5u5vmg8=
+github.com/linckode/circl v1.3.72/go.mod h1:dLQ5MZBjeiL72xd7hsKV+MmYrI0m07e/ZFzGB18L4yg=
 github.com/minio/minlz v1.1.1 h1:OGmft1V6AnI/Wme332U6bhG54nxEan+VFgkD7lat4KM=
 github.com/minio/minlz v1.1.1/go.mod h1:qT0aEB35q79LLornSzeDH75LBf3aH1MV+jB5w9Wasec=
 github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 h1:C3w9PqII01/Oq1c1nUAm88MOHcQC9l5mIlSMApZMrHA=
@@ -106,8 +108,12 @@ github.com/prometheus/procfs v0.20.1 h1:XwbrGOIplXW/AU3YhIhLODXMJYyC1isLFfYCsTEy
 github.com/prometheus/procfs v0.20.1/go.mod h1:o9EMBZGRyvDrSPH1RqdxhojkuXstoe4UlK79eF5TGGo=
 github.com/qubic/go-node-connector/v2 v2.2.0 h1:vE/QWParWtVq9tgX8HmAUbJmrS6juqRDeQrzKVirtoM=
 github.com/qubic/go-node-connector/v2 v2.2.0/go.mod h1:X6gsjPLA0zK+hCK7ZIdCochlT9qy3vdYy2qW5sTGU1Q=
+github.com/qubic/go-node-connector/v2 v2.2.1-0.20260708053729-1261676c288f h1:95DfLAFDp8aXY46fOjqP1UjEV/G2nP89yQW4j7cFVP0=
+github.com/qubic/go-node-connector/v2 v2.2.1-0.20260708053729-1261676c288f/go.mod h1:E7SSfGWbHl/twyAROXYV78Ss3k2g9VWtzoqx21Rbnik=
 github.com/qubic/go-schnorrq v1.1.2 h1:o9P4gjk0ldPHuUVRUeWZX0uN+bO7jo8U6ru6YyAZ/tw=
 github.com/qubic/go-schnorrq v1.1.2/go.mod h1:3jvRZEgoLgEfiuVxsc920+78+2EgmbhrMND9g5jKbls=
+github.com/qubic/go-schnorrq v1.1.3 h1:xJGrFb02GHUGi2PHpGBaPwBU+1SnOwZCujXF8QTlD0o=
+github.com/qubic/go-schnorrq v1.1.3/go.mod h1:AXdwMtrAL2zLFanUbZCS4WudjyB44dNrHMQQe7TtK/8=
 github.com/rogpeppe/go-internal v1.9.0/go.mod h1:WtVeX8xhTBvf0smdhujwtBcq4Qrzq/fJaraNFVN+nFs=
 github.com/rogpeppe/go-internal v1.15.0 h1:D0RCU5rMAp+SpgkiNdrjfJ+LX4J1M32V2NeCY7EJ6hc=
 github.com/rogpeppe/go-internal v1.15.0/go.mod h1:DrUVZyrJU+txYW5/1kwtXQSMFio52ZOxX7yM1VHvnxs=
