@@ -65,7 +65,13 @@ func run() error {
 			StartTick           uint32        `conf:"default:0"`
 			StartEpoch          uint16        `conf:"default:0"`
 			ProcessingEnabled   bool          `conf:"default:true"`
-			BobURL              string
+		}
+		Bob struct {
+			Enabled                bool          `conf:"default:true"`
+			FetcherUrl             string        `conf:"default:http://127.0.0.1:8081/status"`
+			HttpProtocol           string        `conf:"default:http"`
+			HttpPort               string        `conf:"default:40420"`
+			ProviderUpdateInterval time.Duration `conf:"default:10s"`
 		}
 		Prefetch struct {
 			Enabled    bool          `conf:"default:false"`
@@ -171,16 +177,23 @@ func run() error {
 	if err != nil {
 		return fmt.Errorf("calculating arbitrator public key from [%s]: %w", cfg.Qubic.ArbitratorIdentity, err)
 	}
-	var bobClient *bob.Client
-	if cfg.Qubic.BobURL != "" {
-		bobClient = bob.NewClient(cfg.Qubic.BobURL)
-		log.Printf("main: bob backend enabled for moneyFlew at [%s].", cfg.Qubic.BobURL)
+
+	var bobProvider processor.BobClientProvider
+	if cfg.Bob.Enabled {
+		provider := bob.NewProvider(cfg.Bob.FetcherUrl, cfg.Bob.HttpProtocol, cfg.Bob.HttpPort, cfg.Bob.ProviderUpdateInterval)
+		log.Printf("main: bob backend enabled for moneyFlew. [Cfg: %+v].", cfg.Bob)
+
+		bobProviderStop := make(chan interface{})
+		provider.Start(bobProviderStop)
+
+		defer close(bobProviderStop)
+		bobProvider = provider
 	}
 	tickValidator := validator.NewValidator(arbitratorPubKey, cfg.Qubic.EnableTxStatusAddon)
 	proc := processor.NewProcessor(clientPool, dbPool, tickValidator, processor.Config{
 		ProcessTickTimeout: cfg.Qubic.ProcessTickTimeout,
 		RetryDelay:         cfg.Qubic.RetryDelay,
-		BobClient:          bobClient,
+		BobProvider:        bobProvider,
 		PrefetchEnabled:    cfg.Prefetch.Enabled,
 		PrefetchNrTicks:    cfg.Prefetch.NrTicks,
 		PrefetchBobTimeout: cfg.Prefetch.BobTimeout,

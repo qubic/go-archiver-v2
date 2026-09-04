@@ -28,6 +28,13 @@ func (r *recordingValidator) Validate(_ context.Context, _ *db.PebbleStore, _ va
 	return r.err
 }
 
+// stubBobProvider hands out one fixed client, standing in for the real provider's random
+// pick over the instances the fetcher reports. Since the processor takes a client once per
+// iteration, that is all these tests need.
+type stubBobProvider struct{ client *bob.Client }
+
+func (s stubBobProvider) GetClient() (*bob.Client, error) { return s.client, nil }
+
 // bobServer answers GET /status with the given indexing frontier and every
 // qubic_getTickByNumber with an empty transaction list (bob.FetchTick succeeds for any
 // tick; the recording validator ignores the data).
@@ -40,7 +47,7 @@ func bobServer(t *testing.T, indexingTick uint32) (*bob.Client, func()) {
 		}
 		_, _ = w.Write([]byte(`{"jsonrpc":"2.0","id":1,"result":{"transactions":[]}}`))
 	}))
-	return bob.NewClient(srv.URL), srv.Close
+	return bob.NewClient(srv.Client(), srv.URL), srv.Close
 }
 
 // emptyBobServer reports an indexing frontier far ahead so the indexing gate never trips;
@@ -75,7 +82,7 @@ func TestProcessor_prefetchServesBatchFromCacheThenReprefetches(t *testing.T) {
 	rv := &recordingValidator{}
 	proc := NewProcessor(pool, dataPool, rv, Config{
 		ProcessTickTimeout: time.Second,
-		BobClient:          bobClient,
+		BobProvider:        stubBobProvider{client: bobClient},
 		PrefetchEnabled:    true,
 		PrefetchNrTicks:    nrTicks,
 	}, dummyMetrics)
@@ -119,7 +126,7 @@ func blockingBobServer(t *testing.T, blockTick uint32) (*bob.Client, func()) {
 		}
 		_, _ = w.Write([]byte(`{"jsonrpc":"2.0","id":1,"result":{"transactions":[]}}`))
 	}))
-	return bob.NewClient(srv.URL), srv.Close
+	return bob.NewClient(srv.Client(), srv.URL), srv.Close
 }
 
 func TestProcessor_prefetchFailsFastWhenOneBobTickHangs(t *testing.T) {
@@ -137,7 +144,7 @@ func TestProcessor_prefetchFailsFastWhenOneBobTickHangs(t *testing.T) {
 	rv := &recordingValidator{}
 	proc := NewProcessor(pool, dataPool, rv, Config{
 		ProcessTickTimeout: 5 * time.Second, // generous: must NOT be what bounds the failure
-		BobClient:          bobClient,
+		BobProvider:        stubBobProvider{client: bobClient},
 		PrefetchEnabled:    true,
 		PrefetchNrTicks:    nrTicks,
 		PrefetchBobTimeout: 100 * time.Millisecond,
@@ -186,7 +193,7 @@ func TestProcessor_prefetchClampsToNodeTip(t *testing.T) {
 	rv := &recordingValidator{}
 	proc := NewProcessor(pool, dataPool, rv, Config{
 		ProcessTickTimeout: time.Second,
-		BobClient:          bobClient,
+		BobProvider:        stubBobProvider{client: bobClient},
 		PrefetchEnabled:    true,
 		PrefetchNrTicks:    5,
 	}, dummyMetrics)
@@ -214,7 +221,7 @@ func TestProcessor_prefetchClampsToBobIndexingFrontier(t *testing.T) {
 	rv := &recordingValidator{}
 	proc := NewProcessor(pool, dataPool, rv, Config{
 		ProcessTickTimeout: time.Second,
-		BobClient:          bobClient,
+		BobProvider:        stubBobProvider{client: bobClient},
 		PrefetchEnabled:    true,
 		PrefetchNrTicks:    5,
 	}, dummyMetrics)
@@ -241,7 +248,7 @@ func TestProcessor_idleWhenNextTickBeyondIndexing(t *testing.T) {
 	rv := &recordingValidator{}
 	proc := NewProcessor(pool, dataPool, rv, Config{
 		ProcessTickTimeout: time.Second,
-		BobClient:          bobClient,
+		BobProvider:        stubBobProvider{client: bobClient},
 		PrefetchEnabled:    true,
 		PrefetchNrTicks:    5,
 	}, dummyMetrics)

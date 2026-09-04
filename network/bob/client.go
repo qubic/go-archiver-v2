@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"time"
 
 	"github.com/qubic/go-archiver-v2/tracing"
 	"go.opentelemetry.io/otel/attribute"
@@ -17,17 +16,17 @@ import (
 
 // Client is an HTTP client for bob's JSON-RPC 2.0 API.
 type Client struct {
-	baseURL    string
 	httpClient *http.Client
+
+	bobAddress string
 }
 
 // NewClient creates a new bob HTTP client.
-func NewClient(baseURL string) *Client {
+func NewClient(httpClient *http.Client, bobAddress string) *Client {
+
 	return &Client{
-		baseURL: baseURL,
-		httpClient: &http.Client{
-			Timeout: 30 * time.Second,
-		},
+		httpClient: httpClient,
+		bobAddress: bobAddress,
 	}
 }
 
@@ -54,7 +53,8 @@ func (c *Client) GetStatus(ctx context.Context) (Status, error) {
 }
 
 func (c *Client) getStatus(ctx context.Context) (Status, error) {
-	req, err := http.NewRequestWithContext(ctx, "GET", c.baseURL+"/status", nil)
+
+	req, err := http.NewRequestWithContext(ctx, "GET", c.bobAddress+"/status", nil)
 	if err != nil {
 		return Status{}, fmt.Errorf("creating status request: %w", err)
 	}
@@ -128,7 +128,7 @@ func (c *Client) rpcCall(ctx context.Context, method string, params interface{})
 		return nil, fmt.Errorf("marshalling RPC request: %w", err)
 	}
 
-	req, err := http.NewRequestWithContext(ctx, "POST", c.baseURL+"/qubic", bytes.NewReader(body))
+	req, err := http.NewRequestWithContext(ctx, "POST", c.bobAddress+"/qubic", bytes.NewReader(body))
 	if err != nil {
 		return nil, fmt.Errorf("creating RPC request: %w", err)
 	}

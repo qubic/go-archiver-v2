@@ -44,17 +44,21 @@ type Processor struct {
 	startFromCurrentTick bool
 	metrics              *metrics.ProcessingMetrics
 
-	bobClient       *bob.Client
+	bobProvider     BobClientProvider
 	prefetchEnabled bool
 	prefetchNrTicks uint32
 	bobFetchTimeout time.Duration
 	currentBatch    *prefetchBatch
 }
 
+type BobClientProvider interface {
+	GetClient() (*bob.Client, error)
+}
+
 type Config struct {
 	ProcessTickTimeout time.Duration
 	RetryDelay         time.Duration
-	BobClient          *bob.Client
+	BobProvider        BobClientProvider
 	PrefetchEnabled    bool
 	PrefetchNrTicks    uint32
 	PrefetchBobTimeout time.Duration
@@ -73,7 +77,7 @@ func NewProcessor(clientPool network.QubicClientPool, dbPool *db.DatabasePool, t
 		tickValidator:      tickValidator,
 		tickStatus:         &TickStatus{},
 		metrics:            metrics,
-		bobClient:          config.BobClient,
+		bobProvider:        config.BobProvider,
 		prefetchEnabled:    config.PrefetchEnabled,
 		prefetchNrTicks:    config.PrefetchNrTicks,
 		bobFetchTimeout:    config.PrefetchBobTimeout,
@@ -183,16 +187,24 @@ func (p *Processor) processOneByOne() (err error) {
 		return fmt.Errorf("tick not ready ([%d] aligned votes)", tickInfo.NumberOfAlignedVotes)
 	}
 
+	var bobClient *bob.Client
+	if p.bobProvider != nil {
+		bobClient, err = p.bobProvider.GetClient()
+		if err != nil {
+			return fmt.Errorf("getting bob client: %w", err)
+		}
+	}
+
 	// Gate on bob's indexing frontier: bob serves a premature executed=false for ticks it
 	// has fetched but not yet indexed, so never consume bob beyond min(node tick,
 	// currentIndexingTick-1). A cached batch was already gated at build time and the
 	// ceiling only rises, so cache hits skip the /status round-trip and stay valid.
 	ceiling := tickInfo.Tick
 	var bobIndexingTick uint32
-	useBob := p.bobClient != nil
+	useBob := bobClient != nil
 	cachedHit := p.prefetchEnabled && useBob && p.currentBatch.covers(nextTick.TickNumber, tickInfo.Epoch)
 	if useBob && !cachedHit {
-		st, serr := p.bobClient.GetStatus(ctx)
+		st, serr := bobClient.GetStatus(ctx)
 		if serr != nil {
 			err = fmt.Errorf("getting bob status: %w", serr)
 			return err
@@ -212,19 +224,19 @@ func (p *Processor) processOneByOne() (err error) {
 
 	// Prefetch fast path: serve this tick (and the next nrTicks-1) from one pipelined
 	// batch when possible; otherwise fall back to the live single-tick path.
-	if p.prefetchEnabled && p.bobClient != nil {
-		served, pErr := p.processFromPrefetch(ctx, client, dataStore, tickInfo, nextTick, ceiling, bobIndexingTick)
+	if p.prefetchEnabled && useBob {
+		served, pErr := p.processFromPrefetch(ctx, client, bobClient, dataStore, tickInfo, nextTick, ceiling, bobIndexingTick)
 		if pErr != nil {
 			err = pErr
 			return err
 		}
 		if !served {
-			if err = p.validateLive(ctx, client, dataStore, tickInfo, nextTick); err != nil {
+			if err = p.validateLive(ctx, client, bobClient, dataStore, tickInfo, nextTick); err != nil {
 				return err
 			}
 		}
 	} else {
-		if err = p.validateLive(ctx, client, dataStore, tickInfo, nextTick); err != nil {
+		if err = p.validateLive(ctx, client, bobClient, dataStore, tickInfo, nextTick); err != nil {
 			return err
 		}
 	}
@@ -251,7 +263,7 @@ func (p *Processor) processOneByOne() (err error) {
 // ceiling so it never reads bob past the indexed frontier. It returns served=false (with
 // no error) when a prefetched tick fails validation, so the caller falls back to the live
 // path. A non-nil error is a prefetch-infrastructure failure that should abort the iteration.
-func (p *Processor) processFromPrefetch(ctx context.Context, client network.QubicClient, dataStore *db.PebbleStore, tickInfo types.TickInfo, nextTick *protobuf.ProcessedTick, ceiling, bobIndexingTick uint32) (served bool, err error) {
+func (p *Processor) processFromPrefetch(ctx context.Context, client network.QubicClient, bobClient *bob.Client, dataStore *db.PebbleStore, tickInfo types.TickInfo, nextTick *protobuf.ProcessedTick, ceiling, bobIndexingTick uint32) (served bool, err error) {
 	epoch := tickInfo.Epoch
 	if !p.currentBatch.covers(nextTick.TickNumber, epoch) {
 		// Clamp the batch so it never reads bob past the ceiling (bob's indexing frontier):
@@ -264,7 +276,7 @@ func (p *Processor) processFromPrefetch(ctx context.Context, client network.Qubi
 		}
 		log.Printf("Prefetch batch [%d..%d] (%d ticks). Node tick [%d], bob indexing tick [%d].",
 			nextTick.TickNumber, nextTick.TickNumber+nrTicks-1, nrTicks, tickInfo.Tick, bobIndexingTick)
-		batch, bErr := p.prefetchBatch(ctx, client, nextTick.TickNumber, nrTicks, epoch)
+		batch, bErr := p.prefetchBatch(ctx, client, bobClient, nextTick.TickNumber, nrTicks, epoch)
 		if bErr != nil {
 			return false, fmt.Errorf("prefetching batch at tick %d: %w", nextTick.TickNumber, bErr)
 		}
@@ -304,7 +316,7 @@ func bobCeiling(nodeTick, indexingTick uint32) uint32 {
 // prefetchBatch pipelines the node responses for [startTick, startTick+nrTicks) and,
 // in parallel, fetches bob's tx status for each of those ticks. nrTicks is clamped by the
 // caller to bob's indexing frontier, so it can be smaller than the configured size.
-func (p *Processor) prefetchBatch(ctx context.Context, client network.QubicClient, startTick, nrTicks uint32, epoch uint16) (*prefetchBatch, error) {
+func (p *Processor) prefetchBatch(ctx context.Context, client network.QubicClient, bobClient *bob.Client, startTick, nrTicks uint32, epoch uint16) (*prefetchBatch, error) {
 	ctx, span := tracing.Tracer().Start(ctx, "prefetch_batch")
 	defer span.End()
 
@@ -333,7 +345,7 @@ func (p *Processor) prefetchBatch(ctx context.Context, client network.QubicClien
 			}
 			defer fcancel()
 
-			bt, err := bob.FetchTick(fctx, p.bobClient, tick)
+			bt, err := bob.FetchTick(fctx, bobClient, tick)
 			if err != nil {
 				return fmt.Errorf("bob fetch tick %d: %w", tick, err)
 			}
@@ -353,7 +365,7 @@ func (p *Processor) prefetchBatch(ctx context.Context, client network.QubicClien
 // validateLive runs the validator against live node connections (the normal,
 // non-prefetch path). It acquires the second connection lazily, since the prefetch
 // path doesn't need it.
-func (p *Processor) validateLive(ctx context.Context, client network.QubicClient, dataStore *db.PebbleStore, tickInfo types.TickInfo, nextTick *protobuf.ProcessedTick) (err error) {
+func (p *Processor) validateLive(ctx context.Context, client network.QubicClient, bobClient *bob.Client, dataStore *db.PebbleStore, tickInfo types.TickInfo, nextTick *protobuf.ProcessedTick) (err error) {
 	rawAltClient, err := p.clientPool.Get()
 	if err != nil {
 		return fmt.Errorf("getting 2nd client connection: %w", err)
@@ -364,8 +376,8 @@ func (p *Processor) validateLive(ctx context.Context, client network.QubicClient
 	alternativeClient := network.NewTracingQubicClient(rawAltClient)
 
 	var bobSource validator.BobTickFetcher
-	if p.bobClient != nil {
-		bobSource = liveBobFetcher{client: p.bobClient}
+	if bobClient != nil {
+		bobSource = liveBobFetcher{client: bobClient}
 	}
 
 	clients := validator.Clients{Main: client, Alt: alternativeClient, BobTicks: bobSource}
