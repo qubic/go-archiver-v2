@@ -18,15 +18,127 @@ var ErrNotFound = errors.New("store resource not found")
 
 type PebbleStore struct {
 	db *pebble.DB
+
+	// batch, when set, makes this store a view that collects every write in one indexed
+	// batch (reads see the pending writes) until CommitBatch. See BeginBatch.
+	batch     *pebble.Batch
+	batchDone bool
 }
+
+var errBatchDone = errors.New("store batch already committed or discarded")
 
 func NewPebbleStore(db *pebble.DB) *PebbleStore {
 	return &PebbleStore{db: db}
 }
 
+// BeginBatch returns a view of the store whose writes are collected in a single indexed
+// batch instead of being written (and fsynced) one by one. Reads through the view see the
+// pending writes. Nothing reaches the database until CommitBatch, which applies all writes
+// atomically with one fsync. DiscardBatch must always be called to release the batch.
+func (s *PebbleStore) BeginBatch() *PebbleStore {
+	return &PebbleStore{db: s.db, batch: s.db.NewIndexedBatch()}
+}
+
+// CommitBatch atomically applies the writes of a store returned by BeginBatch, syncing the
+// WAL once.
+func (s *PebbleStore) CommitBatch() error {
+	if s.batchDone {
+		return errBatchDone
+	}
+	if s.batch == nil {
+		return errors.New("store is not a batch")
+	}
+	s.batchDone = true
+	if err := s.batch.Commit(pebble.Sync); err != nil {
+		return fmt.Errorf("committing batch: %w", err)
+	}
+	return nil
+}
+
+// DiscardBatch releases the batch of a store returned by BeginBatch. Uncommitted writes are
+// dropped. Safe to call after CommitBatch and more than once.
+func (s *PebbleStore) DiscardBatch() {
+	if s.batch == nil {
+		return
+	}
+	s.batchDone = true
+	_ = s.batch.Close()
+	s.batch = nil
+}
+
+func (s *PebbleStore) reader() pebble.Reader {
+	if s.batch != nil {
+		return s.batch
+	}
+	return s.db
+}
+
+func (s *PebbleStore) set(key, value []byte) error {
+	if s.batchDone {
+		return errBatchDone
+	}
+	if s.batch != nil {
+		return s.batch.Set(key, value, nil)
+	}
+	return s.db.Set(key, value, pebble.Sync)
+}
+
+func (s *PebbleStore) delete(key []byte) error {
+	if s.batchDone {
+		return errBatchDone
+	}
+	if s.batch != nil {
+		return s.batch.Delete(key, nil)
+	}
+	return s.db.Delete(key, pebble.Sync)
+}
+
+// writeBatch groups the writes of one store method. On a plain store it is its own batch,
+// committed with a sync; on a store returned by BeginBatch it writes into that batch and
+// its Commit is a no-op.
+type writeBatch struct {
+	b     *pebble.Batch
+	owned bool
+	done  bool
+}
+
+func (s *PebbleStore) newWriteBatch(size int) *writeBatch {
+	if s.batchDone {
+		return &writeBatch{done: true}
+	}
+	if s.batch != nil {
+		return &writeBatch{b: s.batch}
+	}
+	return &writeBatch{b: s.db.NewBatchWithSize(size), owned: true}
+}
+
+func (w *writeBatch) Set(key, value []byte, _ *pebble.WriteOptions) error {
+	if w.done {
+		return errBatchDone
+	}
+	return w.b.Set(key, value, nil)
+}
+
+func (w *writeBatch) Commit(_ *pebble.WriteOptions) error {
+	if w.done {
+		return errBatchDone
+	}
+	if !w.owned {
+		return nil
+	}
+	return w.b.Commit(pebble.Sync)
+}
+
+func (w *writeBatch) Close() error {
+	if !w.owned {
+		return nil
+	}
+	return w.b.Close()
+}
+
 func (s *PebbleStore) GetTickData(_ context.Context, tickNumber uint32) (*protobuf.TickData, error) {
 	key := tickDataKey(tickNumber)
-	value, closer, err := s.db.Get(key)
+	value, closer, err := s.reader().Get(key)
 	if err != nil {
 		if errors.Is(err, pebble.ErrNotFound) {
 			return nil, ErrNotFound
@@ -51,7 +163,7 @@ func (s *PebbleStore) SetTickData(_ context.Context, tickNumber uint32, td *prot
 		return fmt.Errorf("serializing td proto: %w", err)
 	}
 
-	err = s.db.Set(key, serialized, pebble.Sync)
+	err = s.set(key, serialized)
 	if err != nil {
 		return fmt.Errorf("setting tick data: %w", err)
 	}
@@ -66,7 +178,7 @@ func (s *PebbleStore) SetQuorumTickData(_ context.Context, tickNumber uint32, qt
 		return fmt.Errorf("serializing qtdV2 proto: %w", err)
 	}
 
-	err = s.db.Set(key, serialized, pebble.Sync)
+	err = s.set(key, serialized)
 	if err != nil {
 		return fmt.Errorf("setting quorum tick data: %w", err)
 	}
@@ -76,7 +188,7 @@ func (s *PebbleStore) SetQuorumTickData(_ context.Context, tickNumber uint32, qt
 
 func (s *PebbleStore) GetQuorumTickData(_ context.Context, tickNumber uint32) (*protobuf.QuorumTickDataStored, error) {
 	key := quorumTickDataKey(tickNumber)
-	value, closer, err := s.db.Get(key)
+	value, closer, err := s.reader().Get(key)
 	if err != nil {
 		if errors.Is(err, pebble.ErrNotFound) {
 			return nil, ErrNotFound
@@ -97,7 +209,7 @@ func (s *PebbleStore) GetQuorumTickData(_ context.Context, tickNumber uint32) (*
 func (s *PebbleStore) GetComputors(_ context.Context, epoch uint32) (*protobuf.ComputorsList, error) {
 	key := computorsKey(epoch)
 
-	value, closer, err := s.db.Get(key)
+	value, closer, err := s.reader().Get(key)
 	if err != nil {
 		if errors.Is(err, pebble.ErrNotFound) {
 			return nil, ErrNotFound
@@ -122,7 +234,7 @@ func (s *PebbleStore) SetComputors(_ context.Context, epoch uint32, computors *p
 		return fmt.Errorf("serializing computors proto: %w", err)
 	}
 
-	err = s.db.Set(key, serialized, pebble.Sync)
+	err = s.set(key, serialized)
 	if err != nil {
 		return fmt.Errorf("setting computors: %w", err)
 	}
@@ -131,7 +243,7 @@ func (s *PebbleStore) SetComputors(_ context.Context, epoch uint32, computors *p
 }
 
 func (s *PebbleStore) SetTransactions(_ context.Context, txs []*protobuf.Transaction) error {
-	batch := s.db.NewBatchWithSize(len(txs))
+	batch := s.newWriteBatch(len(txs))
 	defer batch.Close()
 
 	for _, tx := range txs {
@@ -219,7 +331,7 @@ func (s *PebbleStore) GetTransaction(_ context.Context, txID string) (*protobuf.
 		return nil, fmt.Errorf("getting tx key: %w", err)
 	}
 
-	value, closer, err := s.db.Get(key)
+	value, closer, err := s.reader().Get(key)
 	if err != nil {
 		if errors.Is(err, pebble.ErrNotFound) {
 			return nil, ErrNotFound
@@ -263,7 +375,7 @@ func (s *PebbleStore) SetLastProcessedTickAndUpdateTickIntervals(ctx context.Con
 }
 
 func (s *PebbleStore) SetLastProcessedTick(_ context.Context, lastProcessedTick *protobuf.ProcessedTick) error {
-	batch := s.db.NewBatch()
+	batch := s.newWriteBatch(0)
 	defer batch.Close()
 
 	key := lastProcessedTickKeyPerEpoch(lastProcessedTick.Epoch)
@@ -296,7 +408,7 @@ func (s *PebbleStore) SetLastProcessedTick(_ context.Context, lastProcessedTick 
 
 func (s *PebbleStore) GetLastProcessedTick(_ context.Context) (*protobuf.ProcessedTick, error) {
 	key := lastProcessedTickKey()
-	value, closer, err := s.db.Get(key)
+	value, closer, err := s.reader().Get(key)
 	if err != nil {
 		if errors.Is(err, pebble.ErrNotFound) {
 			return nil, ErrNotFound
@@ -316,7 +428,7 @@ func (s *PebbleStore) GetLastProcessedTick(_ context.Context) (*protobuf.Process
 
 func (s *PebbleStore) GetLastProcessedTicksPerEpoch(_ context.Context) (map[uint32]uint32, error) {
 	upperBound := append([]byte{LastProcessedTickPerEpoch}, []byte(strconv.FormatUint(maxTickNumber, 10))...)
-	iter, err := s.db.NewIter(&pebble.IterOptions{
+	iter, err := s.reader().NewIter(&pebble.IterOptions{
 		LowerBound: []byte{LastProcessedTickPerEpoch},
 		UpperBound: upperBound,
 	})
@@ -361,7 +473,7 @@ func (s *PebbleStore) GetLastProcessedTicksPerEpoch(_ context.Context) (map[uint
 //		return fmt.Errorf("serializing skipped tick proto: %w", err)
 //	}
 //
-//	err = s.db.Set(key, serialized, pebble.Sync)
+//	err = s.set(key, serialized)
 //	if err != nil {
 //		return fmt.Errorf("setting skipped tick interval: %w", err)
 //	}
@@ -371,7 +483,7 @@ func (s *PebbleStore) GetLastProcessedTicksPerEpoch(_ context.Context) (map[uint
 
 //func (s *PebbleStore) GetSkippedTicksInterval(_ context.Context) (*protobuf.SkippedTicksIntervalList, error) {
 //	key := skippedTicksIntervalKey()
-//	value, closer, err := s.db.Get(key)
+//	value, closer, err := s.reader().Get(key)
 //	if err != nil {
 //		if errors.Is(err, pebble.ErrNotFound) {
 //			return nil, ErrNotFound
@@ -397,7 +509,7 @@ func (s *PebbleStore) GetLastProcessedTicksPerEpoch(_ context.Context) (map[uint
 //		return fmt.Errorf("serializing tx proto: %w", err)
 //	}
 //
-//	err = s.db.Set(key, serialized, pebble.Sync)
+//	err = s.set(key, serialized)
 //	if err != nil {
 //		return fmt.Errorf("setting transfer tx: %w", err)
 //	}
@@ -437,7 +549,7 @@ type Filterable struct {
 //	transferTxs = make([]*protobuf.TransferTransactionsPerTick, 0, min(page.Size, 1000))
 //
 //	partialKey := identityTransferTransactions(identity)
-//	iter, err := s.db.NewIter(&pebble.IterOptions{
+//	iter, err := s.reader().NewIter(&pebble.IterOptions{
 //		LowerBound: binary.BigEndian.AppendUint64(partialKey, startTick),
 //		UpperBound: binary.BigEndian.AppendUint64(partialKey, endTick+1),
 //	})
@@ -515,7 +627,7 @@ type Filterable struct {
 func (s *PebbleStore) PutChainDigest(_ context.Context, tickNumber uint32, digest []byte) error {
 	key := chainDigestKey(tickNumber)
 
-	err := s.db.Set(key, digest, pebble.Sync)
+	err := s.set(key, digest)
 	if err != nil {
 		return fmt.Errorf("setting chain digest: %w", err)
 	}
@@ -525,7 +637,7 @@ func (s *PebbleStore) PutChainDigest(_ context.Context, tickNumber uint32, diges
 
 func (s *PebbleStore) GetChainDigest(_ context.Context, tickNumber uint32) ([]byte, error) {
 	key := chainDigestKey(tickNumber)
-	value, closer, err := s.db.Get(key)
+	value, closer, err := s.reader().Get(key)
 	if err != nil {
 		if errors.Is(err, pebble.ErrNotFound) {
 			return nil, ErrNotFound
@@ -541,7 +653,7 @@ func (s *PebbleStore) GetChainDigest(_ context.Context, tickNumber uint32) ([]by
 func (s *PebbleStore) PutStoreDigest(_ context.Context, tickNumber uint32, digest []byte) error {
 	key := storeDigestKey(tickNumber)
 
-	err := s.db.Set(key, digest, pebble.Sync)
+	err := s.set(key, digest)
 	if err != nil {
 		return fmt.Errorf("setting chain digest: %w", err)
 	}
@@ -551,7 +663,7 @@ func (s *PebbleStore) PutStoreDigest(_ context.Context, tickNumber uint32, diges
 
 func (s *PebbleStore) GetStoreDigest(_ context.Context, tickNumber uint32) ([]byte, error) {
 	key := storeDigestKey(tickNumber)
-	value, closer, err := s.db.Get(key)
+	value, closer, err := s.reader().Get(key)
 	if err != nil {
 		if errors.Is(err, pebble.ErrNotFound) {
 			return nil, ErrNotFound
@@ -566,7 +678,7 @@ func (s *PebbleStore) GetStoreDigest(_ context.Context, tickNumber uint32) ([]by
 
 func (s *PebbleStore) GetTickTransactionsStatus(_ context.Context, tickNumber uint64) (*protobuf.TickTransactionsStatus, error) {
 	key := tickTxStatusKey(tickNumber)
-	value, closer, err := s.db.Get(key)
+	value, closer, err := s.reader().Get(key)
 	if err != nil {
 		if errors.Is(err, pebble.ErrNotFound) {
 			return nil, ErrNotFound
@@ -586,7 +698,7 @@ func (s *PebbleStore) GetTickTransactionsStatus(_ context.Context, tickNumber ui
 
 func (s *PebbleStore) GetTransactionStatus(_ context.Context, txID string) (*protobuf.TransactionStatus, error) {
 	key := txStatusKey(txID)
-	value, closer, err := s.db.Get(key)
+	value, closer, err := s.reader().Get(key)
 	if err != nil {
 		if errors.Is(err, pebble.ErrNotFound) {
 			return nil, ErrNotFound
@@ -606,7 +718,7 @@ func (s *PebbleStore) GetTransactionStatus(_ context.Context, txID string) (*pro
 
 func (s *PebbleStore) SetTickTransactionsStatus(_ context.Context, tickNumber uint64, tts *protobuf.TickTransactionsStatus) error {
 	key := tickTxStatusKey(tickNumber)
-	batch := s.db.NewBatchWithSize(len(tts.Transactions) + 1)
+	batch := s.newWriteBatch(len(tts.Transactions) + 1)
 	defer batch.Close()
 
 	serialized, err := proto.Marshal(tts)
@@ -643,7 +755,7 @@ func (s *PebbleStore) SetTickTransactionsStatus(_ context.Context, tickNumber ui
 
 func (s *PebbleStore) GetProcessedTickIntervalsPerEpoch(_ context.Context, epoch uint32) (*protobuf.ProcessedTickIntervalsPerEpoch, error) {
 	key := processedTickIntervalsPerEpochKey(epoch)
-	value, closer, err := s.db.Get(key)
+	value, closer, err := s.reader().Get(key)
 	if err != nil {
 		if errors.Is(err, pebble.ErrNotFound) {
 			return &protobuf.ProcessedTickIntervalsPerEpoch{Intervals: make([]*protobuf.ProcessedTickInterval, 0), Epoch: epoch}, nil
@@ -668,7 +780,7 @@ func (s *PebbleStore) SetProcessedTickIntervalPerEpoch(_ context.Context, epoch 
 		return fmt.Errorf("serializing ptie proto: %w", err)
 	}
 
-	err = s.db.Set(key, serialized, pebble.Sync)
+	err = s.set(key, serialized)
 	if err != nil {
 		return fmt.Errorf("setting ptie: %w", err)
 	}
@@ -695,7 +807,7 @@ func (s *PebbleStore) AppendProcessedTickInterval(ctx context.Context, epoch uin
 // not needed anymore because we only store data for one epoch and this method returns for several epochs
 //func (s *PebbleStore) GetProcessedTickIntervalsPerEpoch(_ context.Context) ([]*protobuf.ProcessedTickIntervalsPerEpoch, error) {
 //	upperBound := append([]byte{ProcessedTickIntervals}, []byte(strconv.FormatUint(maxTickNumber, 10))...)
-//	iter, err := s.db.NewIter(&pebble.IterOptions{
+//	iter, err := s.reader().NewIter(&pebble.IterOptions{
 //		LowerBound: []byte{ProcessedTickIntervals},
 //		UpperBound: upperBound,
 //	})
@@ -733,7 +845,7 @@ func (s *PebbleStore) SetEmptyTicksForEpoch(epoch uint32, emptyTicksCount uint32
 	value := make([]byte, 4)
 	binary.LittleEndian.PutUint32(value, emptyTicksCount)
 
-	err := s.db.Set(key, value, pebble.Sync)
+	err := s.set(key, value)
 	if err != nil {
 		return fmt.Errorf("saving empty ticksfor epoch %d: %w", epoch, err)
 	}
@@ -743,7 +855,7 @@ func (s *PebbleStore) SetEmptyTicksForEpoch(epoch uint32, emptyTicksCount uint32
 func (s *PebbleStore) GetEmptyTicksForEpoch(epoch uint32) (uint32, error) {
 	key := emptyTicksPerEpochKey(epoch)
 
-	value, closer, err := s.db.Get(key)
+	value, closer, err := s.reader().Get(key)
 	if err != nil {
 		if errors.Is(err, pebble.ErrNotFound) {
 			return 0, err
@@ -760,7 +872,7 @@ func (s *PebbleStore) GetEmptyTicksForEpoch(epoch uint32) (uint32, error) {
 
 func (s *PebbleStore) GetEmptyTicksForEpochs(firstEpoch, lastEpoch uint32) (map[uint32]uint32, error) {
 
-	iter, err := s.db.NewIter(&pebble.IterOptions{
+	iter, err := s.reader().NewIter(&pebble.IterOptions{
 		LowerBound: emptyTicksPerEpochKey(firstEpoch),
 		UpperBound: emptyTicksPerEpochKey(lastEpoch + 1), // Increment as upper bound is exclusive
 	})
@@ -791,7 +903,7 @@ func (s *PebbleStore) GetEmptyTicksForEpochs(firstEpoch, lastEpoch uint32) (map[
 func (s *PebbleStore) DeleteEmptyTicksKeyForEpoch(epoch uint32) error {
 	key := emptyTicksPerEpochKey(epoch)
 
-	err := s.db.Delete(key, pebble.Sync)
+	err := s.delete(key)
 	if err != nil {
 		return fmt.Errorf("deleting empty ticks for epoch %d: %w", epoch, err)
 	}
@@ -807,7 +919,7 @@ func (s *PebbleStore) SetLastTickQuorumDataPerEpochIntervals(epoch uint32, lastQ
 		return fmt.Errorf("serializing last quorum data per epoch intervals for epoch %d: %w", epoch, err)
 	}
 
-	err = s.db.Set(key, value, pebble.Sync)
+	err = s.set(key, value)
 	if err != nil {
 		return fmt.Errorf("setting last quorum data for epoch %d: %w", epoch, err)
 	}
@@ -817,7 +929,7 @@ func (s *PebbleStore) SetLastTickQuorumDataPerEpochIntervals(epoch uint32, lastQ
 func (s *PebbleStore) GetLastTickQuorumDataListPerEpochInterval(epoch uint32) (*protobuf.LastTickQuorumDataPerEpochIntervals, error) {
 	key := lastTickQuorumDataPerEpochIntervalKey(epoch)
 
-	value, closer, err := s.db.Get(key)
+	value, closer, err := s.reader().Get(key)
 	if err != nil {
 		if errors.Is(err, pebble.ErrNotFound) {
 			return &protobuf.LastTickQuorumDataPerEpochIntervals{
@@ -872,7 +984,7 @@ func (s *PebbleStore) SetEmptyTickListPerEpoch(epoch uint32, emptyTicks []uint32
 		binary.LittleEndian.PutUint32(value[index*4:index*4+4], tickNumber)
 	}
 
-	err := s.db.Set(key, value, pebble.Sync)
+	err := s.set(key, value)
 	if err != nil {
 		return fmt.Errorf("saving empty tick list for epoch %d: %w", epoch, err)
 	}
@@ -882,7 +994,7 @@ func (s *PebbleStore) SetEmptyTickListPerEpoch(epoch uint32, emptyTicks []uint32
 func (s *PebbleStore) GetEmptyTickListPerEpoch(epoch uint32) ([]uint32, error) {
 	key := emptyTickListPerEpochKey(epoch)
 
-	value, closer, err := s.db.Get(key)
+	value, closer, err := s.reader().Get(key)
 	if err != nil {
 		if errors.Is(err, pebble.ErrNotFound) {
 			return nil, err
@@ -926,7 +1038,7 @@ func (s *PebbleStore) GetEmptyTickListPerEpoch(epoch uint32) ([]uint32, error) {
 //func (s *PebbleStore) DeleteEmptyTickListKeyForEpoch(epoch uint32) error {
 //	key := emptyTickListPerEpochKey(epoch)
 //
-//	err := s.db.Delete(key, pebble.Sync)
+//	err := s.delete(key)
 //	if err != nil {
 //		return fmt.Errorf("deleting empty tick list key for epoch %d: %w", epoch, err)
 //	}
@@ -942,7 +1054,7 @@ func (s *PebbleStore) SetTargetTickVoteSignatureList(epoch uint32, targetTickVot
 		return fmt.Errorf("marshalling target tick vote signature list for epoch %d: %w", epoch, err)
 	}
 
-	err = s.db.Set(key, data, pebble.Sync)
+	err = s.set(key, data)
 	if err != nil {
 		return fmt.Errorf("saving target tick vote signature list for epoch %d: %w", epoch, err)
 	}
@@ -954,7 +1066,7 @@ func (s *PebbleStore) GetTargetTickVoteSignatureList(epoch uint32) (*protobuf.Ep
 
 	key := targetTickVoteSignatureKey(epoch)
 
-	data, closer, err := s.db.Get(key)
+	data, closer, err := s.reader().Get(key)
 	if err != nil {
 		if errors.Is(err, pebble.ErrNotFound) {
 			return nil, ErrNotFound
@@ -977,6 +1089,10 @@ func (s *PebbleStore) GetDB() *pebble.DB {
 }
 
 func (s *PebbleStore) Close() error {
+	if s.batch != nil || s.batchDone {
+		s.DiscardBatch() // a batch view never owns the database
+		return nil
+	}
 	err := s.db.Close()
 	if err != nil {
 		return fmt.Errorf("closing database: %w", err)

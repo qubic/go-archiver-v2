@@ -75,6 +75,9 @@ type TestClient struct {
 	alignedVotes  uint16
 	prefetchFn    func(startTick, nrTicks uint32) (qubic.PrefetchResult, error)
 	prefetchCalls int
+	tickInfoCalls int
+	// tickInfoDelay simulates the node round-trip of GetTickInfo.
+	tickInfoDelay time.Duration
 }
 
 func (t *TestClient) GetIssuedAssets(_ context.Context, _ string) (types.IssuedAssets, error) {
@@ -94,6 +97,10 @@ func (t *TestClient) GetIdentity(_ context.Context, _ string) (types.AddressInfo
 }
 
 func (t *TestClient) GetTickInfo(_ context.Context) (types.TickInfo, error) {
+	t.tickInfoCalls++
+	if t.tickInfoDelay > 0 {
+		time.Sleep(t.tickInfoDelay)
+	}
 	votes := t.alignedVotes
 	if votes == 0 {
 		votes = 500
