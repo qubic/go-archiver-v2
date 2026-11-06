@@ -195,6 +195,30 @@ func TestProcessor_prefetchCachedTickInfoExpires(t *testing.T) {
 	require.Equal(t, 2, client.tickInfoCalls)
 }
 
+// TestProcessor_prefetchSlowBatchDoesNotExtendTickInfoAge: the cache window starts when the
+// tick info was read, not when the (possibly slow) prefetch finished.
+func TestProcessor_prefetchSlowBatchDoesNotExtendTickInfoAge(t *testing.T) {
+	bobClient, stop := emptyBobServer(t)
+	defer stop()
+
+	now := time.Unix(1_000_000, 0)
+	slowPrefetch := func(startTick, n uint32) (qubic.PrefetchResult, error) {
+		now = now.Add(maxCachedTickInfoAge + time.Millisecond) // the prefetch outlives the window
+		return cannedPrefetch(startTick, n)
+	}
+	client := &TestClient{epoch: 42, tick: 1000, InitialTick: 100, prefetchFn: slowPrefetch}
+	proc, _ := newPrefetchProcessor(t, client, bobClient, 5)
+	proc.now = func() time.Time { return now }
+
+	require.NoError(t, proc.processOneByOne())
+	require.Equal(t, 1, client.tickInfoCalls)
+
+	client.tick = 1024
+	require.NoError(t, proc.processOneByOne())
+	require.Equal(t, 2, client.tickInfoCalls, "tick info read before a slow prefetch is already expired")
+	require.Equal(t, uint32(1024), proc.GetTickStatus().LiveTick)
+}
+
 // BenchmarkProcessor_prefetchedTick measures the per-tick processor overhead around the
 // validator (which is stubbed out) for ticks served from a prefetch batch, with a simulated
 // GetTickInfo node round-trip.

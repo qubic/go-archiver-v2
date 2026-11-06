@@ -158,8 +158,9 @@ func (p *Processor) processOneByOne() (err error) {
 
 	// Ticks served from the cached batch reuse the tick info the batch was built with
 	// instead of a node round-trip per tick (see cachedTickInfo).
-	tickInfo, tickInfoCached := p.cachedTickInfo(ctx)
+	tickInfo, tickInfoAt, tickInfoCached := p.cachedTickInfo(ctx)
 	if !tickInfoCached {
+		tickInfoAt = p.now() // taken before the read: the info is at least this old
 		tickInfo, err = client.GetTickInfo(ctx)
 		if err != nil {
 			return fmt.Errorf("getting tick info: %w", err)
@@ -247,7 +248,7 @@ func (p *Processor) processOneByOne() (err error) {
 	// batch when possible; otherwise fall back to the live single-tick path.
 	served := false
 	if p.prefetchEnabled && useBob {
-		served, err = p.processFromPrefetch(ctx, client, bobClient, tickStore, tickInfo, nextTick, ceiling, bobIndexingTick)
+		served, err = p.processFromPrefetch(ctx, client, bobClient, tickStore, tickInfo, tickInfoAt, nextTick, ceiling, bobIndexingTick)
 		if err != nil {
 			return err
 		}
@@ -292,7 +293,7 @@ func (p *Processor) processOneByOne() (err error) {
 // ceiling so it never reads bob past the indexed frontier. It returns served=false (with
 // no error) when a prefetched tick fails validation, so the caller falls back to the live
 // path. A non-nil error is a prefetch-infrastructure failure that should abort the iteration.
-func (p *Processor) processFromPrefetch(ctx context.Context, client network.QubicClient, bobClient *bob.Client, dataStore *db.PebbleStore, tickInfo types.TickInfo, nextTick *protobuf.ProcessedTick, ceiling, bobIndexingTick uint32) (served bool, err error) {
+func (p *Processor) processFromPrefetch(ctx context.Context, client network.QubicClient, bobClient *bob.Client, dataStore *db.PebbleStore, tickInfo types.TickInfo, tickInfoAt time.Time, nextTick *protobuf.ProcessedTick, ceiling, bobIndexingTick uint32) (served bool, err error) {
 	epoch := tickInfo.Epoch
 	if !p.currentBatch.covers(nextTick.TickNumber, epoch) {
 		// Clamp the batch so it never reads bob past the ceiling (bob's indexing frontier):
@@ -309,11 +310,11 @@ func (p *Processor) processFromPrefetch(ctx context.Context, client network.Qubi
 		if bErr != nil {
 			return false, fmt.Errorf("prefetching batch at tick %d: %w", nextTick.TickNumber, bErr)
 		}
-		batch.tickInfo, batch.tickInfoAt = tickInfo, p.now()
+		batch.tickInfo, batch.tickInfoAt = tickInfo, tickInfoAt
 		p.currentBatch = batch
 	} else if tickInfo.Tick > p.currentBatch.tickInfo.Tick {
 		// fresh tick info fetched for a cached tick restarts the cache window
-		p.currentBatch.tickInfo, p.currentBatch.tickInfoAt = tickInfo, p.now()
+		p.currentBatch.tickInfo, p.currentBatch.tickInfoAt = tickInfo, tickInfoAt
 	}
 
 	tp := p.currentBatch.byTick[nextTick.TickNumber]
@@ -336,24 +337,24 @@ func (p *Processor) processFromPrefetch(ctx context.Context, client network.Qubi
 // Reusing it skips the per-tick GetTickInfo round-trip. A tick that was the node tip at build
 // time is excluded (and gets fresh tick info), so the aligned-votes readiness check in
 // processOneByOne never runs against a stale vote count.
-func (p *Processor) cachedTickInfo(ctx context.Context) (types.TickInfo, bool) {
+func (p *Processor) cachedTickInfo(ctx context.Context) (types.TickInfo, time.Time, bool) {
 	batch := p.currentBatch
 	if !p.prefetchEnabled || p.bobProvider == nil || batch == nil || p.now().Sub(batch.tickInfoAt) >= maxCachedTickInfoAge {
-		return types.TickInfo{}, false
+		return types.TickInfo{}, time.Time{}, false
 	}
 	dataStore, err := p.databasePool.GetDbForEpoch(batch.epoch)
 	if err != nil {
-		return types.TickInfo{}, false
+		return types.TickInfo{}, time.Time{}, false
 	}
 	lastProcessedTick, err := dataStore.GetLastProcessedTick(ctx)
 	if err != nil || uint16(lastProcessedTick.Epoch) != batch.epoch {
-		return types.TickInfo{}, false
+		return types.TickInfo{}, time.Time{}, false
 	}
 	nextTick := lastProcessedTick.TickNumber + 1
 	if !batch.covers(nextTick, batch.epoch) || nextTick >= batch.tickInfo.Tick {
-		return types.TickInfo{}, false
+		return types.TickInfo{}, time.Time{}, false
 	}
-	return batch.tickInfo, true
+	return batch.tickInfo, batch.tickInfoAt, true
 }
 
 // bobCeiling returns the newest tick safe to consume from bob: min(node tick,
