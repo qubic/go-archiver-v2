@@ -230,6 +230,24 @@ func TestPebbleStore_batchReadsItsOwnWrites(t *testing.T) {
 		"quorum data lands in the interval appended earlier in the same batch")
 }
 
+// TestPebbleStore_batchRejectsWritesBetweenCommitAndDiscard: the processor defers the discard,
+// so writes right after a commit must fail cleanly instead of reusing the committed batch.
+func TestPebbleStore_batchRejectsWritesBetweenCommitAndDiscard(t *testing.T) {
+	ctx := context.Background()
+	store, err := createTestDataStore(t)
+	require.NoError(t, err)
+	defer closeDb(store)
+
+	tickStore := store.BeginBatch()
+	defer tickStore.DiscardBatch()
+	require.NoError(t, tickStore.CommitBatch())
+
+	require.ErrorIs(t, tickStore.SetTickData(ctx, 2, &protobuf.TickData{TickNumber: 2}), errBatchDone)
+	require.ErrorIs(t, tickStore.SetTransactions(ctx, []*protobuf.Transaction{{TxId: "x"}}), errBatchDone)
+	require.ErrorIs(t, tickStore.SetTickTransactionsStatus(ctx, 2, &protobuf.TickTransactionsStatus{}), errBatchDone)
+	require.ErrorIs(t, tickStore.SetLastProcessedTick(ctx, &protobuf.ProcessedTick{TickNumber: 2, Epoch: 42}), errBatchDone)
+}
+
 func TestPebbleStore_batchRejectsWritesAfterCommit(t *testing.T) {
 	ctx := context.Background()
 	store, err := createTestDataStore(t)

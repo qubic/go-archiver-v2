@@ -103,11 +103,11 @@ type writeBatch struct {
 }
 
 func (s *PebbleStore) newWriteBatch(size int) *writeBatch {
-	if s.batch != nil {
-		return &writeBatch{b: s.batch}
-	}
 	if s.batchDone {
 		return &writeBatch{done: true}
+	}
+	if s.batch != nil {
+		return &writeBatch{b: s.batch}
 	}
 	return &writeBatch{b: s.db.NewBatchWithSize(size), owned: true}
 }
