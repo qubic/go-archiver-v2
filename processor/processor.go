@@ -49,7 +49,13 @@ type Processor struct {
 	prefetchNrTicks uint32
 	bobFetchTimeout time.Duration
 	currentBatch    *prefetchBatch
+	now             func() time.Time
 }
+
+// maxCachedTickInfoAge bounds how long ticks served from a prefetch batch reuse the node
+// tick info instead of asking the node. It keeps tickStatus.LiveTick (health endpoint) at
+// most about this old, also when a batch is consumed slowly or processing keeps failing.
+const maxCachedTickInfoAge = time.Second
 
 type BobClientProvider interface {
 	GetClient() (*bob.Client, error)
@@ -81,6 +87,7 @@ func NewProcessor(clientPool network.QubicClientPool, dbPool *db.DatabasePool, t
 		prefetchEnabled:    config.PrefetchEnabled,
 		prefetchNrTicks:    config.PrefetchNrTicks,
 		bobFetchTimeout:    config.PrefetchBobTimeout,
+		now:                time.Now,
 	}
 }
 
@@ -88,11 +95,13 @@ func NewProcessor(clientPool network.QubicClientPool, dbPool *db.DatabasePool, t
 // bob tx-status fetched in parallel for the same ticks. It is reused across
 // processOneByOne calls until exhausted or the epoch changes.
 type prefetchBatch struct {
-	epoch     uint16
-	tickInfo  types.TickInfo // node tick info the batch was built with
-	result    qubic.PrefetchResult
-	byTick    map[uint32]qubic.TickPrefetch
-	bobByTick map[uint32]bob.TickData
+	epoch uint16
+	// latest node tick info seen while the batch is in use, and when it was fetched
+	tickInfo   types.TickInfo
+	tickInfoAt time.Time
+	result     qubic.PrefetchResult
+	byTick     map[uint32]qubic.TickPrefetch
+	bobByTick  map[uint32]bob.TickData
 }
 
 func (b *prefetchBatch) covers(tick uint32, epoch uint16) bool {
@@ -300,8 +309,11 @@ func (p *Processor) processFromPrefetch(ctx context.Context, client network.Qubi
 		if bErr != nil {
 			return false, fmt.Errorf("prefetching batch at tick %d: %w", nextTick.TickNumber, bErr)
 		}
-		batch.tickInfo = tickInfo
+		batch.tickInfo, batch.tickInfoAt = tickInfo, p.now()
 		p.currentBatch = batch
+	} else if tickInfo.Tick > p.currentBatch.tickInfo.Tick {
+		// fresh tick info fetched for a cached tick restarts the cache window
+		p.currentBatch.tickInfo, p.currentBatch.tickInfoAt = tickInfo, p.now()
 	}
 
 	tp := p.currentBatch.byTick[nextTick.TickNumber]
@@ -319,14 +331,14 @@ func (p *Processor) processFromPrefetch(ctx context.Context, client network.Qubi
 	return true, nil
 }
 
-// cachedTickInfo returns the tick info the current prefetch batch was built with, if that
-// batch covers the next tick to process. Reusing it skips the per-tick GetTickInfo
-// round-trip; it is refreshed with every new batch. A tick that was the node tip at build
+// cachedTickInfo returns the latest tick info seen with the current prefetch batch, if that
+// batch covers the next tick to process and the info is younger than maxCachedTickInfoAge.
+// Reusing it skips the per-tick GetTickInfo round-trip. A tick that was the node tip at build
 // time is excluded (and gets fresh tick info), so the aligned-votes readiness check in
 // processOneByOne never runs against a stale vote count.
 func (p *Processor) cachedTickInfo(ctx context.Context) (types.TickInfo, bool) {
 	batch := p.currentBatch
-	if !p.prefetchEnabled || p.bobProvider == nil || batch == nil {
+	if !p.prefetchEnabled || p.bobProvider == nil || batch == nil || p.now().Sub(batch.tickInfoAt) >= maxCachedTickInfoAge {
 		return types.TickInfo{}, false
 	}
 	dataStore, err := p.databasePool.GetDbForEpoch(batch.epoch)

@@ -167,6 +167,34 @@ func TestProcessor_prefetchTipTickUsesFreshTickInfo(t *testing.T) {
 	require.Equal(t, 1, client.prefetchCalls)
 }
 
+// TestProcessor_prefetchCachedTickInfoExpires: cached tick info is only reused for a short
+// time, so LiveTick (used by the health endpoint) can't stay stale while the node advances,
+// e.g. when a batch is consumed slowly or processing keeps failing.
+func TestProcessor_prefetchCachedTickInfoExpires(t *testing.T) {
+	bobClient, stop := emptyBobServer(t)
+	defer stop()
+
+	client := &TestClient{epoch: 42, tick: 1000, InitialTick: 100, prefetchFn: cannedPrefetch}
+	proc, rv := newPrefetchProcessor(t, client, bobClient, 5)
+	now := time.Unix(1_000_000, 0)
+	proc.now = func() time.Time { return now }
+
+	require.NoError(t, proc.processOneByOne()) // builds the batch at node tick 1000
+	require.NoError(t, proc.processOneByOne()) // cached
+	require.Equal(t, 1, client.tickInfoCalls)
+
+	client.tick = 1030
+	now = now.Add(maxCachedTickInfoAge + time.Millisecond)
+	require.NoError(t, proc.processOneByOne())
+	require.Equal(t, 2, client.tickInfoCalls, "expired cached tick info is refreshed from the node")
+	require.Equal(t, uint32(1030), proc.GetTickStatus().LiveTick)
+	require.Equal(t, []uint32{100, 101, 102}, rv.validated)
+	require.Equal(t, 1, client.prefetchCalls, "the prefetched batch itself is still used")
+
+	require.NoError(t, proc.processOneByOne()) // the refresh restarts the cache window
+	require.Equal(t, 2, client.tickInfoCalls)
+}
+
 // BenchmarkProcessor_prefetchedTick measures the per-tick processor overhead around the
 // validator (which is stubbed out) for ticks served from a prefetch batch, with a simulated
 // GetTickInfo node round-trip.
