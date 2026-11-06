@@ -89,6 +89,7 @@ func NewProcessor(clientPool network.QubicClientPool, dbPool *db.DatabasePool, t
 // processOneByOne calls until exhausted or the epoch changes.
 type prefetchBatch struct {
 	epoch     uint16
+	tickInfo  types.TickInfo // node tick info the batch was built with
 	result    qubic.PrefetchResult
 	byTick    map[uint32]qubic.TickPrefetch
 	bobByTick map[uint32]bob.TickData
@@ -146,10 +147,16 @@ func (p *Processor) processOneByOne() (err error) {
 	// pool. The second connection is only acquired on the live path (see validateLive).
 	client := network.NewTracingQubicClient(rawClient)
 
-	tickInfo, err := client.GetTickInfo(ctx)
-	if err != nil {
-		return fmt.Errorf("getting tick info: %w", err)
+	// Ticks served from the cached batch reuse the tick info the batch was built with
+	// instead of a node round-trip per tick (see cachedTickInfo).
+	tickInfo, tickInfoCached := p.cachedTickInfo(ctx)
+	if !tickInfoCached {
+		tickInfo, err = client.GetTickInfo(ctx)
+		if err != nil {
+			return fmt.Errorf("getting tick info: %w", err)
+		}
 	}
+	rootSpan.SetAttributes(attribute.Bool("tick_info.cached", tickInfoCached))
 
 	p.tickStatus.LiveTick = tickInfo.Tick
 	p.tickStatus.LiveEpoch = tickInfo.Epoch
@@ -222,33 +229,46 @@ func (p *Processor) processOneByOne() (err error) {
 		}
 	}
 
+	// All writes of this tick (validator store phase, tick intervals, processed tick) go into
+	// one batch, committed atomically with a single fsync. A failed attempt is discarded.
+	tickStore := dataStore.BeginBatch()
+	defer func() { tickStore.DiscardBatch() }()
+
 	// Prefetch fast path: serve this tick (and the next nrTicks-1) from one pipelined
 	// batch when possible; otherwise fall back to the live single-tick path.
+	served := false
 	if p.prefetchEnabled && useBob {
-		served, pErr := p.processFromPrefetch(ctx, client, bobClient, dataStore, tickInfo, nextTick, ceiling, bobIndexingTick)
-		if pErr != nil {
-			err = pErr
+		served, err = p.processFromPrefetch(ctx, client, bobClient, tickStore, tickInfo, nextTick, ceiling, bobIndexingTick)
+		if err != nil {
 			return err
 		}
 		if !served {
-			if err = p.validateLive(ctx, client, bobClient, dataStore, tickInfo, nextTick); err != nil {
-				return err
-			}
+			// drop whatever the failed prefetched attempt wrote before retrying live
+			tickStore.DiscardBatch()
+			tickStore = dataStore.BeginBatch()
 		}
-	} else {
-		if err = p.validateLive(ctx, client, bobClient, dataStore, tickInfo, nextTick); err != nil {
+	}
+	if !served {
+		if err = p.validateLive(ctx, client, bobClient, tickStore, tickInfo, nextTick); err != nil {
 			return err
 		}
 	}
 
-	err = p.handleTickIntervals(ctx, dataStore, lastProcessedTick, nextTick)
+	err = p.handleTickIntervals(ctx, tickStore, lastProcessedTick, nextTick)
 	if err != nil {
 		return fmt.Errorf("handling skipped ticks: %w", err)
 	}
 
-	err = p.updateProcessedTick(ctx, dataStore, nextTick)
+	err = p.updateProcessedTick(ctx, tickStore, nextTick)
 	if err != nil {
 		return fmt.Errorf("storing processed tick: %w", err)
+	}
+
+	_, commitSpan := tracing.Tracer().Start(ctx, "store_commit")
+	err = tickStore.CommitBatch()
+	commitSpan.End()
+	if err != nil {
+		return fmt.Errorf("committing tick %d: %w", nextTick.TickNumber, err)
 	}
 
 	p.metrics.SetLastProcessedTick(nextTick.TickNumber)
@@ -280,6 +300,7 @@ func (p *Processor) processFromPrefetch(ctx context.Context, client network.Qubi
 		if bErr != nil {
 			return false, fmt.Errorf("prefetching batch at tick %d: %w", nextTick.TickNumber, bErr)
 		}
+		batch.tickInfo = tickInfo
 		p.currentBatch = batch
 	}
 
@@ -296,6 +317,31 @@ func (p *Processor) processFromPrefetch(ctx context.Context, client network.Qubi
 		return false, nil
 	}
 	return true, nil
+}
+
+// cachedTickInfo returns the tick info the current prefetch batch was built with, if that
+// batch covers the next tick to process. Reusing it skips the per-tick GetTickInfo
+// round-trip; it is refreshed with every new batch. A tick that was the node tip at build
+// time is excluded (and gets fresh tick info), so the aligned-votes readiness check in
+// processOneByOne never runs against a stale vote count.
+func (p *Processor) cachedTickInfo(ctx context.Context) (types.TickInfo, bool) {
+	batch := p.currentBatch
+	if !p.prefetchEnabled || p.bobProvider == nil || batch == nil {
+		return types.TickInfo{}, false
+	}
+	dataStore, err := p.databasePool.GetDbForEpoch(batch.epoch)
+	if err != nil {
+		return types.TickInfo{}, false
+	}
+	lastProcessedTick, err := dataStore.GetLastProcessedTick(ctx)
+	if err != nil || uint16(lastProcessedTick.Epoch) != batch.epoch {
+		return types.TickInfo{}, false
+	}
+	nextTick := lastProcessedTick.TickNumber + 1
+	if !batch.covers(nextTick, batch.epoch) || nextTick >= batch.tickInfo.Tick {
+		return types.TickInfo{}, false
+	}
+	return batch.tickInfo, true
 }
 
 // bobCeiling returns the newest tick safe to consume from bob: min(node tick,

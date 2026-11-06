@@ -38,7 +38,7 @@ func (s stubBobProvider) GetClient() (*bob.Client, error) { return s.client, nil
 // bobServer answers GET /status with the given indexing frontier and every
 // qubic_getTickByNumber with an empty transaction list (bob.FetchTick succeeds for any
 // tick; the recording validator ignores the data).
-func bobServer(t *testing.T, indexingTick uint32) (*bob.Client, func()) {
+func bobServer(t testing.TB, indexingTick uint32) (*bob.Client, func()) {
 	t.Helper()
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path == "/status" {
@@ -52,7 +52,7 @@ func bobServer(t *testing.T, indexingTick uint32) (*bob.Client, func()) {
 
 // emptyBobServer reports an indexing frontier far ahead so the indexing gate never trips;
 // tests that exercise the gate use bobServer with a specific frontier.
-func emptyBobServer(t *testing.T) (*bob.Client, func()) {
+func emptyBobServer(t testing.TB) (*bob.Client, func()) {
 	return bobServer(t, 1_000_000)
 }
 
@@ -98,6 +98,97 @@ func TestProcessor_prefetchServesBatchFromCacheThenReprefetches(t *testing.T) {
 	require.NoError(t, proc.processOneByOne())
 	require.Equal(t, 2, client.prefetchCalls, "exhausting the batch triggers a re-prefetch")
 	require.Equal(t, uint32(105), rv.validated[len(rv.validated)-1])
+}
+
+func newPrefetchProcessor(t testing.TB, client *TestClient, bobClient *bob.Client, nrTicks uint32) (*Processor, *recordingValidator) {
+	t.Helper()
+	dataPool, err := db.NewDatabasePool(t.TempDir(), 5)
+	require.NoError(t, err)
+	rv := &recordingValidator{}
+	proc := NewProcessor(&TrackingPool{client: client}, dataPool, rv, Config{
+		ProcessTickTimeout: time.Second,
+		BobProvider:        stubBobProvider{client: bobClient},
+		PrefetchEnabled:    true,
+		PrefetchNrTicks:    nrTicks,
+	}, dummyMetrics)
+	return proc, rv
+}
+
+// TestProcessor_prefetchCacheHitsSkipGetTickInfo: ticks served from a cached batch reuse the
+// tick info captured when the batch was built instead of asking the node again.
+func TestProcessor_prefetchCacheHitsSkipGetTickInfo(t *testing.T) {
+	bobClient, stop := emptyBobServer(t)
+	defer stop()
+
+	const nrTicks = 5
+	client := &TestClient{epoch: 42, tick: 1000, InitialTick: 100, prefetchFn: cannedPrefetch}
+	proc, rv := newPrefetchProcessor(t, client, bobClient, nrTicks)
+
+	for i := 0; i < nrTicks; i++ {
+		require.NoError(t, proc.processOneByOne())
+	}
+	require.Equal(t, []uint32{100, 101, 102, 103, 104}, rv.validated)
+	require.Equal(t, 1, client.tickInfoCalls, "only the iteration that builds the batch asks the node for tick info")
+
+	// the next tick is outside the batch: fresh tick info, new batch
+	require.NoError(t, proc.processOneByOne())
+	require.Equal(t, 2, client.tickInfoCalls)
+	require.Equal(t, 2, client.prefetchCalls)
+
+	status := proc.GetTickStatus()
+	require.Equal(t, uint32(1000), status.LiveTick)
+	require.Equal(t, uint32(104), status.ProcessedTick)
+}
+
+// TestProcessor_prefetchTipTickUsesFreshTickInfo: a batch tick that was the node tip when the
+// batch was built is not served with that stale tick info, so the aligned-votes readiness
+// check still runs against fresh data (and can't spin on a stale vote count).
+func TestProcessor_prefetchTipTickUsesFreshTickInfo(t *testing.T) {
+	bobClient, stop := emptyBobServer(t)
+	defer stop()
+
+	// node tip 101 with too few aligned votes; batch is clamped to [100, 101]
+	client := &TestClient{epoch: 42, tick: 101, InitialTick: 100, alignedVotes: 300, prefetchFn: cannedPrefetch}
+	proc, rv := newPrefetchProcessor(t, client, bobClient, 5)
+
+	require.NoError(t, proc.processOneByOne())
+	require.Equal(t, []uint32{100}, rv.validated)
+	require.Equal(t, 1, client.tickInfoCalls)
+
+	err := proc.processOneByOne()
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "tick not ready")
+	require.Equal(t, 2, client.tickInfoCalls, "the tip tick must re-read tick info")
+
+	// once the votes are in, the cached batch serves it
+	client.alignedVotes = 500
+	require.NoError(t, proc.processOneByOne())
+	require.Equal(t, []uint32{100, 101}, rv.validated)
+	require.Equal(t, 1, client.prefetchCalls)
+}
+
+// BenchmarkProcessor_prefetchedTick measures the per-tick processor overhead around the
+// validator (which is stubbed out) for ticks served from a prefetch batch, with a simulated
+// GetTickInfo node round-trip.
+func BenchmarkProcessor_prefetchedTick(b *testing.B) {
+	for _, rtt := range []time.Duration{0, time.Millisecond, 5 * time.Millisecond} {
+		b.Run(fmt.Sprintf("tickInfoRTT=%s", rtt), func(b *testing.B) {
+			bobClient, stop := emptyBobServer(b)
+			defer stop()
+
+			client := &TestClient{epoch: 42, tick: 1 << 30, InitialTick: 100, prefetchFn: cannedPrefetch, tickInfoDelay: rtt}
+			proc, _ := newPrefetchProcessor(b, client, bobClient, 20)
+
+			b.ResetTimer()
+			for i := 0; i < b.N; i++ {
+				if err := proc.processOneByOne(); err != nil {
+					b.Fatal(err)
+				}
+			}
+			b.StopTimer()
+			b.ReportMetric(float64(client.tickInfoCalls)/float64(b.N), "tickInfoCalls/tick")
+		})
+	}
 }
 
 // blockingBobServer responds instantly for every tick except blockTick, for which it
